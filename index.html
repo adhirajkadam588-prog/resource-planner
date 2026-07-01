@@ -530,18 +530,48 @@
         </div>
         <button class="action" onclick="openProjectModal()">+ Add release item</button>
       </div>
-      <!-- Filter bar -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;" id="releaseDateFilterBar">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Release/GA date:</div>
-        <div id="releaseDatePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Dev POD:</div>
-        <div id="devPodFilterPills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
-      </div>
       <div style="overflow-x:auto;">
-        <table>
-          <thead><tr><th>Release/GA date</th><th>Release Items</th><th>JIRA</th><th>Dev POD</th><th>Dev to QA date</th><th>Total QA efforts</th><th>Owner</th><th>Status</th><th>QA Go ahead date</th><th>QA completion date</th><th></th></tr></thead>
+        <table id="releaseTable">
+          <thead>
+            <tr>
+              <th style="white-space:nowrap; min-width:140px;">
+                Release/GA date
+                <select onchange="setReleaseDateFilter(this.value || null)" id="releaseDateSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All dates</option>
+                </select>
+              </th>
+              <th style="white-space:nowrap; min-width:160px;">Release Items</th>
+              <th style="white-space:nowrap;">JIRA</th>
+              <th style="white-space:nowrap; min-width:120px;">
+                Dev POD
+                <select onchange="setDevPodFilter(this.value || null)" id="devPodSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All PODs</option>
+                  <option>WinGuardians</option>
+                  <option>Heisenbug</option>
+                  <option>Hydra</option>
+                  <option>Sentinels</option>
+                  <option>DareDevils</option>
+                  <option>Evil Inc.</option>
+                </select>
+              </th>
+              <th style="white-space:nowrap;">Dev to QA date</th>
+              <th style="white-space:nowrap;">Total QA efforts</th>
+              <th style="white-space:nowrap;">QA Go ahead date</th>
+              <th style="white-space:nowrap;">QA completion date</th>
+              <th style="white-space:nowrap;">Owner</th>
+              <th style="white-space:nowrap; min-width:110px;">
+                Status
+                <select onchange="setReleaseStatusFilter(this.value || null)" id="releaseStatusSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All statuses</option>
+                  <option>Not started</option>
+                  <option>In progress</option>
+                  <option>Completed</option>
+                  <option>Blocked</option>
+                </select>
+              </th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody id="projectTableBody"></tbody>
         </table>
       </div>
@@ -1969,6 +1999,7 @@ let selectedSummaryReleaseDate = null;
 let selectedDevPod = null;
 let selectedTestPlanDevPod = null;
 let selectedSummaryDevPod = null;
+let selectedReleaseStatus = null;
 let editingTestRowId = null;
 
 function getTestPlanForProject(projectId) {
@@ -3000,8 +3031,6 @@ function getWorkingDaysInMonth(year, month) {
 function renderProjects() {
   const tbody = document.getElementById('projectTableBody');
   const empty = document.getElementById('projectEmpty');
-  const pillsEl = document.getElementById('releaseDatePills');
-  const podPillsEl = document.getElementById('devPodFilterPills');
 
   const POD_COLORS = {
     'WinGuardians': ['#dbeafe','#1d4ed8'],
@@ -3011,39 +3040,31 @@ function renderProjects() {
     'DareDevils':   ['#fee2e2','#b91c1c'],
     'Evil Inc.':    ['#f3e8ff','#7e22ce'],
   };
-  const ALL_PODS = ['WinGuardians','Heisenbug','Hydra','Sentinels','DareDevils','Evil Inc.'];
 
-  // Build unique sorted release dates
-  const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
-
-  // Release/GA date pills
-  if (pillsEl) {
-    pillsEl.innerHTML = allDates.length === 0
-      ? '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>'
-      : `<button onclick="setReleaseDateFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedReleaseDate === null ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
-        allDates.map(d => `<button onclick="setReleaseDateFilter('${d}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${selectedReleaseDate === d ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">${formatDateDisplay(d)}</button>`).join('');
+  // Populate Release/GA date dropdown
+  const dateSelect = document.getElementById('releaseDateSelect');
+  if (dateSelect) {
+    const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
+    const cur = selectedReleaseDate;
+    dateSelect.innerHTML = '<option value="">All dates</option>' +
+      allDates.map(d => `<option value="${d}" ${cur === d ? 'selected' : ''}>${formatDateDisplay(d)}</option>`).join('');
   }
 
-  // Dev POD pills — show only PODs that exist in current data
-  const usedPods = [...new Set(state.projects.map(p => p.devPod).filter(Boolean))];
-  if (podPillsEl) {
-    if (usedPods.length === 0) {
-      podPillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No PODs assigned yet</span>';
-    } else {
-      podPillsEl.innerHTML =
-        `<button onclick="setDevPodFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedDevPod === null ? 'background:#0f172a; color:white; border-color:#0f172a;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
-        ALL_PODS.filter(pod => usedPods.includes(pod)).map(pod => {
-          const [bg, fg] = POD_COLORS[pod] || ['#f1f5f9','#475569'];
-          const isActive = selectedDevPod === pod;
-          return `<button onclick="setDevPodFilter('${pod}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${isActive ? `background:${fg}; color:white; border-color:${fg};` : `background:${bg}; color:${fg}; border-color:${bg};`}">${pod}</button>`;
-        }).join('');
-    }
-  }
+  // Sync POD dropdown selected state
+  const podSelect = document.getElementById('devPodSelect');
+  if (podSelect && selectedDevPod) podSelect.value = selectedDevPod;
+  else if (podSelect) podSelect.value = '';
 
-  // Apply both filters
+  // Sync Status dropdown
+  const statusSelect = document.getElementById('releaseStatusSelect');
+  if (statusSelect && selectedReleaseStatus) statusSelect.value = selectedReleaseStatus;
+  else if (statusSelect) statusSelect.value = '';
+
+  // Apply all 3 filters
   let filtered = state.projects;
   if (selectedReleaseDate) filtered = filtered.filter(p => p.releaseDate === selectedReleaseDate);
   if (selectedDevPod) filtered = filtered.filter(p => p.devPod === selectedDevPod);
+  if (selectedReleaseStatus) filtered = filtered.filter(p => p.status === selectedReleaseStatus);
 
   if (state.projects.length === 0) {
     tbody.innerHTML = ''; empty.style.display = 'block'; return;
@@ -3078,10 +3099,10 @@ function renderProjects() {
       <td>${podCell}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.buildDate)}</td>
       <td style="font-family:var(--mono);">${p.effort ? p.effort + ' PDs' : '—'}</td>
-      <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(p.goAheadBy || '—')}</td>
-      <td>${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${escapeHtml(p.status)}</span>` : '—'}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
+      <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(p.goAheadBy || '—')}</td>
+      <td>${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${escapeHtml(p.status)}</span>` : '—'}</td>
       <td style="text-align:right; white-space:nowrap;">
         <button class="icon-btn edit" onclick="openProjectModal('${p.id}')" aria-label="Edit release item">✎</button>
         <button class="icon-btn" onclick="deleteProject('${p.id}')" aria-label="Remove release item">✕</button>
@@ -3091,12 +3112,17 @@ function renderProjects() {
 }
 
 function setReleaseDateFilter(date) {
-  selectedReleaseDate = date;
+  selectedReleaseDate = date || null;
   renderProjects();
 }
 
 function setDevPodFilter(pod) {
-  selectedDevPod = pod;
+  selectedDevPod = pod || null;
+  renderProjects();
+}
+
+function setReleaseStatusFilter(status) {
+  selectedReleaseStatus = status || null;
   renderProjects();
 }
 
