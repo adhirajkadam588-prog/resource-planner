@@ -303,6 +303,31 @@
   </div>
 </div>
 
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="changePasswordModal">
+  <div class="modal">
+    <h3>🔒 Change password</h3>
+    <div class="field">
+      <label>Current password</label>
+      <input id="cpCurrentPassword" type="password" placeholder="Enter your current password" autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>New password</label>
+      <input id="cpNewPassword" type="password" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label>Confirm new password</label>
+      <input id="cpConfirmPassword" type="password" placeholder="Re-enter new password" autocomplete="new-password">
+    </div>
+    <div id="cpError" style="font-size:12px; color:var(--red); margin-bottom:8px;"></div>
+    <div id="cpSuccess" style="font-size:12px; color:var(--green); margin-bottom:8px;"></div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('changePasswordModal')">Cancel</button>
+      <button class="action" id="cpBtn" onclick="changePassword()">Update password</button>
+    </div>
+  </div>
+</div>
+
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
@@ -366,6 +391,7 @@
     <div class="sidebar-foot">
       <div id="lastSaved" style="margin-bottom:8px;">not saved yet</div>
       <div id="userEmail" style="margin-bottom:8px; color:var(--text-dim); font-size:10px; word-break:break-all;"></div>
+      <button onclick="openChangePasswordModal()" style="background:transparent; border:1px solid var(--border); color:var(--text-faint); padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer; font-family:inherit; width:100%; margin-bottom:6px;">🔒 Change password</button>
       <button onclick="signOut()" style="background:transparent; border:1px solid var(--border); color:var(--text-faint); padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer; font-family:inherit; width:100%;">Sign out</button>
     </div>
   </aside>
@@ -1063,6 +1089,82 @@ async function signOut() {
     await sbClient.auth.signOut();
   } catch (e) { console.warn('signOut error:', e); }
   resetApp();
+}
+
+function openChangePasswordModal() {
+  document.getElementById('cpCurrentPassword').value = '';
+  document.getElementById('cpNewPassword').value = '';
+  document.getElementById('cpConfirmPassword').value = '';
+  document.getElementById('cpError').textContent = '';
+  document.getElementById('cpSuccess').textContent = '';
+  document.getElementById('cpBtn').disabled = false;
+  document.getElementById('cpBtn').textContent = 'Update password';
+  document.getElementById('changePasswordModal').classList.add('show');
+}
+
+async function changePassword() {
+  const currentPassword = document.getElementById('cpCurrentPassword').value;
+  const newPassword = document.getElementById('cpNewPassword').value;
+  const confirmPassword = document.getElementById('cpConfirmPassword').value;
+  const errEl = document.getElementById('cpError');
+  const successEl = document.getElementById('cpSuccess');
+  const btn = document.getElementById('cpBtn');
+  errEl.textContent = '';
+  successEl.textContent = '';
+
+  // Validate inputs
+  if (!currentPassword) { errEl.textContent = 'Please enter your current password.'; return; }
+  if (!newPassword || newPassword.length < 6) { errEl.textContent = 'New password must be at least 6 characters.'; return; }
+  if (newPassword !== confirmPassword) { errEl.textContent = 'New passwords do not match.'; return; }
+  if (currentPassword === newPassword) { errEl.textContent = 'New password must be different from current password.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+
+  try {
+    // Step 1: Verify current password by re-authenticating
+    const { error: signInError } = await sbClient.auth.signInWithPassword({
+      email: currentUserEmail,
+      password: currentPassword
+    });
+    if (signInError) {
+      errEl.textContent = 'Current password is incorrect.';
+      btn.disabled = false;
+      btn.textContent = 'Update password';
+      return;
+    }
+
+    // Step 2: Update to new password
+    const { error: updateError } = await sbClient.auth.updateUser({
+      password: newPassword
+    });
+
+    if (updateError) {
+      errEl.textContent = 'Failed to update password: ' + updateError.message;
+      btn.disabled = false;
+      btn.textContent = 'Update password';
+      return;
+    }
+
+    // Success
+    successEl.textContent = '✓ Password updated successfully! Please use your new password next time you log in.';
+    btn.textContent = 'Done';
+    document.getElementById('cpCurrentPassword').value = '';
+    document.getElementById('cpNewPassword').value = '';
+    document.getElementById('cpConfirmPassword').value = '';
+
+    // Auto-close after 2 seconds
+    setTimeout(() => {
+      closeModal('changePasswordModal');
+      btn.disabled = false;
+      btn.textContent = 'Update password';
+    }, 2500);
+
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = 'Update password';
+  }
 }
 
 // On page load — restore session if it exists
