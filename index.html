@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Resource Planner</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>TeamLens</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap');
@@ -292,9 +291,9 @@
 <!-- Login screen — shown until user authenticates -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <div class="login-mark">RP</div>
-    <h2>Resource Planner</h2>
-    <div class="login-sub">Sign in to access your team's planner</div>
+    <div class="login-mark">TL</div>
+    <h2>TeamLens</h2>
+    <div class="login-sub">Sign in to access TeamLens</div>
     <div class="login-field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@company.com" autocomplete="email"></div>
     <div class="login-field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in</button>
@@ -331,9 +330,9 @@
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
-      <div class="mark">RP</div>
-      <h1>Resource planner</h1>
-      <div class="tagline">Team &amp; project scheduling</div>
+      <div class="mark">TL</div>
+      <h1>TeamLens</h1>
+      <div class="tagline">QA Team Planning</div>
     </div>
 
     <nav class="tabs">
@@ -401,14 +400,6 @@
     <div>
       <h2 class="page-title" id="pageTitle">People</h2>
       <div class="page-desc" id="pageDesc">Team roster available for resource planning</div>
-    </div>
-    <div class="right">
-      <div class="export-wrap">
-        <button class="export-btn" onclick="toggleExportMenu()"><span class="ico">⬇</span> Export</button>
-        <div class="export-menu" id="exportMenu">
-          <button onclick="exportExcel()">Download as Excel (.xlsx)</button>
-        </div>
-      </div>
     </div>
   </header>
 
@@ -930,7 +921,7 @@ const SUPABASE_URL = 'https://ilsgdzphjrtfotxtgaqg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlsc2dkenBoanJ0Zm90eHRnYXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4ODgxMjIsImV4cCI6MjA5ODQ2NDEyMn0.d4686tuEKRTOg10PjZcblR_ckKJazFuthTb14t1rLTI';
 
 const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, storageKey: 'rp-auth', storage: window.localStorage }
+  auth: { persistSession: true, storageKey: 'teamlens-auth', storage: window.localStorage }
 });
 // Show connection status on login page
 const _dbgEl = document.getElementById('loginDebug');
@@ -2153,58 +2144,298 @@ function exportTestPlanReport(scope) {
 
 // Shared CSS for all shareable reports (test plan, daily plan, summary)
 const REPORT_CSS = `
-  * { box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-    background: #f6f7f9;
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    background: #f0f2f5;
     color: #1a1d24;
-    margin: 0;
     padding: 40px 24px 80px;
+    font-size: 14px;
+    line-height: 1.5;
   }
-  .report-wrap { max-width: 1100px; margin: 0 auto; }
+  .report-wrap { max-width: 960px; margin: 0 auto; }
+
+  /* ---- Header ---- */
   .report-header {
-    border-bottom: 2px solid #3f6df0;
-    padding-bottom: 18px;
-    margin-bottom: 32px;
-  }
-  .report-header h1 {
-    font-size: 24px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em;
-  }
-  .report-header .gen-date { font-size: 12px; color: #8b91a0; }
-  .section-card {
-    background: #ffffff;
-    border: 1px solid #e1e4ea;
-    border-radius: 10px;
-    padding: 24px 28px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b6cf0 100%);
+    border-radius: 14px;
+    padding: 32px 36px;
     margin-bottom: 28px;
+    color: white;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
   }
-  .section-card h2 {
-    font-size: 18px; font-weight: 700; margin: 0 0 14px; color: #1a1d24;
+  .report-logo {
+    width: 48px; height: 48px; min-width: 48px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; color: white;
   }
-  table { width: 100%; border-collapse: collapse; }
+  .report-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.02em; }
+  .report-header .gen-date { font-size: 12px; opacity: 0.7; }
+
+  /* ---- Project card ---- */
+  .project-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .project-card-header {
+    background: linear-gradient(90deg, #f8f9fc 0%, #ffffff 100%);
+    border-bottom: 1px solid #e8eaf0;
+    padding: 20px 24px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .project-card-header h2 {
+    font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em; flex: 1;
+  }
+  .project-card-body { padding: 20px 24px; }
+
+  /* ---- Badge ---- */
+  .badge-status {
+    display: inline-flex; align-items: center; padding: 4px 12px;
+    border-radius: 20px; font-size: 11px; font-weight: 600;
+    background: #dbeafe; color: #1d4ed8; letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .badge-status.inprogress { background: #fef3c7; color: #b45309; }
+  .badge-status.completed { background: #dcfce7; color: #15803d; }
+  .badge-status.blocked { background: #fee2e2; color: #dc2626; }
+
+  /* ---- Meta pills ---- */
+  .meta-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .meta-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    border-radius: 8px; padding: 5px 10px;
+    font-size: 12px; color: #475569;
+  }
+  .meta-pill strong { color: #1e293b; font-weight: 600; }
+  .meta-pill .pill-icon { font-size: 13px; }
+
+  /* ---- Section label ---- */
+  .section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #94a3b8; margin: 18px 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #e8eaf0; }
+
+  /* ---- Matrix table ---- */
+  .matrix-wrap { border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+  .matrix-table { width: 100%; border-collapse: collapse; }
+  .matrix-table thead tr { background: #f8fafc; }
+  .matrix-table th {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #64748b;
+    padding: 10px 14px; text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .matrix-table th.r { text-align: right; }
+  .matrix-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
+  .matrix-table td.r { text-align: right; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; font-size: 12px; }
+  .matrix-table tbody tr:last-child td { border-bottom: none; }
+  .matrix-table tbody tr:hover { background: #f8fafc; }
+  .matrix-table .row-prep td { background: #fafbff; color: #64748b; font-style: italic; }
+  .matrix-table .row-buffer td { background: #fafbff; color: #64748b; font-style: italic; }
+  .matrix-table .row-total td {
+    background: #f0f4ff; font-weight: 700; color: #1e3a8a;
+    border-top: 2px solid #c7d7fe; border-bottom: none;
+  }
+  .matrix-table .row-env td { font-weight: 500; }
+
+  /* ---- Stat cards ---- */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .stat-card .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 6px; }
+  .stat-card .stat-value { font-size: 26px; font-weight: 700; color: #0f172a; line-height: 1; }
+  .stat-card .stat-value.accent { color: #16a34a; }
+  .stat-card .stat-sub { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+
+  /* ---- Milestone table ---- */
+  .milestone-wrap { border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .milestone-table { width: 100%; border-collapse: collapse; }
+  .milestone-table tr:last-child td { border-bottom: none; }
+  .milestone-table td { padding: 9px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .milestone-table .ms-icon { width: 32px; color: #94a3b8; font-size: 15px; }
+  .milestone-table .ms-label { color: #475569; width: 260px; }
+  .milestone-table .ms-value { font-weight: 600; color: #1e293b; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; }
+  .milestone-table .ms-value.empty { color: #cbd5e1; font-weight: 400; font-style: italic; }
+  .milestone-table tr:hover td { background: #f8fafc; }
+
+  /* ---- Data table (Summary/Daily plan) ---- */
+  .data-table-wrap { border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table thead tr { background: #f8fafc; }
   .data-table th {
-    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
-    color: #8b91a0; font-weight: 600; padding: 8px 10px; border-bottom: 2px solid #e1e4ea;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #64748b;
+    padding: 10px 14px; text-align: left;
+    border-bottom: 2px solid #e2e8f0;
   }
-  .data-table td { padding: 9px 10px; border-bottom: 1px solid #ebedf1; font-size: 13px; }
-  .data-table td.num { text-align: center; font-family: 'SF Mono', Consolas, monospace; }
-  .badge-r {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 600; background: #e8f0fe; color: #2451d6;
-  }
-  .cal-grid-r { display: grid; gap: 1px; background: #e1e4ea; border: 1px solid #e1e4ea; border-radius: 8px; overflow: hidden; font-size: 11px; margin-bottom: 20px; }
-  .cal-cell-r { background: #ffffff; padding: 5px 3px; text-align: center; color: #8b91a0; }
-  .cal-cell-r.name-r { background: #f1f3f6; text-align: left; padding: 5px 9px; color: #1a1d24; font-size: 11.5px; white-space: nowrap; }
-  .cal-cell-r.header-r { background: #f1f3f6; color: #8b91a0; font-weight: 600; }
-  .cal-cell-r.leave-r { background: #fdf3e3; color: #b9760a; font-weight: 600; }
-  .cal-cell-r.weekend-r { background: #f1f3f6; opacity: 0.5; }
-  .month-label { font-size: 13px; font-weight: 600; margin: 18px 0 10px; color: #1a1d24; }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:hover { background: #f8fafc; }
+  .data-table td.num { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; }
+
+  /* ---- Calendar grid ---- */
+  .cal-grid-r { display: grid; gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; font-size: 11px; margin-bottom: 20px; }
+  .cal-cell-r { background: #ffffff; padding: 6px 4px; text-align: center; color: #94a3b8; }
+  .cal-cell-r.name-r { background: #f8fafc; text-align: left; padding: 6px 10px; color: #1e293b; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .cal-cell-r.header-r { background: #f8fafc; color: #64748b; font-weight: 600; }
+  .cal-cell-r.leave-r { background: #fef3c7; color: #b45309; font-weight: 600; }
+  .cal-cell-r.weekend-r { background: #f8fafc; opacity: 0.5; }
+  .month-label { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: #0f172a; letter-spacing: -0.01em; }
   .month-label:first-child { margin-top: 0; }
+  .section-card { background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 24px; }
+  .section-card h2 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .badge-r { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #dbeafe; color: #1d4ed8; }
+
   @media print {
     body { background: white; padding: 0; }
-    .section-card { border: none; page-break-inside: avoid; box-shadow: none; }
+    .project-card { box-shadow: none; border: 1px solid #e2e8f0; page-break-inside: avoid; }
   }
 `;
+
+function buildTestPlanProjectSectionHtml(proj) {
+  const plan = getTestPlanForProject(proj.id);
+  const metrics = computeTestPlanMetrics(plan);
+
+  const statusClass = (proj.status || '').toLowerCase().replace(/\s+/g, '');
+  const envRowsHtml = plan.rows.length > 0
+    ? plan.rows.map(r => {
+        const person = state.people.find(p => p.id === r.assigneeId);
+        return `
+          <tr class="row-env">
+            <td>${escapeHtml(r.name)}</td>
+            <td class="r">${r.coverage ? r.coverage + '%' : '—'}</td>
+            <td class="r">${r.baseCases || '—'}</td>
+            <td class="r">${r.cases || 0}</td>
+            <td class="r">${r.effort || 0}</td>
+            <td>${person ? escapeHtml(person.name) : '—'}</td>
+          </tr>`;
+      }).join('')
+    : `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:18px; font-style:italic;">No environments added</td></tr>`;
+
+  const msRow = (icon, label, value) => `
+    <tr>
+      <td class="ms-icon">${icon}</td>
+      <td class="ms-label">${label}</td>
+      <td class="ms-value ${value ? '' : 'empty'}">${value ? formatDateDisplay(value) : 'Not set'}</td>
+    </tr>`;
+
+  return `
+    <div class="project-card">
+      <div class="project-card-header">
+        <div style="flex:1;">
+          <h2>${escapeHtml(proj.name)}</h2>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+            ${proj.status ? `<span class="badge-status ${statusClass}">${escapeHtml(proj.status)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="project-card-body">
+
+        ${(proj.goAheadBy || proj.goAheadDate || proj.buildDate || proj.completionDate) ? `
+        <div class="meta-pills">
+          ${proj.buildDate ? `<span class="meta-pill"><span class="pill-icon">📥</span> Dev to QA: <strong>${formatDateDisplay(proj.buildDate)}</strong></span>` : ''}
+          ${proj.bvtCompletionDate ? `<span class="meta-pill"><span class="pill-icon">✅</span> BVT: <strong>${formatDateDisplay(proj.bvtCompletionDate)}</strong></span>` : ''}
+          ${proj.completionDate ? `<span class="meta-pill"><span class="pill-icon">🏁</span> QA done: <strong>${formatDateDisplay(proj.completionDate)}</strong></span>` : ''}
+          ${proj.goAheadDate ? `<span class="meta-pill"><span class="pill-icon">🚀</span> Go ahead: <strong>${formatDateDisplay(proj.goAheadDate)}</strong></span>` : ''}
+          ${proj.goAheadBy ? `<span class="meta-pill"><span class="pill-icon">👤</span> By: <strong>${escapeHtml(proj.goAheadBy)}</strong></span>` : ''}
+          ${proj.effort ? `<span class="meta-pill"><span class="pill-icon">⏱</span> Total effort: <strong>${proj.effort} PDs</strong></span>` : ''}
+        </div>` : ''}
+
+        <div class="section-label">Test matrix</div>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Environment</th>
+                <th class="r">Coverage</th>
+                <th class="r">Base cases</th>
+                <th class="r">Total cases</th>
+                <th class="r">Effort (PD)</th>
+                <th>Assigned to</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-prep">
+                <td>📋 Test prep — scenarios, test cases, review</td>
+                <td class="r">—</td><td class="r">—</td><td class="r">—</td>
+                <td class="r">${metrics.testPrepEffort || 0}</td>
+                <td>—</td>
+              </tr>
+              ${envRowsHtml}
+              <tr class="row-buffer">
+                <td>🔄 Buffer</td>
+                <td class="r">—</td><td class="r">—</td><td class="r">—</td>
+                <td class="r">${metrics.bufferEffort || 0}</td>
+                <td>—</td>
+              </tr>
+              <tr class="row-total">
+                <td>Total</td>
+                <td class="r">—</td><td class="r">—</td>
+                <td class="r">${metrics.rowsCases}</td>
+                <td class="r">${metrics.totalEffort}</td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-label">Summary</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Executable cases</div>
+            <div class="stat-value">${metrics.rowsCases}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Required PDs</div>
+            <div class="stat-value">${metrics.requiredPDs}</div>
+            <div class="stat-sub">excl. buffer</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total PDs with buffer</div>
+            <div class="stat-value accent">${metrics.totalEffort}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">People / Total CD</div>
+            <div class="stat-value">${metrics.noOfPeople}</div>
+            <div class="stat-sub">${metrics.totalCD} calendar days</div>
+          </div>
+        </div>
+
+        <div class="section-label">Milestones</div>
+        <div class="milestone-wrap">
+          <table class="milestone-table">
+            <tbody>
+              ${msRow('📦', 'Build pickup', plan.milestones.buildPickup)}
+              ${msRow('🧪', 'BVT completion', plan.milestones.bvtCompletion)}
+              ${msRow('📊', 'Execution completion without buffer', plan.milestones.execNoBuffer)}
+              ${msRow('✅', 'Execution completion with buffer', plan.milestones.execWithBuffer)}
+              ${msRow('🚀', 'Merged build go ahead', plan.milestones.mergedBuildGoAhead)}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
 
 function buildFullReportHtml(title, bodyHtml) {
   const generatedOn = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -2212,14 +2443,18 @@ function buildFullReportHtml(title, bodyHtml) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <style>${REPORT_CSS}</style>
 </head>
 <body>
 <div class="report-wrap">
   <div class="report-header">
-    <h1>${escapeHtml(title)}</h1>
-    <div class="gen-date">Generated on ${generatedOn}</div>
+    <div class="report-logo">TL</div>
+    <div>
+      <h1>${escapeHtml(title)}</h1>
+      <div class="gen-date">Generated on ${generatedOn} · TeamLens</div>
+    </div>
   </div>
   ${bodyHtml}
 </div>
@@ -2324,7 +2559,7 @@ function copyShareLink() {
             <div style="font-size:40px; margin-bottom:16px;">🔗</div>
             <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Report not found</div>
             <div style="font-size:13px; color:#8b91a0; margin-bottom:20px;">This link may have expired or been removed.</div>
-            <a href="${window.location.origin + window.location.pathname}" style="color:#4f7cff; font-size:13px;">← Go to Resource Planner</a>
+            <a href="${window.location.origin + window.location.pathname}" style="color:#4f7cff; font-size:13px;">← Go to TeamLens</a>
           </div>
         </div>`;
       return;
@@ -2465,32 +2700,75 @@ function exportSummaryReport() {
     const allocs = state.allocations.filter(a => a.project === proj.name);
     const members = allocs.map(a => {
       const p = state.people.find(pp => pp.id === a.personId);
-      const personName = p ? p.name : '(removed)';
-      return `${escapeHtml(personName)} (${a.pct}%)`;
-    }).join(', ') || '—';
+      return p ? `<span style="display:inline-block; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px; font-size:11px; margin:1px; color:#334155;">${escapeHtml(p.name)} <span style="color:#94a3b8;">${a.pct}%</span></span>` : '';
+    }).join('') || '<span style="color:#94a3b8; font-style:italic;">Unassigned</span>';
+
+    const statusColors = {
+      'not started': '#dbeafe:#1d4ed8',
+      'in progress': '#fef3c7:#b45309',
+      'completed': '#dcfce7:#15803d',
+      'blocked': '#fee2e2:#dc2626',
+      'on hold': '#f3e8ff:#7c3aed'
+    };
+    const sc = statusColors[(proj.status || '').toLowerCase()] || '#f1f5f9:#475569';
+    const [sbg, sfg] = sc.split(':');
+    const statusBadge = proj.status
+      ? `<span style="display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; background:${sbg}; color:${sfg}; text-transform:uppercase; letter-spacing:0.04em;">${escapeHtml(proj.status)}</span>`
+      : '<span style="color:#94a3b8;">—</span>';
 
     return `
-      <tr>
-        <td>${escapeHtml(proj.name)}</td>
-        <td>${proj.status ? `<span class="badge-r">${escapeHtml(proj.status)}</span>` : '—'}</td>
-        <td>${members}</td>
-        <td class="num">${formatDateDisplay(proj.buildDate)}</td>
-        <td class="num">${formatDateDisplay(proj.completionDate)}</td>
-        <td class="num">${proj.effort ? proj.effort + ' days' : '—'}</td>
-        <td class="num">${formatDateDisplay(proj.goAheadDate)}</td>
-        <td>${escapeHtml(proj.goAheadBy || '—')}</td>
-      </tr>
-    `;
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:12px 14px; font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(proj.name)}</td>
+        <td style="padding:12px 14px;">${statusBadge}</td>
+        <td style="padding:12px 14px;">${members}</td>
+        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.buildDate)}</td>
+        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
+        <td style="padding:12px 14px; text-align:center;">
+          ${proj.effort ? `<span style="font-weight:700; color:#1e3a8a; font-size:15px;">${proj.effort}</span><span style="font-size:11px; color:#94a3b8; margin-left:3px;">PDs</span>` : '<span style="color:#94a3b8;">—</span>'}
+        </td>
+        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.goAheadDate)}</td>
+        <td style="padding:12px 14px; font-size:13px; color:#334155;">${escapeHtml(proj.goAheadBy || '—')}</td>
+      </tr>`;
   }).join('');
 
+  // Summary stat cards
+  const totalProjects = state.projects.length;
+  const inProgress = state.projects.filter(p => (p.status || '').toLowerCase() === 'in progress').length;
+  const completed = state.projects.filter(p => (p.status || '').toLowerCase() === 'completed').length;
+  const totalPDs = state.projects.reduce((s, p) => s + (parseFloat(p.effort) || 0), 0);
+
   const bodyHtml = `
-    <div class="section-card">
-      <h2>Project summary</h2>
-      <table class="data-table">
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px;">
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:6px;">Total projects</div>
+        <div style="font-size:28px; font-weight:700; color:#0f172a;">${totalProjects}</div>
+      </div>
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:6px;">In progress</div>
+        <div style="font-size:28px; font-weight:700; color:#b45309;">${inProgress}</div>
+      </div>
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:6px;">Completed</div>
+        <div style="font-size:28px; font-weight:700; color:#15803d;">${completed}</div>
+      </div>
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:6px;">Total effort</div>
+        <div style="font-size:28px; font-weight:700; color:#1e3a8a;">${totalPDs}<span style="font-size:14px; font-weight:500; color:#64748b; margin-left:4px;">PDs</span></div>
+      </div>
+    </div>
+
+    <div style="background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); overflow:hidden;">
+      <table style="width:100%; border-collapse:collapse;">
         <thead>
-          <tr>
-            <th>Project</th><th>Status</th><th>Working on it</th><th>Start date</th>
-            <th>End date</th><th>Total efforts</th><th>Go ahead date</th><th>Go ahead by</th>
+          <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Project</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Team</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Start date</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA done</th>
+            <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Effort</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Go ahead</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Go ahead by</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -3020,145 +3298,6 @@ function renderDailyPlan() {
     });
   }
   grid.innerHTML = html;
-}
-
-// ====================== EXPORT ======================
-function toggleExportMenu() {
-  document.getElementById('exportMenu').classList.toggle('show');
-}
-
-function buildExportSheets() {
-  const peopleRows = state.people.map(p => ({
-    Name: p.name, Title: p.title || '', Email: p.email || ''
-  }));
-
-  const projectRows = state.projects.map(p => ({
-    Project: p.name,
-    'Dev to QA Build Date': formatDateDisplay(p.buildDate),
-    'BVT Completion Date': formatDateDisplay(p.bvtCompletionDate),
-    'QA Completion Date': formatDateDisplay(p.completionDate),
-    'Total QA Efforts (days)': p.effort || '',
-    'Go Ahead Date': formatDateDisplay(p.goAheadDate),
-    'Go Ahead By': p.goAheadBy || '',
-    Status: p.status || ''
-  }));
-
-  const allocRows = state.allocations.map(a => {
-    const person = state.people.find(p => p.id === a.personId);
-    return {
-      Person: person ? person.name : '(removed)',
-      Project: a.project,
-      'Allocation %': a.pct,
-      Role: a.role || ''
-    };
-  });
-
-  const dailyRows = state.dailyPlan.map(d => {
-    const person = state.people.find(p => p.id === d.personId);
-    return {
-      Person: person ? person.name : '(removed)',
-      Project: d.project,
-      Date: d.date
-    };
-  }).sort((a, b) => a.Date.localeCompare(b.Date));
-
-  const leaveRows = [];
-  Object.keys(state.leaves).forEach(personId => {
-    const person = state.people.find(p => p.id === personId);
-    (state.leaves[personId] || []).forEach(date => {
-      leaveRows.push({ Person: person ? person.name : '(removed)', Date: date });
-    });
-  });
-  leaveRows.sort((a, b) => a.Date.localeCompare(b.Date));
-
-  const summaryRows = state.projects.map(proj => {
-    const allocs = state.allocations.filter(a => a.project === proj.name);
-    const members = allocs.map(a => {
-      const p = state.people.find(pp => pp.id === a.personId);
-      const personName = p ? p.name : '(removed)';
-      return `${personName} (${a.pct}%)`;
-    }).join(', ');
-    return {
-      Project: proj.name,
-      Status: proj.status || '',
-      'Working On It': members,
-      'Start Date': formatDateDisplay(proj.buildDate),
-      'End Date': formatDateDisplay(proj.completionDate),
-      'Total Efforts': proj.effort ? proj.effort + ' days' : '',
-      'Go Ahead Date': formatDateDisplay(proj.goAheadDate),
-      'Go Ahead By': proj.goAheadBy || ''
-    };
-  });
-
-  const holidayRows = state.holidays.map(h => ({ Date: h.date, Holiday: h.name }));
-
-  const testPlanRows = [];
-  state.projects.forEach(proj => {
-    const plan = state.testPlans[proj.id];
-    if (!plan) return;
-    const hasAnyData = (plan.rows && plan.rows.length > 0) || plan.testPrepEffort || (plan.buffer && plan.buffer.effort);
-    if (!hasAnyData) return;
-
-    if (plan.testPrepEffort) {
-      testPlanRows.push({
-        Project: proj.name,
-        Environment: 'Test prep — test scenarios, test cases, review',
-        'Coverage %': '',
-        'Total Cases': '',
-        'Effort (PD)': plan.testPrepEffort || 0,
-        'Assigned To': ''
-      });
-    }
-    (plan.rows || []).forEach(r => {
-      const person = state.people.find(p => p.id === r.assigneeId);
-      testPlanRows.push({
-        Project: proj.name,
-        Environment: r.name,
-        'Base Cases': r.baseCases || 0,
-        'Coverage %': r.coverage || '',
-        'Total Cases': r.cases || 0,
-        'Effort (PD)': r.effort || 0,
-        'Assigned To': person ? person.name : ''
-      });
-    });
-    if (plan.buffer && plan.buffer.effort) {
-      testPlanRows.push({
-        Project: proj.name,
-        Environment: 'Buffer',
-        'Coverage %': '',
-        'Total Cases': '',
-        'Effort (PD)': plan.buffer.effort || 0,
-        'Assigned To': ''
-      });
-    }
-  });
-
-  return { peopleRows, projectRows, allocRows, dailyRows, leaveRows, summaryRows, holidayRows, testPlanRows };
-}
-
-function exportExcel() {
-  document.getElementById('exportMenu').classList.remove('show');
-  const { peopleRows, projectRows, allocRows, dailyRows, leaveRows, summaryRows, holidayRows, testPlanRows } = buildExportSheets();
-  const wb = XLSX.utils.book_new();
-
-  function addSheet(rows, name, fallbackCols) {
-    const sheet = rows.length > 0
-      ? XLSX.utils.json_to_sheet(rows)
-      : XLSX.utils.json_to_sheet([], { header: fallbackCols });
-    XLSX.utils.book_append_sheet(wb, sheet, name);
-  }
-
-  addSheet(peopleRows, 'People', ['Name', 'Title', 'Email']);
-  addSheet(projectRows, 'Projects', ['Project', 'Dev to QA Build Date', 'BVT Completion Date', 'QA Completion Date', 'Total QA Efforts (days)', 'Go Ahead Date', 'Go Ahead By', 'Status']);
-  addSheet(allocRows, 'Allocation', ['Person', 'Project', 'Allocation %', 'Role']);
-  addSheet(dailyRows, 'Daily Plan', ['Person', 'Project', 'Date']);
-  addSheet(leaveRows, 'Leave Records', ['Person', 'Date']);
-  addSheet(holidayRows, 'Holidays', ['Date', 'Holiday']);
-  addSheet(testPlanRows, 'Test Plan', ['Project', 'Environment', 'Base Cases', 'Coverage %', 'Total Cases', 'Effort (PD)', 'Assigned To']);
-  addSheet(summaryRows, 'Project Summary', ['Project', 'Status', 'Working On It', 'Start Date', 'End Date', 'Total Efforts', 'Go Ahead Date', 'Go Ahead By']);
-
-  const filename = 'resource-planner-' + new Date().toISOString().slice(0, 10) + '.xlsx';
-  XLSX.writeFile(wb, filename);
 }
 
 
