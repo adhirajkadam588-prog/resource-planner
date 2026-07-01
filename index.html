@@ -891,30 +891,25 @@ function canEdit(section) {
 }
 
 function applyAccessUI() {
-  // Show/hide Admin tab and section label based on role
+  // Admin tab — show only for admin role
   const adminTabBtn = document.getElementById('adminTabBtn');
   const adminNavSection = document.getElementById('adminNavSection');
-  if (adminTabBtn) adminTabBtn.style.display = currentUserRole === 'admin' ? 'flex' : 'none';
-  if (adminNavSection) adminNavSection.style.display = currentUserRole === 'admin' ? 'block' : 'none';
+  const isAdmin = currentUserRole === 'admin';
+  if (adminTabBtn) adminTabBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (adminNavSection) adminNavSection.style.display = isAdmin ? 'block' : 'none';
 
-  // Show/hide all "+ Add" / edit / delete buttons based on permissions
-  const sections = ['people','projects','testplan','dailyplan','allocation','capacity','leave','holidays','summary'];
-  sections.forEach(section => {
-    const editable = canEdit(section);
-    document.querySelectorAll(`[data-section="${section}"][data-action="edit"]`).forEach(el => {
-      el.style.display = editable ? '' : 'none';
-    });
-  });
-
-  // Global edit controls — hide all action buttons for non-editors
-  document.querySelectorAll('.action, .icon-btn').forEach(btn => {
-    // Keep export buttons always visible
-    if (btn.classList.contains('export-btn')) return;
-    const panel = btn.closest('[data-section]');
-    if (!panel) return;
-    const section = panel.dataset.section;
-    if (section && !canEdit(section)) btn.style.display = 'none';
-  });
+  // Read-only banner for non-admin users
+  const existingBanner = document.getElementById('readOnlyBanner');
+  if (!isAdmin && !existingBanner) {
+    const banner = document.createElement('div');
+    banner.id = 'readOnlyBanner';
+    banner.style.cssText = 'background:var(--amber-dim); color:var(--amber); font-size:12px; font-weight:500; padding:8px 16px; border-radius:6px; margin-bottom:12px; display:flex; align-items:center; gap:8px;';
+    banner.innerHTML = '⚠ You are in read-only mode. Contact admin to request edit access.';
+    const mainEl = document.querySelector('.main');
+    if (mainEl) mainEl.insertBefore(banner, mainEl.firstChild);
+  } else if (isAdmin && existingBanner) {
+    existingBanner.remove();
+  }
 }
 
 async function fetchUserRole(userId) {
@@ -923,16 +918,22 @@ async function fetchUserRole(userId) {
       .from('user_roles')
       .select('role, permissions, email')
       .eq('user_id', userId)
-      .single();
-    if (error || !data) {
-      // No role assigned — default to read-only member
+      .maybeSingle(); // maybeSingle won't throw error if no row found
+    if (error) {
+      console.warn('fetchUserRole error:', error.message);
+      currentUserRole = 'member';
+      currentUserPermissions = { ...DEFAULT_PERMISSIONS };
+    } else if (!data) {
+      // No role assigned yet — default read-only
       currentUserRole = 'member';
       currentUserPermissions = { ...DEFAULT_PERMISSIONS };
     } else {
       currentUserRole = data.role;
       currentUserPermissions = data.permissions || { ...DEFAULT_PERMISSIONS };
     }
+    console.log('User role loaded:', currentUserRole);
   } catch (e) {
+    console.warn('fetchUserRole exception:', e.message);
     currentUserRole = 'member';
     currentUserPermissions = { ...DEFAULT_PERMISSIONS };
   }
@@ -1062,8 +1063,15 @@ async function fetchAllUserRoles() {
       .from('user_roles')
       .select('*')
       .order('created_at', { ascending: true });
-    if (!error && data) allUserRoles = data;
-  } catch (e) { console.error('fetchAllUserRoles failed', e); }
+    if (error) {
+      console.warn('fetchAllUserRoles error:', error.message);
+      return;
+    }
+    if (data) allUserRoles = data;
+    console.log('All user roles loaded:', allUserRoles.length, 'users');
+  } catch (e) {
+    console.error('fetchAllUserRoles exception:', e.message);
+  }
 }
 
 async function adminAddUser() {
