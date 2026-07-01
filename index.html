@@ -553,20 +553,14 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <h3>Select project</h3>
-          <div class="desc">Test plan is tracked per project — pick one to view or edit its matrix</div>
+          <h3>Projects</h3>
+          <div class="desc">Select one or more projects — view their test plan below, or generate a combined report for selected ones.</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <select id="testPlanProjectSelect" style="width:220px;" onchange="onTestPlanProjectChange()"></select>
-          <div class="export-wrap">
-            <button class="export-btn" onclick="toggleTestPlanReportMenu()"><span class="ico">📄</span> Share report</button>
-            <div class="export-menu" id="testPlanReportMenu">
-              <button onclick="exportTestPlanReport('selected')">This project's report</button>
-              <button onclick="exportTestPlanReport('all')">All projects — combined report</button>
-            </div>
-          </div>
+          <button class="export-btn" onclick="exportTestPlanReport('selected')"><span class="ico">📄</span> Share report</button>
         </div>
       </div>
+      <div id="testPlanCheckboxList" style="display:flex; flex-wrap:wrap; gap:8px; padding:4px 0 8px;"></div>
       <div class="empty-state" id="testPlanNoProjects" style="display:none;">Add a project in the Projects tab first, then come back here to build its test plan.</div>
     </div>
 
@@ -1749,7 +1743,8 @@ function renderHolidays() {
 }
 
 // ====================== TEST PLAN ======================
-let selectedTestPlanProjectId = null;
+let selectedTestPlanProjectId = null;   // single project shown in tab UI
+let selectedTestPlanProjectIds = [];    // multiple selected for report
 let editingTestRowId = null;
 
 function getTestPlanForProject(projectId) {
@@ -1771,30 +1766,61 @@ function getTestPlanForProject(projectId) {
 }
 
 function populateTestPlanProjectSelect() {
-  const sel = document.getElementById('testPlanProjectSelect');
+  const listEl = document.getElementById('testPlanCheckboxList');
   const noProjects = document.getElementById('testPlanNoProjects');
   const body = document.getElementById('testPlanBody');
 
   if (state.projects.length === 0) {
-    sel.innerHTML = '';
-    sel.style.display = 'none';
+    listEl.innerHTML = '';
     noProjects.style.display = 'block';
     body.style.display = 'none';
     return;
   }
-  sel.style.display = 'block';
   noProjects.style.display = 'none';
 
+  // Keep valid selections, default to first project if nothing selected
+  selectedTestPlanProjectIds = selectedTestPlanProjectIds.filter(id => state.projects.some(p => p.id === id));
+  if (selectedTestPlanProjectIds.length === 0) selectedTestPlanProjectIds = [state.projects[0].id];
+  // Keep single active view project as first selected
   if (!selectedTestPlanProjectId || !state.projects.some(p => p.id === selectedTestPlanProjectId)) {
-    selectedTestPlanProjectId = state.projects[0].id;
+    selectedTestPlanProjectId = selectedTestPlanProjectIds[0];
   }
 
-  sel.innerHTML = state.projects.map(p => `<option value="${p.id}" ${p.id === selectedTestPlanProjectId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+  listEl.innerHTML = state.projects.map(p => {
+    const isChecked = selectedTestPlanProjectIds.includes(p.id);
+    const isActive = p.id === selectedTestPlanProjectId;
+    return `
+      <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; cursor:pointer; border:1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}; background:${isActive ? 'var(--accent-dim)' : 'var(--panel-2)'}; font-size:12px; font-weight:${isActive ? '600' : '400'}; color:${isActive ? 'var(--accent)' : 'var(--text-dim)'}; transition:all 0.12s;" id="tpLabel-${p.id}">
+        <input type="checkbox" value="${p.id}" ${isChecked ? 'checked' : ''} onchange="onTestPlanCheckboxChange('${p.id}', this.checked)" style="width:14px; height:14px; accent-color:var(--accent); cursor:pointer;">
+        ${escapeHtml(p.name)}
+      </label>`;
+  }).join('');
+
   body.style.display = 'block';
 }
 
-function onTestPlanProjectChange() {
-  selectedTestPlanProjectId = document.getElementById('testPlanProjectSelect').value;
+function onTestPlanCheckboxChange(projectId, checked) {
+  if (checked) {
+    if (!selectedTestPlanProjectIds.includes(projectId)) selectedTestPlanProjectIds.push(projectId);
+    // Clicking a checkbox also makes it the active view project
+    selectedTestPlanProjectId = projectId;
+  } else {
+    selectedTestPlanProjectIds = selectedTestPlanProjectIds.filter(id => id !== projectId);
+    // If we unchecked the active project, switch to first still-selected
+    if (selectedTestPlanProjectId === projectId) {
+      selectedTestPlanProjectId = selectedTestPlanProjectIds[0] || null;
+    }
+  }
+  // Refresh label styles
+  state.projects.forEach(p => {
+    const label = document.getElementById(`tpLabel-${p.id}`);
+    if (!label) return;
+    const isActive = p.id === selectedTestPlanProjectId;
+    label.style.border = `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`;
+    label.style.background = isActive ? 'var(--accent-dim)' : 'var(--panel-2)';
+    label.style.fontWeight = isActive ? '600' : '400';
+    label.style.color = isActive ? 'var(--accent)' : 'var(--text-dim)';
+  });
   renderTestPlan();
 }
 
@@ -2005,9 +2031,7 @@ function renderTestPlan() {
 }
 
 // ====================== TEST PLAN REPORT ======================
-function toggleTestPlanReportMenu() {
-  document.getElementById('testPlanReportMenu').classList.toggle('show');
-}
+
 
 function computeTestPlanMetrics(plan) {
   const rowsCases = plan.rows.reduce((s, r) => s + (r.cases || 0), 0);
@@ -2022,105 +2046,19 @@ function computeTestPlanMetrics(plan) {
   return { rowsCases, rowsEffort, testPrepEffort, bufferEffort, totalEffort, requiredPDs, noOfPeople, totalCD };
 }
 
-function buildTestPlanProjectSectionHtml(proj) {
-  const plan = getTestPlanForProject(proj.id);
-  const metrics = computeTestPlanMetrics(plan);
-
-  const envRowsHtml = plan.rows.length > 0
-    ? plan.rows.map(r => {
-        const person = state.people.find(p => p.id === r.assigneeId);
-        return `
-          <tr>
-            <td>${escapeHtml(r.name)}</td>
-            <td class="num">${r.coverage ? r.coverage + '%' : '—'}</td>
-            <td class="num">${r.cases || 0}</td>
-            <td class="num">${r.effort || 0}</td>
-            <td>${person ? escapeHtml(person.name) : '—'}</td>
-          </tr>`;
-      }).join('')
-    : `<tr><td colspan="5" class="empty-row">No environments added</td></tr>`;
-
-  const msHtml = (label, value) => `<tr><td class="ms-label">${label}</td><td class="num">${value ? formatDateDisplay(value) : '—'}</td></tr>`;
-
-  return `
-    <section class="project-section">
-      <h2>${escapeHtml(proj.name)}</h2>
-      <div class="meta-row">
-        ${proj.status ? `<span class="badge-r">${escapeHtml(proj.status)}</span>` : ''}
-        ${proj.goAheadBy ? `<span class="meta-item">Go ahead by: <strong>${escapeHtml(proj.goAheadBy)}</strong></span>` : ''}
-        ${proj.goAheadDate ? `<span class="meta-item">Go ahead date: <strong>${formatDateDisplay(proj.goAheadDate)}</strong></span>` : ''}
-      </div>
-
-      <table class="matrix-table">
-        <thead>
-          <tr>
-            <th>Environment</th>
-            <th class="r">Coverage</th>
-            <th class="r">Base cases</th>
-            <th class="r">Total cases</th>
-            <th class="r">Effort (PD)</th>
-            <th>Assigned to</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="row-prep">
-            <td>📋 Test prep — scenarios, test cases, review</td>
-            <td class="r">—</td><td class="r">—</td><td class="r">—</td>
-            <td class="r">${metrics.testPrepEffort || 0}</td>
-            <td>—</td><td>—</td>
-          </tr>
-          ${envRowsHtml}
-          <tr class="row-buffer">
-            <td>🔄 Buffer</td>
-            <td class="r">—</td><td class="r">—</td><td class="r">—</td>
-            <td class="r">${metrics.bufferEffort || 0}</td>
-            <td>—</td><td>—</td>
-          </tr>
-          <tr class="row-total">
-            <td>Total</td>
-            <td class="r">—</td><td class="r">—</td>
-            <td class="r">${metrics.rowsCases}</td>
-            <td class="r">${metrics.totalEffort}</td>
-            <td>—</td><td>—</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-label">Executable cases</div><div class="stat-value">${metrics.rowsCases}</div></div>
-        <div class="stat-box"><div class="stat-label">Required PDs</div><div class="stat-value">${metrics.requiredPDs}</div></div>
-        <div class="stat-box"><div class="stat-label">Total PDs with buffer</div><div class="stat-value accent">${metrics.totalEffort}</div></div>
-        <div class="stat-box"><div class="stat-label">People / Total CD</div><div class="stat-value">${metrics.noOfPeople} / ${metrics.totalCD}</div></div>
-      </div>
-
-      <table class="milestone-table">
-        <tbody>
-          ${msHtml('Build pickup', plan.milestones.buildPickup)}
-          ${msHtml('BVT completion', plan.milestones.bvtCompletion)}
-          ${msHtml('Execution completion without buffer', plan.milestones.execNoBuffer)}
-          ${msHtml('Execution completion with buffer', plan.milestones.execWithBuffer)}
-          ${msHtml('Merged build go ahead', plan.milestones.mergedBuildGoAhead)}
-        </tbody>
-      </table>
-    </section>
-  `;
-}
-
 function exportTestPlanReport(scope) {
-  document.getElementById('testPlanReportMenu').classList.remove('show');
-
   const projectsToInclude = scope === 'all'
     ? state.projects
-    : state.projects.filter(p => p.id === selectedTestPlanProjectId);
+    : state.projects.filter(p => selectedTestPlanProjectIds.includes(p.id));
 
   if (projectsToInclude.length === 0) {
-    alert('No project data to include in this report.');
+    alert('Select at least one project using the checkboxes above.');
     return;
   }
 
-  const sectionsHtml = projectsToInclude.map(buildTestPlanProjectSectionHtml).join('\n');
-  const reportTitle = scope === 'all' ? 'Test Plan Report — All Projects' : `Test Plan Report — ${projectsToInclude[0].name}`;
+  const reportTitle = projectsToInclude.length === 1
+    ? `Test Plan Report — ${projectsToInclude[0].name}`
+    : `Test Plan Report — ${projectsToInclude.length} Projects`;
   const generatedOn = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const fullHtml = `<!DOCTYPE html>
