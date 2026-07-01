@@ -864,6 +864,22 @@
   </div>
 </div>
 
+<!-- Share link modal -->
+<div class="modal-overlay" id="shareLinkModal">
+  <div class="modal">
+    <h3 id="shareLinkTitle">📎 Share report link</h3>
+    <div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">Anyone with this link can view the report — no login required.</div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input id="shareLinkInput" type="text" readonly style="flex:1; background:var(--panel-2); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:6px; font-size:12px; font-family:var(--mono);" placeholder="Generating link…">
+      <button class="action" onclick="copyShareLink()" id="copyLinkBtn" style="white-space:nowrap;">Copy link</button>
+    </div>
+    <div id="shareLinkStatus" style="font-size:12px; margin-top:8px; color:var(--text-faint);"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="ghost" onclick="closeModal('shareLinkModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Daily plan report month range modal -->
 <div class="modal-overlay" id="dailyPlanReportModal">
   <div class="modal">
@@ -2130,6 +2146,9 @@ function exportTestPlanReport(scope) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
+  // Also offer shareable link
+  shareReportAsLink(reportTitle, sectionsHtml);
 }
 
 // Shared CSS for all shareable reports (test plan, daily plan, summary)
@@ -2187,9 +2206,9 @@ const REPORT_CSS = `
   }
 `;
 
-function downloadReportHtml(filename, title, bodyHtml) {
+function buildFullReportHtml(title, bodyHtml) {
   const generatedOn = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const fullHtml = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2206,6 +2225,10 @@ function downloadReportHtml(filename, title, bodyHtml) {
 </div>
 </body>
 </html>`;
+}
+
+function downloadReportHtml(filename, title, bodyHtml) {
+  const fullHtml = buildFullReportHtml(title, bodyHtml);
   const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2216,6 +2239,106 @@ function downloadReportHtml(filename, title, bodyHtml) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+async function shareReportAsLink(title, bodyHtml) {
+  // Show modal immediately with loading state
+  document.getElementById('shareLinkTitle').textContent = `📎 ${title}`;
+  document.getElementById('shareLinkInput').value = 'Generating link…';
+  document.getElementById('shareLinkStatus').textContent = '';
+  document.getElementById('copyLinkBtn').disabled = true;
+  document.getElementById('shareLinkModal').classList.add('show');
+
+  try {
+    const fullHtml = buildFullReportHtml(title, bodyHtml);
+    const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+
+    const { error } = await sbClient
+      .from('shared_reports')
+      .insert({
+        id: reportId,
+        title,
+        html: fullHtml,
+        created_by: currentUserEmail
+      });
+
+    if (error) throw error;
+
+    // Build the shareable URL — same GitHub Pages URL + ?report=ID
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?report=${reportId}`;
+
+    document.getElementById('shareLinkInput').value = shareUrl;
+    document.getElementById('copyLinkBtn').disabled = false;
+    document.getElementById('shareLinkStatus').textContent = '✓ Link ready — copy and share via Teams, WhatsApp, or email.';
+
+  } catch (e) {
+    document.getElementById('shareLinkInput').value = '';
+    document.getElementById('shareLinkStatus').textContent = '✗ Failed to generate link: ' + e.message;
+    document.getElementById('copyLinkBtn').disabled = true;
+  }
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLinkInput');
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = document.getElementById('copyLinkBtn');
+    btn.textContent = '✓ Copied!';
+    btn.style.background = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = 'Copy link';
+      btn.style.background = '';
+    }, 2000);
+  }).catch(() => {
+    input.select();
+    document.execCommand('copy');
+  });
+}
+
+// ---- Report viewer — runs on page load if ?report= is in the URL ----
+// If URL has ?report=ID, fetch the report from DB and show it fullscreen (no login needed)
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const reportId = params.get('report');
+  if (!reportId) return;
+
+  // Show a loading screen while we fetch the report
+  document.body.innerHTML = `
+    <div style="font-family:-apple-system,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f6f7f9; color:#1a1d24;">
+      <div style="text-align:center;">
+        <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Loading report…</div>
+        <div style="font-size:13px; color:#8b91a0;" id="reportLoadStatus">Fetching from database</div>
+      </div>
+    </div>`;
+
+  try {
+    const { data, error } = await sbClient
+      .from('shared_reports')
+      .select('title, html')
+      .eq('id', reportId)
+      .single();
+
+    if (error || !data) {
+      document.body.innerHTML = `
+        <div style="font-family:-apple-system,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f6f7f9; color:#1a1d24;">
+          <div style="text-align:center; max-width:400px;">
+            <div style="font-size:40px; margin-bottom:16px;">🔗</div>
+            <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Report not found</div>
+            <div style="font-size:13px; color:#8b91a0; margin-bottom:20px;">This link may have expired or been removed.</div>
+            <a href="${window.location.origin + window.location.pathname}" style="color:#4f7cff; font-size:13px;">← Go to Resource Planner</a>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Replace entire page with report HTML
+    document.open();
+    document.write(data.html);
+    document.close();
+
+  } catch (e) {
+    document.body.innerHTML = `<div style="font-family:sans-serif;padding:40px;color:red;">Error loading report: ${e.message}</div>`;
+  }
+})();
 
 // ====================== DAILY PLAN REPORT ======================
 function openDailyPlanReportModal() {
@@ -2328,11 +2451,7 @@ function exportDailyPlanReport() {
   const rangeLabel = startIndex === endIndex
     ? `${monthNames[fromMonth]} ${fromYear}`
     : `${monthNames[fromMonth]} ${fromYear} – ${monthNames[toMonth]} ${toYear}`;
-  downloadReportHtml(
-    `daily-plan-report-${fromYear}-${String(fromMonth+1).padStart(2,'0')}-to-${toYear}-${String(toMonth+1).padStart(2,'0')}.html`,
-    `Daily Resource Plan — ${rangeLabel}`,
-    bodyHtml
-  );
+  shareReportAsLink(`Daily Resource Plan — ${rangeLabel}`, bodyHtml);
 }
 
 // ====================== SUMMARY REPORT ======================
@@ -2379,11 +2498,7 @@ function exportSummaryReport() {
     </div>
   `;
 
-  downloadReportHtml(
-    `project-summary-report-${new Date().toISOString().slice(0,10)}.html`,
-    'Project Summary Report',
-    bodyHtml
-  );
+  shareReportAsLink('Project Summary Report', bodyHtml);
 }
 
 // Returns true if the given date (Date object) is a working day —
