@@ -350,6 +350,12 @@
         Capacity
       </button>
 
+      <div class="nav-section-label" id="adminNavSection" style="display:none;">Admin</div>
+      <button class="tab-btn" id="adminTabBtn" data-tab="admin" data-title="Admin panel" data-desc="Manage users, roles and access permissions" style="display:none;">
+        <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><path d="M16 11l1.5 1.5L20 10"/></svg></span>
+        Admin
+      </button>
+
       <div class="nav-section-label">Overview</div>
       <button class="tab-btn" data-tab="summary" data-title="Project summary" data-desc="All projects — who's working on them, timeline, effort, and go ahead info">
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
@@ -629,6 +635,46 @@
     </div>
   </div>
 
+  <!-- ADMIN TAB -->
+  <div class="tab-content" id="tab-admin" style="display:none;">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>User management</h3>
+          <div class="desc">Add users via Supabase Dashboard → Authentication → Users → Add User, then assign their role and permissions here</div>
+        </div>
+        <button class="action" onclick="fetchAllUserRoles().then(renderAdminPanel)">↻ Refresh</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>People</th>
+              <th>Projects</th>
+              <th>Test plan</th>
+              <th>Daily plan</th>
+              <th>Allocation</th>
+              <th>Capacity</th>
+              <th>Leave</th>
+              <th>Holidays</th>
+              <th>Summary</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersTableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="adminUsersEmpty" style="display:none;">No users found. Add users in Supabase Dashboard first, then refresh.</div>
+      <div class="legend" style="margin-top:14px;">
+        <span><strong>Read</strong> — can view only</span>
+        <span><strong>Edit</strong> — can view and make changes</span>
+        <span><strong>None</strong> — tab is hidden from this user</span>
+      </div>
+    </div>
+  </div>
+
   <!-- SUMMARY TAB -->
   <div class="tab-content" id="tab-summary" style="display:none;">
     <div class="panel">
@@ -826,6 +872,72 @@ try {
   console.error('Supabase init failed', e);
 }
 
+// ---------- Role & Permissions ----------
+let currentUserRole = null;      // 'admin' | 'member'
+let currentUserPermissions = {}; // { people: 'read'|'edit', ... }
+let currentUserId = null;
+let currentUserEmail = null;
+let allUserRoles = [];           // cached for admin panel
+
+const DEFAULT_PERMISSIONS = {
+  people: 'read', projects: 'read', testplan: 'read',
+  dailyplan: 'read', allocation: 'read', capacity: 'read',
+  leave: 'read', holidays: 'read', summary: 'read'
+};
+
+function canEdit(section) {
+  if (currentUserRole === 'admin') return true;
+  return currentUserPermissions[section] === 'edit';
+}
+
+function applyAccessUI() {
+  // Show/hide Admin tab and section label based on role
+  const adminTabBtn = document.getElementById('adminTabBtn');
+  const adminNavSection = document.getElementById('adminNavSection');
+  if (adminTabBtn) adminTabBtn.style.display = currentUserRole === 'admin' ? 'flex' : 'none';
+  if (adminNavSection) adminNavSection.style.display = currentUserRole === 'admin' ? 'block' : 'none';
+
+  // Show/hide all "+ Add" / edit / delete buttons based on permissions
+  const sections = ['people','projects','testplan','dailyplan','allocation','capacity','leave','holidays','summary'];
+  sections.forEach(section => {
+    const editable = canEdit(section);
+    document.querySelectorAll(`[data-section="${section}"][data-action="edit"]`).forEach(el => {
+      el.style.display = editable ? '' : 'none';
+    });
+  });
+
+  // Global edit controls — hide all action buttons for non-editors
+  document.querySelectorAll('.action, .icon-btn').forEach(btn => {
+    // Keep export buttons always visible
+    if (btn.classList.contains('export-btn')) return;
+    const panel = btn.closest('[data-section]');
+    if (!panel) return;
+    const section = panel.dataset.section;
+    if (section && !canEdit(section)) btn.style.display = 'none';
+  });
+}
+
+async function fetchUserRole(userId) {
+  try {
+    const { data, error } = await sbClient
+      .from('user_roles')
+      .select('role, permissions, email')
+      .eq('user_id', userId)
+      .single();
+    if (error || !data) {
+      // No role assigned — default to read-only member
+      currentUserRole = 'member';
+      currentUserPermissions = { ...DEFAULT_PERMISSIONS };
+    } else {
+      currentUserRole = data.role;
+      currentUserPermissions = data.permissions || { ...DEFAULT_PERMISSIONS };
+    }
+  } catch (e) {
+    currentUserRole = 'member';
+    currentUserPermissions = { ...DEFAULT_PERMISSIONS };
+  }
+}
+
 // ---------- Auth ----------
 async function signIn() {
   const email = document.getElementById('loginEmail').value.trim();
@@ -849,7 +961,6 @@ async function signIn() {
       btn.disabled = false;
       btn.textContent = 'Sign in';
     }
-    // On success, onAuthStateChange fires and handles the rest
   } catch (e) {
     errEl.textContent = 'Connection error: ' + e.message;
     btn.disabled = false;
@@ -861,35 +972,36 @@ async function signOut() {
   await sbClient.auth.signOut();
 }
 
-// Listen for auth state changes (login/logout/session restore on page load)
 sbClient.auth.onAuthStateChange(async (event, session) => {
   const overlay = document.getElementById('loginOverlay');
   const btn = document.getElementById('loginBtn');
 
   if (session && session.user) {
-    // User is logged in — hide login screen and load app
+    currentUserId = session.user.id;
+    currentUserEmail = session.user.email;
     overlay.classList.add('hidden');
     document.getElementById('userEmail').textContent = session.user.email;
     btn.disabled = false;
     btn.textContent = 'Sign in';
     document.getElementById('loginError').textContent = '';
+    await fetchUserRole(session.user.id);
     await loadState();
+    if (currentUserRole === 'admin') await fetchAllUserRoles();
     renderAll();
+    applyAccessUI();
   } else {
-    // Not logged in — show login screen
+    currentUserId = null;
+    currentUserRole = null;
+    currentUserPermissions = {};
     overlay.classList.remove('hidden');
-    // Reset state so stale data isn't shown after sign-out
     state.people = []; state.projects = []; state.allocations = [];
     state.leaves = {}; state.dailyPlan = []; state.holidays = []; state.testPlans = {};
   }
 });
 
-// Allow Enter key to submit login form
 document.addEventListener('keydown', (e) => {
   const overlay = document.getElementById('loginOverlay');
-  if (e.key === 'Enter' && overlay && !overlay.classList.contains('hidden')) {
-    signIn();
-  }
+  if (e.key === 'Enter' && overlay && !overlay.classList.contains('hidden')) signIn();
 });
 
 // ---------- Persistence (Supabase) ----------
@@ -923,6 +1035,10 @@ async function loadState() {
 }
 
 async function saveState() {
+  if (currentUserRole !== 'admin' && !Object.values(currentUserPermissions).includes('edit')) {
+    console.warn('Read-only user attempted save — blocked.');
+    return;
+  }
   const el = document.getElementById('lastSaved');
   try {
     const { error } = await sbClient
@@ -939,6 +1055,157 @@ async function saveState() {
   }
 }
 
+// ====================== ADMIN PANEL ======================
+async function fetchAllUserRoles() {
+  try {
+    const { data, error } = await sbClient
+      .from('user_roles')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (!error && data) allUserRoles = data;
+  } catch (e) { console.error('fetchAllUserRoles failed', e); }
+}
+
+async function adminAddUser() {
+  const email = document.getElementById('adminNewEmail').value.trim();
+  const password = document.getElementById('adminNewPassword').value;
+  const role = document.getElementById('adminNewRole').value;
+  const errEl = document.getElementById('adminError');
+  errEl.textContent = '';
+
+  if (!email || !password) { errEl.textContent = 'Email and password required.'; return; }
+
+  // Create user via Supabase admin API (needs service role — we'll use a workaround)
+  // Since we can't use service role in frontend, we insert into user_roles after
+  // the user self-registers, OR admin creates via Supabase dashboard.
+  // For now: insert a placeholder that activates when user first logs in.
+  errEl.textContent = 'Note: Create the user in Supabase Dashboard → Authentication → Users → Add User first, then assign role here.';
+
+  // Assign role by email (user_id will link when they log in)
+  const perms = buildDefaultPermsForRole(role);
+  try {
+    const { error } = await sbClient
+      .from('user_roles')
+      .upsert({ user_id: '00000000-0000-0000-0000-000000000000', email, role, permissions: perms },
+               { onConflict: 'email' });
+    if (error) throw error;
+    errEl.textContent = '';
+    document.getElementById('adminNewEmail').value = '';
+    document.getElementById('adminNewPassword').value = '';
+    await fetchAllUserRoles();
+    renderAdminPanel();
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+function buildDefaultPermsForRole(role) {
+  if (role === 'admin') {
+    return Object.fromEntries(Object.keys(DEFAULT_PERMISSIONS).map(k => [k, 'edit']));
+  }
+  return { ...DEFAULT_PERMISSIONS }; // all read by default
+}
+
+async function adminUpdatePermission(userId, section, value) {
+  const userRole = allUserRoles.find(r => r.user_id === userId);
+  if (!userRole) return;
+  const newPerms = { ...userRole.permissions, [section]: value };
+  try {
+    const { error } = await sbClient
+      .from('user_roles')
+      .update({ permissions: newPerms })
+      .eq('user_id', userId);
+    if (error) throw error;
+    userRole.permissions = newPerms;
+    renderAdminPanel();
+  } catch (e) { console.error('updatePermission failed', e); }
+}
+
+async function adminUpdateRole(userId, newRole) {
+  try {
+    const perms = buildDefaultPermsForRole(newRole);
+    const { error } = await sbClient
+      .from('user_roles')
+      .update({ role: newRole, permissions: perms })
+      .eq('user_id', userId);
+    if (error) throw error;
+    const ur = allUserRoles.find(r => r.user_id === userId);
+    if (ur) { ur.role = newRole; ur.permissions = perms; }
+    renderAdminPanel();
+  } catch (e) { console.error('adminUpdateRole failed', e); }
+}
+
+async function adminRemoveUser(userId) {
+  if (!confirm('Remove this user\'s access? They will not be able to log in to the app (their Supabase account still exists).')) return;
+  try {
+    const { error } = await sbClient.from('user_roles').delete().eq('user_id', userId);
+    if (error) throw error;
+    allUserRoles = allUserRoles.filter(r => r.user_id !== userId);
+    renderAdminPanel();
+  } catch (e) { console.error('adminRemoveUser failed', e); }
+}
+
+const SECTIONS_LIST = [
+  { key: 'people', label: 'People' },
+  { key: 'projects', label: 'Projects' },
+  { key: 'testplan', label: 'Test plan' },
+  { key: 'dailyplan', label: 'Daily plan' },
+  { key: 'allocation', label: 'Allocation' },
+  { key: 'capacity', label: 'Capacity' },
+  { key: 'leave', label: 'Leave calendar' },
+  { key: 'holidays', label: 'Holidays' },
+  { key: 'summary', label: 'Summary' },
+];
+
+function renderAdminPanel() {
+  const tbody = document.getElementById('adminUsersTableBody');
+  const empty = document.getElementById('adminUsersEmpty');
+  if (!tbody) return;
+
+  if (allUserRoles.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = allUserRoles.map(ur => {
+    const isMe = ur.user_id === currentUserId;
+    const perms = ur.permissions || {};
+
+    const permCells = SECTIONS_LIST.map(s => `
+      <td style="text-align:center;">
+        <select onchange="adminUpdatePermission('${ur.user_id}','${s.key}',this.value)"
+                ${isMe || ur.role === 'admin' ? 'disabled' : ''}
+                style="width:70px; font-size:11px; padding:2px 4px;">
+          <option value="read" ${(perms[s.key] || 'read') === 'read' ? 'selected' : ''}>Read</option>
+          <option value="edit" ${perms[s.key] === 'edit' ? 'selected' : ''}>Edit</option>
+          <option value="none" ${perms[s.key] === 'none' ? 'selected' : ''}>None</option>
+        </select>
+      </td>`).join('');
+
+    return `
+      <tr style="${isMe ? 'background:var(--accent-dim);' : ''}">
+        <td style="font-size:12px;">${escapeHtml(ur.email)} ${isMe ? '<span style="color:var(--accent);font-size:10px;">(you)</span>' : ''}</td>
+        <td style="text-align:center;">
+          <select onchange="adminUpdateRole('${ur.user_id}',this.value)"
+                  ${isMe ? 'disabled' : ''}
+                  style="font-size:11px; padding:2px 4px;">
+            <option value="admin" ${ur.role === 'admin' ? 'selected' : ''}>Admin</option>
+            <option value="member" ${ur.role === 'member' ? 'selected' : ''}>Member</option>
+          </select>
+        </td>
+        ${permCells}
+        <td style="text-align:center;">
+          ${!isMe ? `<button class="icon-btn" onclick="adminRemoveUser('${ur.user_id}')" style="color:var(--red);">✕</button>` : '—'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+
+
 // ---------- Tabs ----------
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -952,6 +1219,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'dailyplan') renderDailyPlan();
     if (btn.dataset.tab === 'holidays') renderHolidays();
     if (btn.dataset.tab === 'testplan') renderTestPlan();
+    if (btn.dataset.tab === 'admin') { fetchAllUserRoles().then(renderAdminPanel); }
   });
 });
 
@@ -2584,6 +2852,7 @@ function renderAll() {
   renderDailyPlan();
   renderHolidays();
   renderTestPlan();
+  if (currentUserRole === 'admin') renderAdminPanel();
 }
 
 // App is initialised by sbClient.auth.onAuthStateChange above —
