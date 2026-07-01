@@ -456,39 +456,40 @@
       </button>
 
       <div class="nav-section-label">Overview</div>
-      <button class="tab-btn" data-tab="summary" data-title="Project summary" data-desc="All projects — who's working on them, timeline, effort, and go ahead info">
+      <button class="tab-btn" data-tab="summary" data-title="Release Summary" data-desc="Release wise summary — share with your manager">
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
         Summary
       </button>
     </nav>
 
     <div class="sidebar-foot">
-      <!-- User info -->
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:8px 10px; background:rgba(255,255,255,0.05); border-radius:10px;">
-        <div id="userAvatar" style="width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:white; flex-shrink:0;"></div>
-        <div style="min-width:0;">
-          <div id="userEmail" style="font-size:11px; color:#e2e8f0; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:inherit;"></div>
-          <div id="lastSaved" style="font-size:10px; color:#64748b; margin-top:1px; font-family:var(--mono);"></div>
+      <!-- User info card -->
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding:10px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px;">
+        <div id="userAvatar" style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:white; flex-shrink:0; box-shadow:0 2px 8px rgba(124,58,237,0.4);"></div>
+        <div style="min-width:0; flex:1;">
+          <div id="userEmail" style="font-size:11.5px; color:#f1f5f9; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:inherit;"></div>
+          <div id="lastSaved" style="font-size:10px; color:#475569; margin-top:2px; font-family:var(--mono);"></div>
         </div>
       </div>
-      <!-- Actions -->
-      <button onclick="openChangePasswordModal()" style="
-        display:flex; align-items:center; gap:8px; width:100%;
-        background:transparent; border:none; border-radius:8px;
-        color:#94a3b8; padding:7px 10px; font-size:12px; cursor:pointer;
-        font-family:inherit; text-align:left; transition:all 0.12s; margin-bottom:2px;
-      " onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.color='#e2e8f0';" onmouseout="this.style.background='transparent'; this.style.color='#94a3b8';">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Change password
+      <!-- Change password button -->
+      <button onclick="openChangePasswordModal()"
+        onmouseover="this.style.background='rgba(124,58,237,0.18)'; this.style.borderColor='rgba(124,58,237,0.4)'; this.style.color='#c4b5fd';"
+        onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'; this.style.color='#94a3b8';"
+        style="display:flex; align-items:center; gap:10px; width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#94a3b8; padding:10px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; text-align:left; transition:all 0.15s; margin-bottom:8px; font-weight:500;">
+        <div style="width:28px; height:28px; border-radius:8px; background:rgba(124,58,237,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <span>Change password</span>
       </button>
-      <button onclick="signOut()" style="
-        display:flex; align-items:center; gap:8px; width:100%;
-        background:transparent; border:none; border-radius:8px;
-        color:#94a3b8; padding:7px 10px; font-size:12px; cursor:pointer;
-        font-family:inherit; text-align:left; transition:all 0.12s;
-      " onmouseover="this.style.background='rgba(239,68,68,0.12)'; this.style.color='#f87171';" onmouseout="this.style.background='transparent'; this.style.color='#94a3b8';">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Sign out
+      <!-- Sign out button -->
+      <button onclick="signOut()"
+        onmouseover="this.style.background='rgba(239,68,68,0.15)'; this.style.borderColor='rgba(239,68,68,0.35)'; this.style.color='#fca5a5';"
+        onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'; this.style.color='#94a3b8';"
+        style="display:flex; align-items:center; gap:10px; width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#94a3b8; padding:10px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; text-align:left; transition:all 0.15s; font-weight:500;">
+        <div style="width:28px; height:28px; border-radius:8px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </div>
+        <span>Sign out</span>
       </button>
     </div>
   </aside>
@@ -530,9 +531,13 @@
         <button class="action" onclick="openProjectModal()">+ Add release item</button>
       </div>
       <!-- Filter bar -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;" id="releaseDateFilterBar">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release/GA date:</div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;" id="releaseDateFilterBar">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Release/GA date:</div>
         <div id="releaseDatePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Dev POD:</div>
+        <div id="devPodFilterPills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       </div>
       <div style="overflow-x:auto;">
         <table>
@@ -698,9 +703,14 @@
         </div>
       </div>
       <!-- Release date filter pills -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release:</div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Release:</div>
         <div id="testPlanReleasePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
+      </div>
+      <!-- Dev POD filter pills -->
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Dev POD:</div>
+        <div id="testPlanPodPills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       </div>
       <!-- Project dropdown (filtered by selected release) -->
       <div style="display:flex; gap:8px; align-items:center;" id="testPlanProjectRow">
@@ -867,15 +877,20 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <h3>Release summary</h3>
+          <h3>Release Summary</h3>
           <div class="desc">Filter by Release/GA date — share the report with your manager</div>
         </div>
         <button class="export-btn" onclick="exportSummaryReport()"><span class="ico">📄</span> Share report</button>
       </div>
       <!-- Release date filter pills -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release:</div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Release:</div>
         <div id="summaryReleasePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
+      </div>
+      <!-- Dev POD filter pills -->
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Dev POD:</div>
+        <div id="summaryPodPills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       </div>
       <table>
         <thead>
@@ -1949,8 +1964,11 @@ function renderHolidays() {
 // ====================== TEST PLAN ======================
 let selectedTestPlanProjectId = null;   // single project shown in tab UI
 let selectedTestPlanReleaseDate = null; // release filter for test plan tab
-let selectedReleaseDate = null;         // null = show all, date string = filter by that date
-let selectedSummaryReleaseDate = null;  // same for summary tab
+let selectedReleaseDate = null;
+let selectedSummaryReleaseDate = null;
+let selectedDevPod = null;
+let selectedTestPlanDevPod = null;
+let selectedSummaryDevPod = null;
 let editingTestRowId = null;
 
 function getTestPlanForProject(projectId) {
@@ -1980,7 +1998,6 @@ function populateTestPlanProjectSelect() {
   const noProjects = document.getElementById('testPlanNoProjects');
   const body = document.getElementById('testPlanBody');
   const pillsEl = document.getElementById('testPlanReleasePills');
-  const projectRow = document.getElementById('testPlanProjectRow');
 
   if (state.projects.length === 0) {
     sel.innerHTML = '';
@@ -1991,37 +2008,24 @@ function populateTestPlanProjectSelect() {
   }
   noProjects.style.display = 'none';
 
-  // Build unique sorted release dates
-  const allDates = [...new Set(
-    state.projects.map(p => p.releaseDate).filter(Boolean)
-  )].sort();
-
-  // Render release filter pills
+  // Release date pills
+  const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
   if (pillsEl) {
     pillsEl.innerHTML =
-      `<button onclick="setTestPlanReleaseFilter(null)" style="
-        padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;
-        ${selectedTestPlanReleaseDate === null
-          ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
-          : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
-      ">All</button>` +
-      allDates.map(d => `
-        <button onclick="setTestPlanReleaseFilter('${d}')" style="
-          padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s;
-          ${selectedTestPlanReleaseDate === d
-            ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
-            : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
-        ">${formatDateDisplay(d)}</button>
-      `).join('');
+      `<button onclick="setTestPlanReleaseFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedTestPlanReleaseDate === null ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
+      allDates.map(d => `<button onclick="setTestPlanReleaseFilter('${d}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${selectedTestPlanReleaseDate === d ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">${formatDateDisplay(d)}</button>`).join('');
   }
 
-  // Filter projects by selected release date
-  const filteredProjects = selectedTestPlanReleaseDate
-    ? state.projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate)
-    : state.projects;
+  // Dev POD pills
+  renderPodPills('testPlanPodPills', selectedTestPlanDevPod, 'setTestPlanDevPodFilter');
+
+  // Filter by both release + POD
+  let filteredProjects = state.projects;
+  if (selectedTestPlanReleaseDate) filteredProjects = filteredProjects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
+  if (selectedTestPlanDevPod) filteredProjects = filteredProjects.filter(p => p.devPod === selectedTestPlanDevPod);
 
   if (filteredProjects.length === 0) {
-    sel.innerHTML = '<option value="">No release items for this date</option>';
+    sel.innerHTML = '<option value="">No release items for this filter</option>';
     body.style.display = 'none';
     return;
   }
@@ -2868,10 +2872,9 @@ function exportDailyPlanReport() {
 
 // ====================== SUMMARY REPORT ======================
 function exportSummaryReport() {
-  // Use the currently selected filter
-  const projects = selectedSummaryReleaseDate
-    ? state.projects.filter(p => p.releaseDate === selectedSummaryReleaseDate)
-    : state.projects;
+  let projects = state.projects;
+  if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
+  if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
 
   if (projects.length === 0) {
     alert('No items to include in this report for the selected filter.');
@@ -2879,8 +2882,8 @@ function exportSummaryReport() {
   }
 
   const reportTitle = selectedSummaryReleaseDate
-    ? `Release Summary — ${formatDateDisplay(selectedSummaryReleaseDate)}`
-    : 'Release Summary — All Releases';
+    ? `Release Summary — ${formatDateDisplay(selectedSummaryReleaseDate)}${selectedSummaryDevPod ? ` · ${selectedSummaryDevPod}` : ''}`
+    : selectedSummaryDevPod ? `Release Summary — ${selectedSummaryDevPod}` : 'Release Summary — All Releases';
 
   const rowsHtml = projects.map(proj => {
     const allocs = state.allocations.filter(a => a.project === proj.name);
@@ -2998,61 +3001,59 @@ function renderProjects() {
   const tbody = document.getElementById('projectTableBody');
   const empty = document.getElementById('projectEmpty');
   const pillsEl = document.getElementById('releaseDatePills');
+  const podPillsEl = document.getElementById('devPodFilterPills');
 
-  // Build unique sorted release dates from all projects
-  const allDates = [...new Set(
-    state.projects.map(p => p.releaseDate).filter(Boolean)
-  )].sort();
+  const POD_COLORS = {
+    'WinGuardians': ['#dbeafe','#1d4ed8'],
+    'Heisenbug':    ['#dcfce7','#15803d'],
+    'Hydra':        ['#fce7f3','#9d174d'],
+    'Sentinels':    ['#fef3c7','#b45309'],
+    'DareDevils':   ['#fee2e2','#b91c1c'],
+    'Evil Inc.':    ['#f3e8ff','#7e22ce'],
+  };
+  const ALL_PODS = ['WinGuardians','Heisenbug','Hydra','Sentinels','DareDevils','Evil Inc.'];
 
-  // Render filter pills
+  // Build unique sorted release dates
+  const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
+
+  // Release/GA date pills
   if (pillsEl) {
-    if (allDates.length === 0) {
-      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>';
+    pillsEl.innerHTML = allDates.length === 0
+      ? '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>'
+      : `<button onclick="setReleaseDateFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedReleaseDate === null ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
+        allDates.map(d => `<button onclick="setReleaseDateFilter('${d}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${selectedReleaseDate === d ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">${formatDateDisplay(d)}</button>`).join('');
+  }
+
+  // Dev POD pills — show only PODs that exist in current data
+  const usedPods = [...new Set(state.projects.map(p => p.devPod).filter(Boolean))];
+  if (podPillsEl) {
+    if (usedPods.length === 0) {
+      podPillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No PODs assigned yet</span>';
     } else {
-      pillsEl.innerHTML =
-        // "All" pill
-        `<button onclick="setReleaseDateFilter(null)" style="
-          padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid;
-          ${selectedReleaseDate === null
-            ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
-            : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
-        ">All</button>` +
-        allDates.map(d => `
-          <button onclick="setReleaseDateFilter('${d}')" style="
-            padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap;
-            ${selectedReleaseDate === d
-              ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
-              : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
-          ">${formatDateDisplay(d)}</button>
-        `).join('');
+      podPillsEl.innerHTML =
+        `<button onclick="setDevPodFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedDevPod === null ? 'background:#0f172a; color:white; border-color:#0f172a;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
+        ALL_PODS.filter(pod => usedPods.includes(pod)).map(pod => {
+          const [bg, fg] = POD_COLORS[pod] || ['#f1f5f9','#475569'];
+          const isActive = selectedDevPod === pod;
+          return `<button onclick="setDevPodFilter('${pod}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${isActive ? `background:${fg}; color:white; border-color:${fg};` : `background:${bg}; color:${fg}; border-color:${bg};`}">${pod}</button>`;
+        }).join('');
     }
   }
 
-  // Filter projects by selected date
-  const filtered = selectedReleaseDate
-    ? state.projects.filter(p => p.releaseDate === selectedReleaseDate)
-    : state.projects;
+  // Apply both filters
+  let filtered = state.projects;
+  if (selectedReleaseDate) filtered = filtered.filter(p => p.releaseDate === selectedReleaseDate);
+  if (selectedDevPod) filtered = filtered.filter(p => p.devPod === selectedDevPod);
 
   if (state.projects.length === 0) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-    return;
+    tbody.innerHTML = ''; empty.style.display = 'block'; return;
   }
   empty.style.display = 'none';
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No release items for this date.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No release items match the selected filters.</td></tr>`;
     return;
   }
-
-  const POD_COLORS = {
-    'WinGuardians': '#dbeafe:#1d4ed8',
-    'Heisenbug':    '#dcfce7:#15803d',
-    'Hydra':        '#fce7f3:#9d174d',
-    'Sentinels':    '#fef3c7:#b45309',
-    'DareDevils':   '#fee2e2:#b91c1c',
-    'Evil Inc.':    '#f3e8ff:#7e22ce',
-  };
 
   tbody.innerHTML = filtered.map(p => {
     const jiraId = extractJiraId(p.jiraUrl);
@@ -3061,9 +3062,8 @@ function renderProjects() {
           ? `<a href="${escapeHtml(p.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jiraId}</a>`
           : `<span style="background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600;">🎫 ${jiraId}</span>`)
       : '<span style="color:var(--text-faint);">—</span>';
-
-    const podColors = POD_COLORS[p.devPod] || '#f1f5f9:#475569';
-    const [pbg, pfg] = podColors.split(':');
+    const podColors = POD_COLORS[p.devPod] || ['#f1f5f9','#475569'];
+    const [pbg, pfg] = podColors;
     const podCell = p.devPod
       ? `<span style="background:${pbg}; color:${pfg}; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(p.devPod)}</span>`
       : '<span style="color:var(--text-faint);">—</span>';
@@ -3093,6 +3093,50 @@ function renderProjects() {
 function setReleaseDateFilter(date) {
   selectedReleaseDate = date;
   renderProjects();
+}
+
+function setDevPodFilter(pod) {
+  selectedDevPod = pod;
+  renderProjects();
+}
+
+function setTestPlanDevPodFilter(pod) {
+  selectedTestPlanDevPod = pod;
+  selectedTestPlanProjectId = null;
+  populateTestPlanProjectSelect();
+  renderTestPlan();
+}
+
+function setSummaryDevPodFilter(pod) {
+  selectedSummaryDevPod = pod;
+  renderSummary();
+}
+
+// Shared helper to render POD filter pills into a container
+function renderPodPills(containerId, selectedPod, onClickFn) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const POD_COLORS = {
+    'WinGuardians': ['#dbeafe','#1d4ed8'],
+    'Heisenbug':    ['#dcfce7','#15803d'],
+    'Hydra':        ['#fce7f3','#9d174d'],
+    'Sentinels':    ['#fef3c7','#b45309'],
+    'DareDevils':   ['#fee2e2','#b91c1c'],
+    'Evil Inc.':    ['#f3e8ff','#7e22ce'],
+  };
+  const ALL_PODS = ['WinGuardians','Heisenbug','Hydra','Sentinels','DareDevils','Evil Inc.'];
+  const usedPods = [...new Set(state.projects.map(p => p.devPod).filter(Boolean))];
+  if (usedPods.length === 0) {
+    el.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No PODs assigned yet</span>';
+    return;
+  }
+  el.innerHTML =
+    `<button onclick="${onClickFn}(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedPod === null ? 'background:#0f172a; color:white; border-color:#0f172a;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
+    ALL_PODS.filter(pod => usedPods.includes(pod)).map(pod => {
+      const [bg, fg] = POD_COLORS[pod] || ['#f1f5f9','#475569'];
+      const isActive = selectedPod === pod;
+      return `<button onclick="${onClickFn}('${pod}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${isActive ? `background:${fg}; color:white; border-color:${fg};` : `background:${bg}; color:${fg}; border-color:${bg};`}">${pod}</button>`;
+    }).join('');
 }
 
 // ====================== ALLOCATION ======================
@@ -3324,44 +3368,28 @@ function renderSummary() {
   const empty = document.getElementById('summaryEmpty');
   const pillsEl = document.getElementById('summaryReleasePills');
 
-  // Build unique sorted release dates
-  const allDates = [...new Set(
-    state.projects.map(p => p.releaseDate).filter(Boolean)
-  )].sort();
-
-  // Render filter pills
+  // Release date pills
+  const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
   if (pillsEl) {
-    if (allDates.length === 0) {
-      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>';
-    } else {
-      pillsEl.innerHTML =
-        `<button onclick="setSummaryReleaseFilter(null)" style="
-          padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;
-          ${selectedSummaryReleaseDate === null
-            ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
-            : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
-        ">All releases</button>` +
-        allDates.map(d => `
-          <button onclick="setSummaryReleaseFilter('${d}')" style="
-            padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s;
-            ${selectedSummaryReleaseDate === d
-              ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
-              : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
-          ">${formatDateDisplay(d)}</button>
-        `).join('');
-    }
+    pillsEl.innerHTML = allDates.length === 0
+      ? '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>'
+      : `<button onclick="setSummaryReleaseFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedSummaryReleaseDate === null ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
+        allDates.map(d => `<button onclick="setSummaryReleaseFilter('${d}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${selectedSummaryReleaseDate === d ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">${formatDateDisplay(d)}</button>`).join('');
   }
 
-  // Filter projects
-  const projects = selectedSummaryReleaseDate
-    ? state.projects.filter(p => p.releaseDate === selectedSummaryReleaseDate)
-    : state.projects;
+  // Dev POD pills
+  renderPodPills('summaryPodPills', selectedSummaryDevPod, 'setSummaryDevPodFilter');
+
+  // Filter by both release + POD
+  let projects = state.projects;
+  if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
+  if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
 
   if (state.projects.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
   if (projects.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No items for this Release/GA date.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No items match the selected filters.</td></tr>`;
     return;
   }
 
