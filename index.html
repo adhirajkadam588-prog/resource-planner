@@ -1000,6 +1000,24 @@ sbClient.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
+// On page load, explicitly check for existing session
+// (onAuthStateChange may not fire on hard refresh in some browsers)
+(async () => {
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (session && session.user) {
+    // Session exists — trigger the auth flow manually
+    currentUserId = session.user.id;
+    currentUserEmail = session.user.email;
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('userEmail').textContent = session.user.email;
+    await fetchUserRole(session.user.id);
+    await loadState();
+    if (currentUserRole === 'admin') await fetchAllUserRoles();
+    renderAll();
+    applyAccessUI();
+  }
+})();
+
 document.addEventListener('keydown', (e) => {
   const overlay = document.getElementById('loginOverlay');
   if (e.key === 'Enter' && overlay && !overlay.classList.contains('hidden')) signIn();
