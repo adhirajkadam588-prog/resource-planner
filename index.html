@@ -927,43 +927,77 @@ function applyAccessUI() {
   if (adminTabBtn) adminTabBtn.style.display = isAdmin ? 'flex' : 'none';
   if (adminNavSection) adminNavSection.style.display = isAdmin ? 'block' : 'none';
 
+  // Read-only banner for non-admin users
   const existingBanner = document.getElementById('readOnlyBanner');
   if (!isAdmin && !existingBanner) {
     const banner = document.createElement('div');
     banner.id = 'readOnlyBanner';
     banner.style.cssText = 'background:var(--amber-dim);color:var(--amber);font-size:12px;font-weight:500;padding:8px 16px;border-radius:6px;margin-bottom:12px;';
-    banner.innerHTML = '⚠ You have read-only access. Contact admin to request edit permissions.';
+    banner.innerHTML = '⚠ You have limited access. Some sections may be read-only or hidden based on your permissions.';
     const mainEl = document.querySelector('.main');
     if (mainEl) mainEl.insertBefore(banner, mainEl.firstChild);
   } else if (isAdmin && existingBanner) {
     existingBanner.remove();
   }
+
+  if (isAdmin) return; // Admin sees everything
+
+  // For non-admins enforce per-section permissions
+  const SECTION_TABS = ['people','projects','testplan','dailyplan','allocation','capacity','leave','holidays','summary'];
+  SECTION_TABS.forEach(section => {
+    const perm = currentUserPermissions[section] || 'read';
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${section}"]`);
+    const tabContent = document.getElementById(`tab-${section}`);
+
+    // Hide tab entirely if permission is 'none'
+    if (tabBtn) tabBtn.style.display = perm === 'none' ? 'none' : 'flex';
+
+    // If read-only, hide all add/edit/delete buttons inside that tab
+    if (perm === 'read' && tabContent) {
+      tabContent.querySelectorAll('.action').forEach(btn => {
+        if (!btn.classList.contains('export-btn')) btn.style.display = 'none';
+      });
+      tabContent.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.style.display = 'none';
+      });
+    }
+  });
 }
 
 async function fetchUserRole(userId) {
   try {
-    // First try by user_id (most common case)
-    let { data, error } = await sbClient
-      .from('user_roles').select('role,permissions,email')
-      .eq('user_id', userId).maybeSingle();
+    // Try by user_id first
+    let { data } = await sbClient
+      .from('user_roles')
+      .select('id, role, permissions, email')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-    // If not found by user_id, try by email (user was added by admin before first login)
+    // Not found by user_id — try by email
+    // This handles users added by admin before their first login
+    // (their row has user_id = NULL until they log in)
     if (!data && currentUserEmail) {
       const res = await sbClient
-        .from('user_roles').select('id,role,permissions,email')
-        .eq('email', currentUserEmail).maybeSingle();
+        .from('user_roles')
+        .select('id, role, permissions, email')
+        .eq('email', currentUserEmail.toLowerCase())
+        .maybeSingle();
+
       if (res.data) {
         data = res.data;
-        // Auto-fix: update the user_id so future lookups work correctly
-        await sbClient.from('user_roles').update({ user_id: userId }).eq('email', currentUserEmail);
+        // Auto-fix: write the real user_id into the row so
+        // future lookups by user_id will work correctly
+        await sbClient
+          .from('user_roles')
+          .update({ user_id: userId })
+          .eq('id', res.data.id);
         console.log('Auto-linked user_id for:', currentUserEmail);
       }
     }
 
-    if (error) console.warn('fetchUserRole:', error.message);
     currentUserRole = (data && data.role) ? data.role : 'member';
     currentUserPermissions = (data && data.permissions) ? data.permissions : { ...DEFAULT_PERMISSIONS };
-    console.log('Role:', currentUserRole);
+    console.log('Role loaded:', currentUserRole, '| Permissions:', currentUserPermissions);
   } catch (e) {
     console.warn('fetchUserRole exception:', e.message);
     currentUserRole = 'member';
