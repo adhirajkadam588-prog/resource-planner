@@ -68,10 +68,9 @@
     background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Inter Tight', sans-serif;
-    font-weight: 700; font-size: 14px; color: white;
     margin-bottom: 12px;
     box-shadow: 0 4px 14px rgba(124,58,237,0.45);
+    flex-shrink: 0;
   }
   .brand h1 {
     font-family: 'Inter Tight', sans-serif;
@@ -247,6 +246,8 @@
   .cal-cell { background: var(--panel); padding: 6px 4px; text-align: center; color: var(--text-faint); }
   .cal-cell.name { background: #f8fafc; text-align: left; padding: 6px 11px; color: var(--text); font-size: 12px; position: sticky; left: 0; z-index: 5; box-shadow: 1px 0 0 var(--border-soft); }
   .cal-cell.leave { background: #fef3c7; color: #b45309; cursor: pointer; font-weight: 600; }
+  .cal-cell.weekend { background: #f1f5f9; color: #cbd5e1; cursor: not-allowed; font-size: 10px; }
+  .cal-cell.holiday-day { background: #f1f5f9; color: #cbd5e1; cursor: not-allowed; font-size: 10px; }
   .cal-cell.day-cell { cursor: pointer; }
   .cal-cell.day-cell:hover { background: #f1f5f9; }
   .cal-header { background: #f8fafc !important; color: var(--text-faint); font-weight: 700; }
@@ -314,12 +315,11 @@
     box-shadow: 0 20px 60px rgba(20,24,32,0.18);
   }
   .login-mark {
-    width: 44px; height: 44px;
+    width: 52px; height: 52px;
     background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-    border-radius: 12px; display: flex; align-items: center;
-    justify-content: center; font-family: 'Inter Tight', sans-serif;
-    font-weight: 700; font-size: 16px; color: white; margin-bottom: 20px;
-    box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+    border-radius: 14px; display: flex; align-items: center;
+    justify-content: center; margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(124,58,237,0.45);
   }
   .login-box h2 { font-family: 'Inter Tight', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 4px; }
   .login-box .login-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 26px; }
@@ -338,7 +338,14 @@
 <!-- Login screen — shown until user authenticates -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <div class="login-mark">TL</div>
+    <div class="login-mark">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="16" stroke="white" stroke-width="2" opacity="0.25"/>
+        <circle cx="20" cy="20" r="10" stroke="white" stroke-width="2.5" opacity="0.65"/>
+        <circle cx="20" cy="20" r="4.5" fill="white"/>
+        <line x1="24.5" y1="24.5" x2="31" y2="31" stroke="white" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
     <h2>TeamLens</h2>
     <div class="login-sub">Sign in to access TeamLens</div>
     <div class="login-field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@company.com" autocomplete="email"></div>
@@ -377,7 +384,14 @@
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
-      <div class="mark">TL</div>
+      <div class="mark">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="13" stroke="white" stroke-width="1.8" opacity="0.25"/>
+          <circle cx="16" cy="16" r="8.5" stroke="white" stroke-width="2.2" opacity="0.6"/>
+          <circle cx="16" cy="16" r="4" fill="white"/>
+          <line x1="19.8" y1="19.8" x2="25" y2="25" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+        </svg>
+      </div>
       <h1>TeamLens</h1>
       <div class="tagline">QA Team Planning</div>
     </div>
@@ -479,12 +493,9 @@
         <button class="action" onclick="openProjectModal()">+ Add release item</button>
       </div>
       <!-- Filter bar -->
-      <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-        <div style="font-size:12px; color:var(--text-faint); font-weight:500;">Filter by release date:</div>
-        <input type="month" id="releaseFilterFrom" style="font-size:12px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--panel-2); color:var(--text);" onchange="renderProjects()" placeholder="From">
-        <span style="font-size:12px; color:var(--text-faint);">to</span>
-        <input type="month" id="releaseFilterTo" style="font-size:12px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--panel-2); color:var(--text);" onchange="renderProjects()">
-        <button class="ghost" style="font-size:11px; padding:4px 10px;" onclick="document.getElementById('releaseFilterFrom').value=''; document.getElementById('releaseFilterTo').value=''; renderProjects();">Clear</button>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;" id="releaseDateFilterBar">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release date:</div>
+        <div id="releaseDatePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       </div>
       <div style="overflow-x:auto;">
         <table>
@@ -573,7 +584,7 @@
       <div class="panel-head">
         <div>
           <h3>Leave &amp; availability</h3>
-          <div class="desc" id="leaveMonthLabel">Click a day to toggle leave for that person</div>
+          <div class="desc" id="leaveMonthLabel">Click a working day to toggle leave</div>
         </div>
         <div style="display:flex; gap:8px;">
           <button class="ghost" onclick="shiftMonth(-1)">‹ Prev</button>
@@ -583,7 +594,32 @@
       <div style="overflow-x:auto;">
         <div class="cal-grid" id="calGrid"></div>
       </div>
+      <div style="display:flex; gap:14px; margin-top:10px; font-size:11px; color:var(--text-faint);">
+        <span><span style="display:inline-block; width:12px; height:12px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:2px; vertical-align:middle; margin-right:4px;"></span>Weekend / Holiday</span>
+        <span><span style="display:inline-block; width:12px; height:12px; background:#fef3c7; border:1px solid #f59e0b; border-radius:2px; vertical-align:middle; margin-right:4px;"></span>Leave day (L)</span>
+      </div>
       <div class="empty-state" id="leaveEmpty" style="display:none;">Add people first to mark their leave days.</div>
+    </div>
+
+    <!-- Leave summary table -->
+    <div class="panel" id="leaveSummaryPanel">
+      <div class="panel-head">
+        <div>
+          <h3>Leave summary</h3>
+          <div class="desc">All leave days per person across all months</div>
+        </div>
+      </div>
+      <table id="leaveSummaryTable">
+        <thead>
+          <tr>
+            <th style="width:160px;">Person</th>
+            <th>Leave dates</th>
+            <th style="width:80px; text-align:center;">Total days</th>
+          </tr>
+        </thead>
+        <tbody id="leaveSummaryBody"></tbody>
+      </table>
+      <div class="empty-state" id="leaveSummaryEmpty" style="display:none;">No leave days marked yet.</div>
     </div>
   </div>
 
@@ -784,16 +820,22 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <h3>Project summary</h3>
-          <div class="desc">All projects — who's working on them, timeline, effort, and go ahead info</div>
+          <h3>Release summary</h3>
+          <div class="desc">Filter by release date — share the report with your manager</div>
         </div>
         <button class="export-btn" onclick="exportSummaryReport()"><span class="ico">📄</span> Share report</button>
+      </div>
+      <!-- Release date filter pills -->
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release:</div>
+        <div id="summaryReleasePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       </div>
       <table>
         <thead>
           <tr>
             <th>Release Items</th>
             <th>JIRA</th>
+            <th>Release date</th>
             <th>Status</th>
             <th>Working on it</th>
             <th>QA done</th>
@@ -804,7 +846,7 @@
         </thead>
         <tbody id="summaryTableBody"></tbody>
       </table>
-      <div class="empty-state" id="summaryEmpty" style="display:none;">No projects added yet. Add a project to see its summary here.</div>
+      <div class="empty-state" id="summaryEmpty" style="display:none;">No projects added yet. Add a release item to see its summary here.</div>
     </div>
   </div>
   </div>
@@ -1811,6 +1853,8 @@ function renderHolidays() {
 
 // ====================== TEST PLAN ======================
 let selectedTestPlanProjectId = null;   // single project shown in tab UI
+let selectedReleaseDate = null;         // null = show all, date string = filter by that date
+let selectedSummaryReleaseDate = null;  // same for summary tab
 let editingTestRowId = null;
 
 function getTestPlanForProject(projectId) {
@@ -2091,107 +2135,17 @@ function exportTestPlanReport(scope) {
     : state.projects.filter(p => p.id === selectedTestPlanProjectId);
 
   if (projectsToInclude.length === 0) {
-    alert('No project data to include in this report.');
+    alert('No project selected. Pick a project from the dropdown first.');
     return;
   }
 
   const reportTitle = scope === 'all'
     ? 'Test Plan Report — All Projects'
     : `Test Plan Report — ${projectsToInclude[0].name}`;
-  const generatedOn = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const fullHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>${escapeHtml(reportTitle)}</title>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-    background: #f6f7f9;
-    color: #1a1d24;
-    margin: 0;
-    padding: 40px 24px 80px;
-  }
-  .report-wrap { max-width: 900px; margin: 0 auto; }
-  .report-header {
-    border-bottom: 2px solid #3f6df0;
-    padding-bottom: 18px;
-    margin-bottom: 32px;
-  }
-  .report-header h1 {
-    font-size: 24px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em;
-  }
-  .report-header .gen-date { font-size: 12px; color: #8b91a0; }
-  .project-section {
-    background: #ffffff;
-    border: 1px solid #e1e4ea;
-    border-radius: 10px;
-    padding: 24px 28px;
-    margin-bottom: 28px;
-  }
-  .project-section h2 {
-    font-size: 18px; font-weight: 700; margin: 0 0 10px; color: #1a1d24;
-  }
-  .meta-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
-  .badge-r {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 600; background: #e8f0fe; color: #2451d6;
-  }
-  .meta-item { font-size: 12.5px; color: #5d6473; }
-  .meta-item strong { color: #1a1d24; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
-  .matrix-table th {
-    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
-    color: #8b91a0; font-weight: 600; padding: 8px 10px; border-bottom: 2px solid #e1e4ea;
-  }
-  .matrix-table td { padding: 9px 10px; border-bottom: 1px solid #ebedf1; font-size: 13px; }
-  .matrix-table td.num { text-align: center; font-family: 'SF Mono', Consolas, monospace; }
-  .matrix-table .sub-row td { background: #f6f7f9; color: #5d6473; font-style: italic; }
-  .matrix-table .total-row td { background: #f1f3f6; font-weight: 700; border-top: 2px solid #e1e4ea; }
-  .matrix-table .empty-row { text-align: center; color: #8b91a0; font-style: italic; }
-  .stats-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;
-  }
-  .stat-box {
-    background: #f6f7f9; border-radius: 8px; padding: 12px 14px; text-align: left;
-  }
-  .stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: #8b91a0; font-weight: 600; }
-  .stat-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
-  .stat-value.accent { color: #1ba672; }
-  .milestone-table td { font-size: 12.5px; padding: 7px 10px; border-bottom: 1px solid #ebedf1; }
-  .milestone-table .ms-label { color: #5d6473; width: 280px; }
-  .milestone-table td.num { font-family: 'SF Mono', Consolas, monospace; }
-  @media print {
-    body { background: white; padding: 0; }
-    .project-section { border: none; page-break-inside: avoid; box-shadow: none; }
-  }
-</style>
-</head>
-<body>
-<div class="report-wrap">
-  <div class="report-header">
-    <h1>${escapeHtml(reportTitle)}</h1>
-    <div class="gen-date">Generated on ${generatedOn}</div>
-  </div>
-  ${sectionsHtml}
-</div>
-</body>
-</html>`;
+  // Build the HTML sections for each project
+  const sectionsHtml = projectsToInclude.map(buildTestPlanProjectSectionHtml).join('\n');
 
-  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const filenameBase = scope === 'all' ? 'all-projects' : (projectsToInclude[0].name || 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  a.download = `test-plan-report-${filenameBase}-${new Date().toISOString().slice(0,10)}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  // Also offer shareable link
   shareReportAsLink(reportTitle, sectionsHtml);
 }
 
@@ -2506,7 +2460,14 @@ function buildFullReportHtml(title, bodyHtml) {
 <body>
 <div class="report-wrap">
   <div class="report-header">
-    <div class="report-logo">TL</div>
+    <div class="report-logo">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="13" stroke="white" stroke-width="1.8" opacity="0.3"/>
+      <circle cx="16" cy="16" r="8.5" stroke="white" stroke-width="2.2" opacity="0.65"/>
+      <circle cx="16" cy="16" r="4" fill="white"/>
+      <line x1="19.8" y1="19.8" x2="25" y2="25" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+    </svg>
+  </div>
     <div>
       <h1>${escapeHtml(title)}</h1>
       <div class="gen-date">Generated on ${generatedOn} · TeamLens</div>
@@ -2747,12 +2708,21 @@ function exportDailyPlanReport() {
 
 // ====================== SUMMARY REPORT ======================
 function exportSummaryReport() {
-  if (state.projects.length === 0) {
-    alert('No projects to include in this report.');
+  // Use the currently selected filter
+  const projects = selectedSummaryReleaseDate
+    ? state.projects.filter(p => p.releaseDate === selectedSummaryReleaseDate)
+    : state.projects;
+
+  if (projects.length === 0) {
+    alert('No items to include in this report for the selected filter.');
     return;
   }
 
-  const rowsHtml = state.projects.map(proj => {
+  const reportTitle = selectedSummaryReleaseDate
+    ? `Release Summary — ${formatDateDisplay(selectedSummaryReleaseDate)}`
+    : 'Release Summary — All Releases';
+
+  const rowsHtml = projects.map(proj => {
     const allocs = state.allocations.filter(a => a.project === proj.name);
     const members = allocs.map(a => {
       const p = state.people.find(pp => pp.id === a.personId);
@@ -2772,14 +2742,22 @@ function exportSummaryReport() {
       ? `<span style="display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; background:${sbg}; color:${sfg}; text-transform:uppercase; letter-spacing:0.04em;">${escapeHtml(proj.status)}</span>`
       : '<span style="color:#94a3b8;">—</span>';
 
+    const jid = extractJiraId(proj.jiraUrl);
+    const jiraCell = jid
+      ? (proj.jiraUrl && proj.jiraUrl.startsWith('http')
+          ? `<a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jid}</a>`
+          : `<span style="background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600;">🎫 ${jid}</span>`)
+      : '<span style="color:#94a3b8; font-size:12px;">—</span>';
+
     return `
       <tr style="border-bottom:1px solid #f1f5f9;">
         <td style="padding:12px 14px; font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(proj.name)}</td>
+        <td style="padding:12px 14px;">${jiraCell}</td>
+        <td style="padding:12px 14px;">
+          ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:#94a3b8;">—</span>'}
+        </td>
         <td style="padding:12px 14px;">${statusBadge}</td>
         <td style="padding:12px 14px;">${members}</td>
-        <td style="padding:12px 14px;">
-          ${(() => { const jid = extractJiraId(proj.jiraUrl); return jid ? (proj.jiraUrl && proj.jiraUrl.startsWith('http') ? `<a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jid}</a>` : `<span style="background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600;">🎫 ${jid}</span>`) : '<span style="color:#94a3b8; font-size:12px;">—</span>'; })()}
-        </td>
         <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
         <td style="padding:12px 14px; text-align:center;">
           ${proj.effort ? `<span style="font-weight:700; color:#1e3a8a; font-size:15px;">${proj.effort}</span><span style="font-size:11px; color:#94a3b8; margin-left:3px;">PDs</span>` : '<span style="color:#94a3b8;">—</span>'}
@@ -2789,16 +2767,16 @@ function exportSummaryReport() {
       </tr>`;
   }).join('');
 
-  // Summary stat cards
-  const totalProjects = state.projects.length;
-  const inProgress = state.projects.filter(p => (p.status || '').toLowerCase() === 'in progress').length;
-  const completed = state.projects.filter(p => (p.status || '').toLowerCase() === 'completed').length;
-  const totalPDs = state.projects.reduce((s, p) => s + (parseFloat(p.effort) || 0), 0);
+  // Stat cards — based on filtered projects
+  const totalProjects = projects.length;
+  const inProgress = projects.filter(p => (p.status || '').toLowerCase() === 'in progress').length;
+  const completed = projects.filter(p => (p.status || '').toLowerCase() === 'completed').length;
+  const totalPDs = projects.reduce((s, p) => s + (parseFloat(p.effort) || 0), 0);
 
   const bodyHtml = `
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px;">
       <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px;">
-        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:6px;">Total projects</div>
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:6px;">Release items</div>
         <div style="font-size:28px; font-weight:700; color:#0f172a;">${totalProjects}</div>
       </div>
       <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px;">
@@ -2819,10 +2797,11 @@ function exportSummaryReport() {
       <table style="width:100%; border-collapse:collapse;">
         <thead>
           <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Project</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release item</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">JIRA</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release date</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Team</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">JIRA</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA done</th>
             <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Effort</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Go ahead</th>
@@ -2834,7 +2813,7 @@ function exportSummaryReport() {
     </div>
   `;
 
-  shareReportAsLink('Project Summary Report', bodyHtml);
+  shareReportAsLink(reportTitle, bodyHtml);
 }
 
 // Returns true if the given date (Date object) is a working day —
@@ -2860,23 +2839,43 @@ function getWorkingDaysInMonth(year, month) {
 function renderProjects() {
   const tbody = document.getElementById('projectTableBody');
   const empty = document.getElementById('projectEmpty');
+  const pillsEl = document.getElementById('releaseDatePills');
 
-  // Apply release date filter
-  const filterFrom = document.getElementById('releaseFilterFrom')?.value || '';
-  const filterTo = document.getElementById('releaseFilterTo')?.value || '';
+  // Build unique sorted release dates from all projects
+  const allDates = [...new Set(
+    state.projects.map(p => p.releaseDate).filter(Boolean)
+  )].sort();
 
-  let filtered = state.projects;
-  if (filterFrom || filterTo) {
-    filtered = state.projects.filter(p => {
-      if (!p.releaseDate) return false;
-      const rd = p.releaseDate.slice(0, 7); // YYYY-MM
-      if (filterFrom && rd < filterFrom) return false;
-      if (filterTo && rd > filterTo) return false;
-      return true;
-    });
+  // Render filter pills
+  if (pillsEl) {
+    if (allDates.length === 0) {
+      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No release dates set yet</span>';
+    } else {
+      pillsEl.innerHTML =
+        // "All" pill
+        `<button onclick="setReleaseDateFilter(null)" style="
+          padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid;
+          ${selectedReleaseDate === null
+            ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
+            : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
+        ">All</button>` +
+        allDates.map(d => `
+          <button onclick="setReleaseDateFilter('${d}')" style="
+            padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap;
+            ${selectedReleaseDate === d
+              ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
+              : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
+          ">${formatDateDisplay(d)}</button>
+        `).join('');
+    }
   }
 
-  if (filtered.length === 0 && state.projects.length === 0) {
+  // Filter projects by selected date
+  const filtered = selectedReleaseDate
+    ? state.projects.filter(p => p.releaseDate === selectedReleaseDate)
+    : state.projects;
+
+  if (state.projects.length === 0) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
     return;
@@ -2884,7 +2883,7 @@ function renderProjects() {
   empty.style.display = 'none';
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:20px; font-style:italic;">No release items match the selected date filter.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No release items for this date.</td></tr>`;
     return;
   }
 
@@ -2899,8 +2898,8 @@ function renderProjects() {
     <tr>
       <td style="font-weight:500;">${escapeHtml(p.name)}</td>
       <td>${jiraCell}</td>
-      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px; white-space:nowrap;">
-        ${p.releaseDate ? `<span style="background:var(--accent-dim); color:var(--accent); padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">${formatDateDisplay(p.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
+      <td style="white-space:nowrap;">
+        ${p.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 10px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(p.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
       </td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
       <td style="font-family:var(--mono);">${p.effort ? p.effort + ' days' : '—'}</td>
@@ -2913,6 +2912,11 @@ function renderProjects() {
       </td>
     </tr>`;
   }).join('');
+}
+
+function setReleaseDateFilter(date) {
+  selectedReleaseDate = date;
+  renderProjects();
 }
 
 // ====================== ALLOCATION ======================
@@ -3142,37 +3146,85 @@ function renderCapacity() {
 function renderSummary() {
   const tbody = document.getElementById('summaryTableBody');
   const empty = document.getElementById('summaryEmpty');
+  const pillsEl = document.getElementById('summaryReleasePills');
+
+  // Build unique sorted release dates
+  const allDates = [...new Set(
+    state.projects.map(p => p.releaseDate).filter(Boolean)
+  )].sort();
+
+  // Render filter pills
+  if (pillsEl) {
+    if (allDates.length === 0) {
+      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No release dates set yet</span>';
+    } else {
+      pillsEl.innerHTML =
+        `<button onclick="setSummaryReleaseFilter(null)" style="
+          padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;
+          ${selectedSummaryReleaseDate === null
+            ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
+            : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
+        ">All releases</button>` +
+        allDates.map(d => `
+          <button onclick="setSummaryReleaseFilter('${d}')" style="
+            padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s;
+            ${selectedSummaryReleaseDate === d
+              ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
+              : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
+          ">${formatDateDisplay(d)}</button>
+        `).join('');
+    }
+  }
+
+  // Filter projects
+  const projects = selectedSummaryReleaseDate
+    ? state.projects.filter(p => p.releaseDate === selectedSummaryReleaseDate)
+    : state.projects;
+
   if (state.projects.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  tbody.innerHTML = state.projects.map(proj => {
+  if (projects.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No items for this release date.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = projects.map(proj => {
     const allocs = state.allocations.filter(a => a.project === proj.name);
     const members = allocs.map(a => {
       const p = state.people.find(pp => pp.id === a.personId);
-      const personName = p ? p.name : '(removed)';
-      return `${escapeHtml(personName)} (${a.pct}%)`;
-    }).join(', ') || '<span style="color:var(--text-faint)">No one assigned yet</span>';
+      return p ? `${escapeHtml(p.name)} (${a.pct}%)` : '';
+    }).filter(Boolean).join(', ') || '<span style="color:var(--text-faint)">—</span>';
 
     const jiraId = extractJiraId(proj.jiraUrl);
     const jiraCell = jiraId
       ? (proj.jiraUrl && proj.jiraUrl.startsWith('http')
-          ? `<a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:var(--accent-dim); color:var(--accent); padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jiraId}</a>`
-          : `<span style="background:var(--accent-dim); color:var(--accent); padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">🎫 ${jiraId}</span>`)
+          ? `<a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jiraId}</a>`
+          : `<span style="background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">🎫 ${jiraId}</span>`)
       : '<span style="color:var(--text-faint);">—</span>';
 
     return `
       <tr>
-        <td>${escapeHtml(proj.name)}</td>
+        <td style="font-weight:500;">${escapeHtml(proj.name)}</td>
         <td>${jiraCell}</td>
+        <td style="white-space:nowrap;">
+          ${proj.releaseDate
+            ? `<span style="background:#ede9fe; color:#7c3aed; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>`
+            : '<span style="color:var(--text-faint);">—</span>'}
+        </td>
         <td>${proj.status ? `<span class="badge ${statusBadgeClass(proj.status)}">${escapeHtml(proj.status)}</span>` : '—'}</td>
         <td style="color:var(--text-dim); font-size:12px;">${members}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.completionDate)}</td>
         <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' days' : '—'}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.goAheadDate)}</td>
         <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(proj.goAheadBy || '—')}</td>
-      </tr>
-    `;
+      </tr>`;
   }).join('');
+}
+
+function setSummaryReleaseFilter(date) {
+  selectedSummaryReleaseDate = date;
+  renderSummary();
 }
 
 // ====================== LEAVE CALENDAR ======================
@@ -3184,6 +3236,12 @@ function shiftMonth(delta) {
 }
 
 function toggleLeave(personId, dateKey) {
+  // Block weekends and holidays
+  const d = new Date(dateKey + 'T00:00:00');
+  const dow = d.getDay();
+  if (dow === 0 || dow === 6) return; // Sunday or Saturday
+  if (state.holidays.some(h => h.date === dateKey)) return; // Public holiday
+
   if (!state.leaves[personId]) state.leaves[personId] = [];
   const idx = state.leaves[personId].indexOf(dateKey);
   if (idx >= 0) state.leaves[personId].splice(idx, 1);
@@ -3197,27 +3255,81 @@ function renderLeaveCalendar() {
   const empty = document.getElementById('leaveEmpty');
   const monthLabel = document.getElementById('leaveMonthLabel');
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  monthLabel.textContent = monthNames[calMonth] + ' ' + calYear + ' — click a day to toggle leave';
+  monthLabel.textContent = monthNames[calMonth] + ' ' + calYear + ' — click a working day to toggle leave';
 
-  if (state.people.length === 0) { grid.innerHTML = ''; grid.style.gridTemplateColumns = '160px'; empty.style.display = 'block'; return; }
+  if (state.people.length === 0) {
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = '160px';
+    empty.style.display = 'block';
+    renderLeaveSummary();
+    return;
+  }
   empty.style.display = 'none';
 
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   grid.style.gridTemplateColumns = `160px repeat(${daysInMonth}, minmax(22px, 1fr))`;
 
+  // Header row — highlight weekend day numbers
   let html = `<div class="cal-cell name cal-header">Person</div>`;
-  for (let d = 1; d <= daysInMonth; d++) html += `<div class="cal-cell cal-header">${d}</div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(calYear, calMonth, d).getDay();
+    const isWknd = dow === 0 || dow === 6;
+    html += `<div class="cal-cell cal-header" style="${isWknd ? 'background:#eef2f7; color:#c5cedb;' : ''}">${d}</div>`;
+  }
 
   state.people.forEach(p => {
     html += `<div class="cal-cell name">${escapeHtml(p.name)}</div>`;
     const leaveDays = state.leaves[p.id] || [];
     for (let d = 1; d <= daysInMonth; d++) {
       const dateKey = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dow = new Date(calYear, calMonth, d).getDay();
+      const isWknd = dow === 0 || dow === 6;
+      const isHoliday = state.holidays.some(h => h.date === dateKey);
       const isLeave = leaveDays.includes(dateKey);
-      html += `<div class="cal-cell day-cell ${isLeave ? 'leave' : ''}" onclick="toggleLeave('${p.id}','${dateKey}')">${isLeave ? 'L' : ''}</div>`;
+
+      if (isWknd) {
+        html += `<div class="cal-cell weekend" title="Weekend">·</div>`;
+      } else if (isHoliday) {
+        const h = state.holidays.find(h => h.date === dateKey);
+        html += `<div class="cal-cell holiday-day" title="${escapeHtml(h?.name || 'Holiday')}">H</div>`;
+      } else {
+        html += `<div class="cal-cell day-cell ${isLeave ? 'leave' : ''}" onclick="toggleLeave('${p.id}','${dateKey}')">${isLeave ? 'L' : ''}</div>`;
+      }
     }
   });
+
   grid.innerHTML = html;
+  renderLeaveSummary();
+}
+
+function renderLeaveSummary() {
+  const tbody = document.getElementById('leaveSummaryBody');
+  const emptyEl = document.getElementById('leaveSummaryEmpty');
+  if (!tbody) return;
+
+  const rows = state.people.map(p => {
+    const dates = (state.leaves[p.id] || []).slice().sort();
+    return { name: p.name, dates };
+  }).filter(r => r.dates.length > 0);
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  tbody.innerHTML = rows.map(r => {
+    const pills = r.dates.map(d =>
+      `<span style="display:inline-block; background:#fef3c7; color:#b45309; border:1px solid #f59e0b; border-radius:5px; padding:2px 8px; font-size:11px; font-weight:600; margin:2px 2px 2px 0;">${formatDateDisplay(d)}</span>`
+    ).join('');
+    return `
+      <tr>
+        <td style="font-weight:600; white-space:nowrap;">${escapeHtml(r.name)}</td>
+        <td style="line-height:2;">${pills}</td>
+        <td style="text-align:center; font-weight:700; font-family:var(--mono); color:#7c3aed;">${r.dates.length}</td>
+      </tr>`;
+  }).join('');
 }
 
 // ====================== DAILY PLAN ======================
