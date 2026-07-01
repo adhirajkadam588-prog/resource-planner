@@ -642,14 +642,18 @@
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head">
         <div>
-          <h3>Add user access</h3>
-          <div class="desc">First create the user in Supabase Dashboard → Authentication → Users → Add User (with Auto Confirm ✅). Then enter their email here to assign role and permissions.</div>
+          <h3>Add new user</h3>
+          <div class="desc">Create a new user account and assign their role and permissions directly from here.</div>
         </div>
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-        <div class="field" style="margin:0; flex:2; min-width:200px;">
+        <div class="field" style="margin:0; flex:2; min-width:180px;">
           <label>Email</label>
           <input id="adminNewEmail" type="email" placeholder="user@company.com">
+        </div>
+        <div class="field" style="margin:0; flex:2; min-width:180px;">
+          <label>Password</label>
+          <input id="adminNewPassword" type="password" placeholder="Min 6 characters">
         </div>
         <div class="field" style="margin:0; flex:1; min-width:120px;">
           <label>Role</label>
@@ -658,7 +662,7 @@
             <option value="admin">Admin</option>
           </select>
         </div>
-        <button class="action" style="margin-bottom:0;" onclick="adminLinkUser()">Add user</button>
+        <button class="action" style="margin-bottom:0;" onclick="adminCreateUser()">Create user</button>
       </div>
       <div id="adminError" style="font-size:12px; color:var(--red); margin-top:10px;"></div>
       <div id="adminSuccess" style="font-size:12px; color:var(--green); margin-top:10px;"></div>
@@ -1121,63 +1125,50 @@ async function fetchAllUserRoles() {
   }
 }
 
-// Admin links an existing Supabase auth user (by email) to the user_roles table.
-// The user must already exist in Supabase Auth (created via dashboard).
-// We use a workaround: insert with a temporary placeholder UUID, then a trigger
-// or the user's own first login will update it — OR we use the email column
-// to find them on next fetch. Best approach: store by email + real UUID lookup.
-async function adminLinkUser() {
+// Primary: Create user via Edge Function (server-side, uses service role)
+async function adminCreateUser() {
   const email = document.getElementById('adminNewEmail').value.trim().toLowerCase();
+  const password = document.getElementById('adminNewPassword').value;
   const role = document.getElementById('adminNewRole').value;
   const errEl = document.getElementById('adminError');
   const successEl = document.getElementById('adminSuccess');
   errEl.textContent = '';
   successEl.textContent = '';
-
   if (!email) { errEl.textContent = 'Please enter an email address.'; return; }
-
-  // Check if already in our list
-  if (allUserRoles.find(r => r.email.toLowerCase() === email)) {
-    errEl.textContent = 'This user already has a role assigned. Edit it in the table below.';
-    return;
+  if (!password || password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if (allUserRoles.find(r => r.email && r.email.toLowerCase() === email)) {
+    errEl.textContent = 'This user already exists. Edit their permissions in the table below.'; return;
   }
 
-  const perms = buildDefaultPermsForRole(role);
-
-  // We need the user's UUID from auth.users. Since we can't query auth.users
-  // from the frontend directly, we use a workaround:
-  // 1. Try to find them by looking at existing auth session users
-  // 2. Store by email with a lookup UUID — when they log in, fetchUserRole
-  //    will find their record by user_id. So we need to know their UUID.
-  //
-  // Best approach: ask admin to paste the UUID from Supabase dashboard,
-  // OR store by email and have user_id filled later.
-  //
-  // For now we store with email reference — user must have been created first.
-  // The UUID 'pending' will be replaced when they first log in via a trigger.
-
-  // Try to get UUID from Supabase by attempting a sign-in check (not possible)
-  // Instead, use our own helper SQL or ask user to paste UUID.
-  // Cleanest UX: store email-only record, let it auto-link on first login.
+  const btn = document.querySelector('[onclick="adminCreateUser()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
 
   try {
-    // Store the role by email with null user_id initially.
-    // We add a unique constraint on email too — see SQL setup.
-    const { error } = await sbClient
-      .from('user_roles')
-      .insert({ 
-        user_id: crypto.randomUUID(), // temporary — gets overwritten on first login
-        email, 
-        role, 
-        permissions: perms 
-      });
-    if (error) throw error;
-    successEl.textContent = `✓ Role assigned to ${email}. They can now log in and will have ${role} access.`;
-    document.getElementById('adminNewEmail').value = '';
-    await fetchAllUserRoles();
-    renderAdminPanel();
+    const { data: { session } } = await sbClient.auth.getSession();
+    const perms = buildDefaultPermsForRole(role);
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ email, password, role, permissions: perms })
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) {
+      errEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+    } else {
+      successEl.textContent = `✓ User ${email} created with ${role} access. Share their password with them.`;
+      document.getElementById('adminNewEmail').value = '';
+      document.getElementById('adminNewPassword').value = '';
+      await fetchAllUserRoles();
+      renderAdminPanel();
+    }
   } catch (e) {
     errEl.textContent = 'Error: ' + e.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Create user'; }
   }
 }
 
@@ -1188,41 +1179,34 @@ function buildDefaultPermsForRole(role) {
   return { ...DEFAULT_PERMISSIONS };
 }
 
-async function adminUpdatePermission(userId, section, value) {
-  const userRole = allUserRoles.find(r => r.user_id === userId);
+async function adminUpdatePermission(rowId, section, value) {
+  const userRole = allUserRoles.find(r => r.id === rowId);
   if (!userRole) return;
   const newPerms = { ...userRole.permissions, [section]: value };
   try {
-    const { error } = await sbClient
-      .from('user_roles')
-      .update({ permissions: newPerms })
-      .eq('user_id', userId);
+    const { error } = await sbClient.from('user_roles').update({ permissions: newPerms }).eq('id', rowId);
     if (error) throw error;
     userRole.permissions = newPerms;
-    renderAdminPanel();
   } catch (e) { console.error('updatePermission failed', e); }
 }
 
-async function adminUpdateRole(userId, newRole) {
+async function adminUpdateRole(rowId, newRole) {
   try {
     const perms = buildDefaultPermsForRole(newRole);
-    const { error } = await sbClient
-      .from('user_roles')
-      .update({ role: newRole, permissions: perms })
-      .eq('user_id', userId);
+    const { error } = await sbClient.from('user_roles').update({ role: newRole, permissions: perms }).eq('id', rowId);
     if (error) throw error;
-    const ur = allUserRoles.find(r => r.user_id === userId);
+    const ur = allUserRoles.find(r => r.id === rowId);
     if (ur) { ur.role = newRole; ur.permissions = perms; }
     renderAdminPanel();
   } catch (e) { console.error('adminUpdateRole failed', e); }
 }
 
-async function adminRemoveUser(userId) {
-  if (!confirm('Remove this user\'s access? They will not be able to log in to the app (their Supabase account still exists).')) return;
+async function adminRemoveUser(rowId, email) {
+  if (!confirm(`Remove access for ${email}? They will not be able to use the app (their Supabase account still exists).`)) return;
   try {
-    const { error } = await sbClient.from('user_roles').delete().eq('user_id', userId);
+    const { error } = await sbClient.from('user_roles').delete().eq('id', rowId);
     if (error) throw error;
-    allUserRoles = allUserRoles.filter(r => r.user_id !== userId);
+    allUserRoles = allUserRoles.filter(r => r.id !== rowId);
     renderAdminPanel();
   } catch (e) { console.error('adminRemoveUser failed', e); }
 }
@@ -1254,10 +1238,12 @@ function renderAdminPanel() {
   tbody.innerHTML = allUserRoles.map(ur => {
     const isMe = ur.user_id === currentUserId;
     const perms = ur.permissions || {};
+    const rowId = ur.id;
+    const pendingLink = !ur.user_id ? ' <span style="color:var(--text-faint);font-size:10px;">(pending first login)</span>' : '';
 
     const permCells = SECTIONS_LIST.map(s => `
       <td style="text-align:center;">
-        <select onchange="adminUpdatePermission('${ur.user_id}','${s.key}',this.value)"
+        <select onchange="adminUpdatePermission('${rowId}','${s.key}',this.value)"
                 ${isMe || ur.role === 'admin' ? 'disabled' : ''}
                 style="width:70px; font-size:11px; padding:2px 4px;">
           <option value="read" ${(perms[s.key] || 'read') === 'read' ? 'selected' : ''}>Read</option>
@@ -1268,9 +1254,9 @@ function renderAdminPanel() {
 
     return `
       <tr style="${isMe ? 'background:var(--accent-dim);' : ''}">
-        <td style="font-size:12px;">${escapeHtml(ur.email)} ${isMe ? '<span style="color:var(--accent);font-size:10px;">(you)</span>' : ''}</td>
+        <td style="font-size:12px;">${escapeHtml(ur.email)}${pendingLink} ${isMe ? '<span style="color:var(--accent);font-size:10px;">(you)</span>' : ''}</td>
         <td style="text-align:center;">
-          <select onchange="adminUpdateRole('${ur.user_id}',this.value)"
+          <select onchange="adminUpdateRole('${rowId}',this.value)"
                   ${isMe ? 'disabled' : ''}
                   style="font-size:11px; padding:2px 4px;">
             <option value="admin" ${ur.role === 'admin' ? 'selected' : ''}>Admin</option>
@@ -1279,7 +1265,7 @@ function renderAdminPanel() {
         </td>
         ${permCells}
         <td style="text-align:center;">
-          ${!isMe ? `<button class="icon-btn" onclick="adminRemoveUser('${ur.user_id}')" style="color:var(--red);">✕</button>` : '—'}
+          ${!isMe ? `<button class="icon-btn" onclick="adminRemoveUser('${rowId}','${escapeHtml(ur.email)}')" style="color:var(--red);">✕</button>` : '—'}
         </td>
       </tr>
     `;
