@@ -381,13 +381,6 @@
         <button class="export-btn" onclick="toggleExportMenu()"><span class="ico">⬇</span> Export</button>
         <div class="export-menu" id="exportMenu">
           <button onclick="exportExcel()">Download as Excel (.xlsx)</button>
-          <button onclick="exportCsv('people')">People — CSV</button>
-          <button onclick="exportCsv('projects')">Projects — CSV</button>
-          <button onclick="exportCsv('allocations')">Allocations — CSV</button>
-          <button onclick="exportCsv('dailyplan')">Daily plan — CSV</button>
-          <button onclick="exportCsv('leaves')">Leave records — CSV</button>
-          <button onclick="exportCsv('holidays')">Holidays — CSV</button>
-          <button onclick="exportCsv('testplan')">Test plan — CSV</button>
         </div>
       </div>
     </div>
@@ -1125,7 +1118,9 @@ async function loadState() {
 }
 
 async function saveState() {
-  if (currentUserRole !== 'admin' && !Object.values(currentUserPermissions).includes('edit')) {
+  // Allow save if: admin, OR user has at least one section with 'edit' permission
+  const hasAnyEdit = Object.values(currentUserPermissions).some(v => v === 'edit');
+  if (currentUserRole !== 'admin' && !hasAnyEdit) {
     console.warn('Read-only user attempted save — blocked.');
     return;
   }
@@ -2949,49 +2944,6 @@ function exportExcel() {
   XLSX.writeFile(wb, filename);
 }
 
-function rowsToCsv(rows) {
-  if (rows.length === 0) return '';
-  const headers = Object.keys(rows[0]);
-  const escapeCsv = (val) => {
-    const s = String(val == null ? '' : val);
-    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-      return '"' + s.replace(/"/g, '""') + '"';
-    }
-    return s;
-  };
-  const lines = [headers.join(',')];
-  rows.forEach(row => lines.push(headers.map(h => escapeCsv(row[h])).join(',')));
-  return lines.join('\n');
-}
-
-function exportCsv(which) {
-  document.getElementById('exportMenu').classList.remove('show');
-  const { peopleRows, projectRows, allocRows, dailyRows, leaveRows, holidayRows, testPlanRows } = buildExportSheets();
-  const map = {
-    people: { rows: peopleRows, name: 'people' },
-    projects: { rows: projectRows, name: 'projects' },
-    allocations: { rows: allocRows, name: 'allocations' },
-    dailyplan: { rows: dailyRows, name: 'daily-plan' },
-    leaves: { rows: leaveRows, name: 'leave-records' },
-    holidays: { rows: holidayRows, name: 'holidays' },
-    testplan: { rows: testPlanRows, name: 'test-plan' }
-  };
-  const target = map[which];
-  if (!target || target.rows.length === 0) {
-    alert('No data to export for this section yet.');
-    return;
-  }
-  const csv = rowsToCsv(target.rows);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `resource-planner-${target.name}-${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
 // ====================== INIT ======================
 function renderAll() {
