@@ -858,26 +858,20 @@ function escapeHtml(s) {
 const SUPABASE_URL = 'https://ilsgdzphjrtfotxtgaqg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlsc2dkenBoanJ0Zm90eHRnYXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4ODgxMjIsImV4cCI6MjA5ODQ2NDEyMn0.d4686tuEKRTOg10PjZcblR_ckKJazFuthTb14t1rLTI';
 
-// The Supabase CDN exposes window.supabase as a namespace object —
-// we use a different variable name (sbClient) to avoid redeclaration conflict.
-const _supaLib = window.supabase;
-let sbClient;
-try {
-  sbClient = _supaLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const dbg = document.getElementById('loginDebug');
-  if (dbg) dbg.textContent = '✓ Connected to Supabase';
-} catch (e) {
-  const dbg = document.getElementById('loginDebug');
-  if (dbg) dbg.textContent = '✗ Supabase failed to load: ' + e.message;
-  console.error('Supabase init failed', e);
-}
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, storageKey: 'rp-auth', storage: window.localStorage }
+});
+// Show connection status on login page
+const _dbgEl = document.getElementById('loginDebug');
+if (_dbgEl) _dbgEl.textContent = sbClient ? '✓ Connected to Supabase' : '✗ Connection failed';
 
 // ---------- Role & Permissions ----------
-let currentUserRole = null;      // 'admin' | 'member'
-let currentUserPermissions = {}; // { people: 'read'|'edit', ... }
+let currentUserRole = null;
+let currentUserPermissions = {};
 let currentUserId = null;
 let currentUserEmail = null;
-let allUserRoles = [];           // cached for admin panel
+let allUserRoles = [];
+let appInitialized = false;
 
 const DEFAULT_PERMISSIONS = {
   people: 'read', projects: 'read', testplan: 'read',
@@ -891,20 +885,18 @@ function canEdit(section) {
 }
 
 function applyAccessUI() {
-  // Admin tab — show only for admin role
+  const isAdmin = currentUserRole === 'admin';
   const adminTabBtn = document.getElementById('adminTabBtn');
   const adminNavSection = document.getElementById('adminNavSection');
-  const isAdmin = currentUserRole === 'admin';
   if (adminTabBtn) adminTabBtn.style.display = isAdmin ? 'flex' : 'none';
   if (adminNavSection) adminNavSection.style.display = isAdmin ? 'block' : 'none';
 
-  // Read-only banner for non-admin users
   const existingBanner = document.getElementById('readOnlyBanner');
   if (!isAdmin && !existingBanner) {
     const banner = document.createElement('div');
     banner.id = 'readOnlyBanner';
-    banner.style.cssText = 'background:var(--amber-dim); color:var(--amber); font-size:12px; font-weight:500; padding:8px 16px; border-radius:6px; margin-bottom:12px; display:flex; align-items:center; gap:8px;';
-    banner.innerHTML = '⚠ You are in read-only mode. Contact admin to request edit access.';
+    banner.style.cssText = 'background:var(--amber-dim);color:var(--amber);font-size:12px;font-weight:500;padding:8px 16px;border-radius:6px;margin-bottom:12px;';
+    banner.innerHTML = '⚠ You have read-only access. Contact admin to request edit permissions.';
     const mainEl = document.querySelector('.main');
     if (mainEl) mainEl.insertBefore(banner, mainEl.firstChild);
   } else if (isAdmin && existingBanner) {
@@ -915,28 +907,51 @@ function applyAccessUI() {
 async function fetchUserRole(userId) {
   try {
     const { data, error } = await sbClient
-      .from('user_roles')
-      .select('role, permissions, email')
-      .eq('user_id', userId)
-      .maybeSingle(); // maybeSingle won't throw error if no row found
-    if (error) {
-      console.warn('fetchUserRole error:', error.message);
-      currentUserRole = 'member';
-      currentUserPermissions = { ...DEFAULT_PERMISSIONS };
-    } else if (!data) {
-      // No role assigned yet — default read-only
-      currentUserRole = 'member';
-      currentUserPermissions = { ...DEFAULT_PERMISSIONS };
-    } else {
-      currentUserRole = data.role;
-      currentUserPermissions = data.permissions || { ...DEFAULT_PERMISSIONS };
-    }
-    console.log('User role loaded:', currentUserRole);
+      .from('user_roles').select('role,permissions,email')
+      .eq('user_id', userId).maybeSingle();
+    if (error) { console.warn('fetchUserRole:', error.message); }
+    currentUserRole = (data && data.role) ? data.role : 'member';
+    currentUserPermissions = (data && data.permissions) ? data.permissions : { ...DEFAULT_PERMISSIONS };
+    console.log('Role:', currentUserRole);
   } catch (e) {
     console.warn('fetchUserRole exception:', e.message);
     currentUserRole = 'member';
     currentUserPermissions = { ...DEFAULT_PERMISSIONS };
   }
+}
+
+// Single entry point — called once after login or session restore
+async function initApp(user) {
+  if (appInitialized) return;
+  appInitialized = true;
+  currentUserId = user.id;
+  currentUserEmail = user.email;
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginBtn').textContent = 'Sign in';
+  await fetchUserRole(user.id);
+  await loadState();
+  if (currentUserRole === 'admin') await fetchAllUserRoles();
+  renderAll();
+  applyAccessUI();
+}
+
+function resetApp() {
+  appInitialized = false;
+  currentUserId = null; currentUserRole = null; currentUserPermissions = {};
+  state.people = []; state.projects = []; state.allocations = [];
+  state.leaves = {}; state.dailyPlan = []; state.holidays = []; state.testPlans = {};
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginBtn').textContent = 'Sign in';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('userEmail').textContent = '';
+  document.getElementById('lastSaved').textContent = 'not saved yet';
+  const banner = document.getElementById('readOnlyBanner');
+  if (banner) banner.remove();
 }
 
 // ---------- Auth ----------
@@ -946,22 +961,18 @@ async function signIn() {
   const errEl = document.getElementById('loginError');
   const btn = document.getElementById('loginBtn');
   errEl.textContent = '';
-
-  if (!email || !password) {
-    errEl.textContent = 'Please enter email and password.';
-    return;
-  }
-
+  if (!email || !password) { errEl.textContent = 'Please enter email and password.'; return; }
   btn.disabled = true;
   btn.textContent = 'Signing in…';
-
   try {
     const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
     if (error) {
       errEl.textContent = error.message;
       btn.disabled = false;
       btn.textContent = 'Sign in';
+      return;
     }
+    if (data.user) await initApp(data.user);
   } catch (e) {
     errEl.textContent = 'Connection error: ' + e.message;
     btn.disabled = false;
@@ -970,51 +981,25 @@ async function signIn() {
 }
 
 async function signOut() {
-  await sbClient.auth.signOut();
+  try {
+    await sbClient.auth.signOut();
+  } catch (e) { console.warn('signOut error:', e); }
+  resetApp();
 }
 
-sbClient.auth.onAuthStateChange(async (event, session) => {
-  const overlay = document.getElementById('loginOverlay');
-  const btn = document.getElementById('loginBtn');
-
-  if (session && session.user) {
-    currentUserId = session.user.id;
-    currentUserEmail = session.user.email;
-    overlay.classList.add('hidden');
-    document.getElementById('userEmail').textContent = session.user.email;
-    btn.disabled = false;
-    btn.textContent = 'Sign in';
-    document.getElementById('loginError').textContent = '';
-    await fetchUserRole(session.user.id);
-    await loadState();
-    if (currentUserRole === 'admin') await fetchAllUserRoles();
-    renderAll();
-    applyAccessUI();
-  } else {
-    currentUserId = null;
-    currentUserRole = null;
-    currentUserPermissions = {};
-    overlay.classList.remove('hidden');
-    state.people = []; state.projects = []; state.allocations = [];
-    state.leaves = {}; state.dailyPlan = []; state.holidays = []; state.testPlans = {};
-  }
-});
-
-// On page load, explicitly check for existing session
-// (onAuthStateChange may not fire on hard refresh in some browsers)
+// On page load — restore session if it exists
 (async () => {
-  const { data: { session } } = await sbClient.auth.getSession();
-  if (session && session.user) {
-    // Session exists — trigger the auth flow manually
-    currentUserId = session.user.id;
-    currentUserEmail = session.user.email;
-    document.getElementById('loginOverlay').classList.add('hidden');
-    document.getElementById('userEmail').textContent = session.user.email;
-    await fetchUserRole(session.user.id);
-    await loadState();
-    if (currentUserRole === 'admin') await fetchAllUserRoles();
-    renderAll();
-    applyAccessUI();
+  try {
+    const { data: { session }, error } = await sbClient.auth.getSession();
+    if (error) { console.warn('getSession error:', error.message); return; }
+    if (session && session.user) {
+      console.log('Session restored for:', session.user.email);
+      await initApp(session.user);
+    } else {
+      console.log('No active session — showing login');
+    }
+  } catch (e) {
+    console.warn('getSession exception:', e.message);
   }
 })();
 
@@ -1022,6 +1007,7 @@ document.addEventListener('keydown', (e) => {
   const overlay = document.getElementById('loginOverlay');
   if (e.key === 'Enter' && overlay && !overlay.classList.contains('hidden')) signIn();
 });
+
 
 // ---------- Persistence (Supabase) ----------
 async function loadState() {
