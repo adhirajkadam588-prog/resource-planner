@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Resource Planner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap');
 
@@ -299,6 +299,7 @@
     <div class="login-field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in</button>
     <div class="login-error" id="loginError"></div>
+    <div style="font-size:10.5px; color:var(--text-faint); margin-top:16px; text-align:center;" id="loginDebug"></div>
   </div>
 </div>
 
@@ -810,7 +811,20 @@ function escapeHtml(s) {
 // ---------- Supabase setup ----------
 const SUPABASE_URL = 'https://ilsgdzphjrtfotxtgaqg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlsc2dkenBoanJ0Zm90eHRnYXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4ODgxMjIsImV4cCI6MjA5ODQ2NDEyMn0.d4686tuEKRTOg10PjZcblR_ckKJazFuthTb14t1rLTI';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// The Supabase CDN exposes window.supabase as a namespace object —
+// we use a different variable name (sbClient) to avoid redeclaration conflict.
+const _supaLib = window.supabase;
+let sbClient;
+try {
+  sbClient = _supaLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const dbg = document.getElementById('loginDebug');
+  if (dbg) dbg.textContent = '✓ Connected to Supabase';
+} catch (e) {
+  const dbg = document.getElementById('loginDebug');
+  if (dbg) dbg.textContent = '✗ Supabase failed to load: ' + e.message;
+  console.error('Supabase init failed', e);
+}
 
 // ---------- Auth ----------
 async function signIn() {
@@ -819,40 +833,61 @@ async function signIn() {
   const errEl = document.getElementById('loginError');
   const btn = document.getElementById('loginBtn');
   errEl.textContent = '';
+
+  if (!email || !password) {
+    errEl.textContent = 'Please enter email and password.';
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Signing in…';
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    errEl.textContent = error.message;
+
+  try {
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      errEl.textContent = error.message;
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+    }
+    // On success, onAuthStateChange fires and handles the rest
+  } catch (e) {
+    errEl.textContent = 'Connection error: ' + e.message;
     btn.disabled = false;
     btn.textContent = 'Sign in';
   }
 }
 
 async function signOut() {
-  await supabase.auth.signOut();
-  document.getElementById('loginOverlay').classList.remove('hidden');
-  document.getElementById('loginPassword').value = '';
-  document.getElementById('loginBtn').textContent = 'Sign in';
-  document.getElementById('loginBtn').disabled = false;
-  document.getElementById('loginError').textContent = '';
+  await sbClient.auth.signOut();
 }
 
-// Listen for auth state changes (login/logout/session restore)
-supabase.auth.onAuthStateChange(async (event, session) => {
-  if (session) {
-    document.getElementById('loginOverlay').classList.add('hidden');
+// Listen for auth state changes (login/logout/session restore on page load)
+sbClient.auth.onAuthStateChange(async (event, session) => {
+  const overlay = document.getElementById('loginOverlay');
+  const btn = document.getElementById('loginBtn');
+
+  if (session && session.user) {
+    // User is logged in — hide login screen and load app
+    overlay.classList.add('hidden');
     document.getElementById('userEmail').textContent = session.user.email;
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+    document.getElementById('loginError').textContent = '';
     await loadState();
     renderAll();
   } else {
-    document.getElementById('loginOverlay').classList.remove('hidden');
+    // Not logged in — show login screen
+    overlay.classList.remove('hidden');
+    // Reset state so stale data isn't shown after sign-out
+    state.people = []; state.projects = []; state.allocations = [];
+    state.leaves = {}; state.dailyPlan = []; state.holidays = []; state.testPlans = {};
   }
 });
 
 // Allow Enter key to submit login form
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !document.getElementById('loginOverlay').classList.contains('hidden')) {
+  const overlay = document.getElementById('loginOverlay');
+  if (e.key === 'Enter' && overlay && !overlay.classList.contains('hidden')) {
     signIn();
   }
 });
@@ -862,7 +897,7 @@ async function loadState() {
   const el = document.getElementById('lastSaved');
   el.textContent = 'loading…';
   try {
-    const { data, error } = await supabase
+    const { data, error } = await sbClient
       .from('resource_planner')
       .select('data')
       .eq('id', 'shared')
@@ -890,7 +925,7 @@ async function loadState() {
 async function saveState() {
   const el = document.getElementById('lastSaved');
   try {
-    const { error } = await supabase
+    const { error } = await sbClient
       .from('resource_planner')
       .upsert({ id: 'shared', data: state, updated_at: new Date().toISOString() });
     if (error) throw error;
@@ -2551,7 +2586,7 @@ function renderAll() {
   renderTestPlan();
 }
 
-// App is initialised by supabase.auth.onAuthStateChange above —
+// App is initialised by sbClient.auth.onAuthStateChange above —
 // it fires on page load if a session exists (auto-restore) and after login.
 </script>
 
