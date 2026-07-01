@@ -664,6 +664,10 @@
         </div>
         <button class="action" style="margin-bottom:0;" onclick="adminCreateUser()">Create user</button>
       </div>
+      <div id="adminLinkFallback" style="display:none; gap:8px; margin-top:10px; align-items:center; background:var(--panel-2); padding:10px; border-radius:6px; font-size:12px;">
+        <span>User created in Supabase Dashboard?</span>
+        <button class="ghost" onclick="adminLinkExistingUser()">Link existing user →</button>
+      </div>
       <div id="adminError" style="font-size:12px; color:var(--red); margin-top:10px;"></div>
       <div id="adminSuccess" style="font-size:12px; color:var(--green); margin-top:10px;"></div>
     </div>
@@ -1137,15 +1141,17 @@ async function adminCreateUser() {
   if (!email) { errEl.textContent = 'Please enter an email address.'; return; }
   if (!password || password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
   if (allUserRoles.find(r => r.email && r.email.toLowerCase() === email)) {
-    errEl.textContent = 'This user already exists. Edit their permissions in the table below.'; return;
+    errEl.textContent = 'This user already exists. Edit their permissions below.'; return;
   }
 
   const btn = document.querySelector('[onclick="adminCreateUser()"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
 
   try {
+    // Step 1: Create auth user via Edge Function
     const { data: { session } } = await sbClient.auth.getSession();
     const perms = buildDefaultPermsForRole(role);
+
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
       method: 'POST',
       headers: {
@@ -1155,20 +1161,64 @@ async function adminCreateUser() {
       },
       body: JSON.stringify({ email, password, role, permissions: perms })
     });
-    const result = await res.json();
-    if (!res.ok || result.error) {
-      errEl.textContent = 'Error: ' + (result.error || 'Unknown error');
-    } else {
-      successEl.textContent = `✓ User ${email} created with ${role} access. Share their password with them.`;
+
+    if (res.ok) {
+      const result = await res.json();
+      if (result.error) throw new Error(result.error);
+      successEl.textContent = `✓ User ${email} created with ${role} access.`;
       document.getElementById('adminNewEmail').value = '';
       document.getElementById('adminNewPassword').value = '';
       await fetchAllUserRoles();
       renderAdminPanel();
+      return;
     }
+
+    // Edge Function not available — fallback:
+    // Create user in Supabase Dashboard manually, then use "Link existing user" below
+    throw new Error('Edge Function not reachable. Please use the workaround below.');
+
   } catch (e) {
-    errEl.textContent = 'Error: ' + e.message;
+    // Fallback: Try to link existing user by email
+    // (user must already be created in Supabase Dashboard)
+    errEl.innerHTML = `
+      <div style="margin-bottom:8px;">Edge Function not set up yet. <strong>Workaround:</strong></div>
+      <div>1. Go to <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--accent);">Supabase Dashboard</a> → Authentication → Users → Add User</div>
+      <div>2. Enter email: <strong>${email}</strong>, set password, check Auto Confirm ✅</div>
+      <div>3. Come back here and click <strong>"Link existing user"</strong> button below</div>
+    `;
+    // Show the link-user button as fallback
+    document.getElementById('adminLinkFallback').style.display = 'flex';
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Create user'; }
+  }
+}
+
+// Fallback: Link an existing Supabase auth user by email
+// (used when Edge Function is not set up)
+async function adminLinkExistingUser() {
+  const email = document.getElementById('adminNewEmail').value.trim().toLowerCase();
+  const role = document.getElementById('adminNewRole').value;
+  const errEl = document.getElementById('adminError');
+  const successEl = document.getElementById('adminSuccess');
+  errEl.textContent = '';
+  successEl.textContent = '';
+  if (!email) { errEl.textContent = 'Please enter the email address.'; return; }
+
+  const perms = buildDefaultPermsForRole(role);
+  try {
+    const { error } = await sbClient.from('user_roles').insert({
+      user_id: null, email, role, permissions: perms
+    });
+    if (error) throw error;
+    successEl.textContent = `✓ Access granted to ${email}. They can now log in with ${role} access.`;
+    document.getElementById('adminNewEmail').value = '';
+    document.getElementById('adminNewPassword').value = '';
+    document.getElementById('adminLinkFallback').style.display = 'none';
+    errEl.textContent = '';
+    await fetchAllUserRoles();
+    renderAdminPanel();
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
   }
 }
 
