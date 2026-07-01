@@ -142,7 +142,7 @@
   }
 
   /* ---------- Main ---------- */
-  .main { flex: 1; min-width: 0; padding: 28px 36px 60px; max-width: 1320px; }
+  .main { flex: 1; min-width: 0; padding: 28px 36px 60px; max-width: 1320px; background: #f0f2f7; }
 
   header {
     display: flex; justify-content: space-between; align-items: flex-start;
@@ -153,22 +153,24 @@
   header .right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
   .export-btn {
-    background: var(--panel); border: 1px solid var(--border); color: var(--text);
-    padding: 8px 16px; border-radius: 8px; font-size: 12.5px; font-weight: 500;
+    background: white; border: 1px solid #e2e8f0; color: #334155;
+    padding: 8px 16px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
     cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 7px;
-    transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.07);
   }
-  .export-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-  .export-btn .ico { color: var(--green); }
+  .export-btn:hover { border-color: #7c3aed; color: #7c3aed; box-shadow: 0 2px 8px rgba(124,58,237,0.15); }
+  .export-btn .ico { color: #10b981; }
 
   .panel {
-    background: var(--panel); border: 1px solid var(--border-soft);
-    border-radius: 14px; padding: 20px 22px; margin-bottom: 16px;
-    box-shadow: 0 1px 4px rgba(15,23,42,0.05);
+    background: #ffffff; border: 1px solid #e8edf5;
+    border-radius: 16px; padding: 22px 24px; margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.03);
+    transition: box-shadow 0.2s;
   }
+  .panel:hover { box-shadow: 0 2px 8px rgba(15,23,42,0.07), 0 8px 20px rgba(15,23,42,0.05); }
   .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
   .panel-head h3 { font-family: 'Inter Tight', sans-serif; font-size: 14.5px; font-weight: 700; margin: 0; color: var(--text); letter-spacing: -0.01em; }
-  .panel-head .desc { color: var(--text-faint); font-size: 12px; margin-top: 3px; }
+  .panel-head .desc { color: #94a3b8; font-size: 12px; margin-top: 3px; }
 
   button.action {
     background: #2563eb; border: none; color: white;
@@ -178,66 +180,72 @@
   }
   button.action:hover { background: #1d4ed8; box-shadow: 0 2px 8px rgba(37,99,235,0.4); }
   button.ghost {
-    background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
-    padding: 7px 14px; border-radius: 8px; font-size: 12.5px; cursor: pointer; font-family: inherit;
-    transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    background: white; border: 1px solid #e2e8f0; color: #64748b;
+    padding: 8px 15px; border-radius: 9px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+    transition: all 0.15s; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
-  button.ghost:hover { border-color: #94a3b8; color: var(--text); background: var(--panel-2); }
+  button.ghost:hover { border-color: #94a3b8; color: #334155; background: #f8fafc; }
   button.icon-btn {
-    background: transparent; border: none; color: var(--text-faint);
-    cursor: pointer; font-size: 13.5px; padding: 4px 7px; border-radius: 6px;
+    background: transparent; border: none; color: #94a3b8;
+    cursor: pointer; font-size: 14px; padding: 5px 8px; border-radius: 7px;
     transition: all 0.12s;
   }
-  button.icon-btn:hover { color: var(--red); background: var(--red-dim); }
-  button.icon-btn.edit:hover { color: #2563eb; background: rgba(37,99,235,0.08); }
+  button.icon-btn:hover { color: #ef4444; background: #fef2f2; }
+  button.icon-btn.edit:hover { color: #2563eb; background: #eff6ff; }
 
   table { width: 100%; border-collapse: collapse; }
   th {
-    text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--text-faint); font-weight: 700; padding: 10px 12px;
-    border-bottom: 1.5px solid var(--border-soft); background: #f8fafc;
+    text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #94a3b8; font-weight: 700; padding: 11px 14px;
+    border-bottom: 1px solid #f1f5f9; background: #f8fafc;
   }
-  td { padding: 11px 12px; border-bottom: 1px solid var(--border-soft); color: var(--text); font-size: 13px; }
+  td { padding: 12px 14px; border-bottom: 1px solid #f8fafc; color: #334155; font-size: 13px; }
   tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.1s; }
   tbody tr:hover td { background: #f8fafc; }
-  tr:hover td { background: var(--panel-2); }
 
   input, select {
-    background: var(--panel-3); border: 1px solid var(--border); color: var(--text);
-    padding: 7px 10px; border-radius: 6px; font-size: 13px; font-family: inherit; width: 100%;
-    transition: border-color 0.12s;
+    background: #f8fafc; border: 1.5px solid #e2e8f0; color: #0f172a;
+    padding: 9px 12px; border-radius: 9px; font-size: 13px; font-family: inherit; width: 100%;
+    transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
-  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  input:hover, select:hover { border-color: #cbd5e1; }
+  input:focus, select:focus { outline: none; border-color: #7c3aed; background: white; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
   input[type="number"] { width: 80px; }
   input[type="date"] { color-scheme: light; }
 
   .pct-bar { display: flex; align-items: center; gap: 9px; }
-  .pct-track { flex: 1; height: 5px; background: var(--panel-3); border-radius: 3px; overflow: hidden; min-width: 60px; }
-  .pct-fill { height: 100%; border-radius: 3px; }
+  .pct-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden; min-width: 60px; }
+  .pct-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2563eb, #7c3aed); }
   .pct-label { font-family: var(--mono); font-size: 12px; color: var(--text-dim); min-width: 34px; text-align: right; }
 
   .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.01em; }
   .badge.ok { background: #dcfce7; color: #15803d; }
-  .badge.warn { background: #fef3c7; color: #b45309; }
+  .badge.warn { background: #fef9c3; color: #a16207; }
   .badge.over { background: #fee2e2; color: #dc2626; }
 
   .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
   .stat-card {
-    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 14px;
-    padding: 16px 18px; position: relative; overflow: hidden;
-    box-shadow: 0 1px 4px rgba(15,23,42,0.05);
+    background: white; border: 1px solid #e8edf5; border-radius: 16px;
+    padding: 18px 20px; position: relative; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+    transition: all 0.2s;
   }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(15,23,42,0.1); }
   .stat-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #2563eb, #7c3aed); opacity: 0.7; border-radius: 14px 14px 0 0;
+    background: linear-gradient(90deg, #7c3aed, #2563eb); border-radius: 16px 16px 0 0;
   }
-  .stat-card .label { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
-  .stat-card .value { font-family: 'Inter Tight', sans-serif; font-size: 28px; font-weight: 700; margin-top: 6px; letter-spacing: -0.03em; color: #0f172a; }
+  .stat-card .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 8px; }
+  .stat-card .value { font-family: 'Inter Tight', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.03em; color: #0f172a; line-height: 1; }
   .stat-card .value.green { color: #059669; }
   .stat-card .value.amber { color: #d97706; }
   .stat-card .value.red { color: #dc2626; }
 
-  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-faint); font-size: 13px; }
+  .empty-state {
+    text-align: center; padding: 52px 20px; color: #94a3b8; font-size: 13px;
+    background: #fafbfc; border-radius: 12px; border: 2px dashed #e2e8f0; margin: 4px 0;
+  }
 
   .cal-grid {
     display: grid; gap: 1px; background: var(--border-soft); border: 1px solid var(--border-soft);
@@ -266,36 +274,42 @@
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
   .modal-overlay.show { display: flex; }
-  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 400px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(15,23,42,0.2); }
-  .modal h3 { font-family: 'Inter Tight', sans-serif; margin: 0 0 18px; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .modal {
+    background: white; border: 1px solid #e8edf5; border-radius: 20px; padding: 28px;
+    width: 420px; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(15,23,42,0.22), 0 4px 16px rgba(15,23,42,0.08);
+  }
+  .modal h3 { font-family: 'Inter Tight', sans-serif; margin: 0 0 20px; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: #0f172a; }
   .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; letter-spacing: 0.01em; }
-  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .field label { display: block; font-size: 11px; color: #64748b; margin-bottom: 6px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; padding-top: 18px; border-top: 1px solid #f1f5f9; }
 
   .save-toast {
     position: fixed; bottom: 24px; right: 24px;
-    background: #1e293b; border: 1px solid #334155; color: #f1f5f9;
-    padding: 10px 16px; border-radius: 10px; font-size: 12px; opacity: 0; transition: opacity 0.3s; pointer-events: none;
-    box-shadow: 0 8px 24px rgba(15,23,42,0.25);
+    background: #0f172a; border: 1px solid #1e293b; color: #e2e8f0;
+    padding: 10px 18px; border-radius: 12px; font-size: 12px; opacity: 0;
+    transition: all 0.3s; pointer-events: none;
+    box-shadow: 0 8px 32px rgba(15,23,42,0.3); font-weight: 500;
   }
-  .save-toast.show { opacity: 1; }
+  .save-toast.show { opacity: 1; transform: translateY(-4px); }
 
-  .legend { display: flex; gap: 16px; margin-top: 12px; font-size: 11px; color: var(--text-faint); flex-wrap: wrap; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: #64748b; margin-top: 10px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
   .legend span { display: flex; align-items: center; gap: 6px; }
   .dot { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
 
   .export-menu {
-    position: absolute; top: 100%; right: 0; margin-top: 8px;
-    background: var(--panel-3); border: 1px solid var(--border); border-radius: 8px;
-    padding: 5px; display: none; z-index: 30; min-width: 190px;
-    box-shadow: 0 12px 32px rgba(20,24,32,0.14);
+    position: absolute; top: calc(100% + 6px); right: 0;
+    background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(15,23,42,0.14); z-index: 30; min-width: 220px; padding: 6px;
+    display: none;
   }
   .export-menu.show { display: block; }
   .export-menu button {
     display: block; width: 100%; text-align: left; background: transparent; border: none;
-    color: var(--text); padding: 8px 11px; font-size: 12.5px; cursor: pointer; border-radius: 6px; font-family: inherit;
+    padding: 9px 14px; font-size: 13px; cursor: pointer; font-family: inherit; color: #334155;
+    border-radius: 8px; transition: background 0.1s; font-weight: 500;
   }
-  .export-menu button:hover { background: var(--panel-2); }
+  .export-menu button:hover { background: #f8fafc; color: #0f172a; }
   .export-wrap { position: relative; }
 
   @media (max-width: 880px) {
@@ -449,10 +463,33 @@
     </nav>
 
     <div class="sidebar-foot">
-      <div id="lastSaved" style="margin-bottom:8px;">not saved yet</div>
-      <div id="userEmail" style="margin-bottom:8px; color:var(--text-dim); font-size:10px; word-break:break-all;"></div>
-      <button onclick="openChangePasswordModal()" style="background:transparent; border:1px solid var(--border); color:var(--text-faint); padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer; font-family:inherit; width:100%; margin-bottom:6px;">🔒 Change password</button>
-      <button onclick="signOut()" style="background:transparent; border:1px solid var(--border); color:var(--text-faint); padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer; font-family:inherit; width:100%;">Sign out</button>
+      <!-- User info -->
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:8px 10px; background:rgba(255,255,255,0.05); border-radius:10px;">
+        <div id="userAvatar" style="width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:white; flex-shrink:0;"></div>
+        <div style="min-width:0;">
+          <div id="userEmail" style="font-size:11px; color:#e2e8f0; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:inherit;"></div>
+          <div id="lastSaved" style="font-size:10px; color:#64748b; margin-top:1px; font-family:var(--mono);"></div>
+        </div>
+      </div>
+      <!-- Actions -->
+      <button onclick="openChangePasswordModal()" style="
+        display:flex; align-items:center; gap:8px; width:100%;
+        background:transparent; border:none; border-radius:8px;
+        color:#94a3b8; padding:7px 10px; font-size:12px; cursor:pointer;
+        font-family:inherit; text-align:left; transition:all 0.12s; margin-bottom:2px;
+      " onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.color='#e2e8f0';" onmouseout="this.style.background='transparent'; this.style.color='#94a3b8';">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Change password
+      </button>
+      <button onclick="signOut()" style="
+        display:flex; align-items:center; gap:8px; width:100%;
+        background:transparent; border:none; border-radius:8px;
+        color:#94a3b8; padding:7px 10px; font-size:12px; cursor:pointer;
+        font-family:inherit; text-align:left; transition:all 0.12s;
+      " onmouseover="this.style.background='rgba(239,68,68,0.12)'; this.style.color='#f87171';" onmouseout="this.style.background='transparent'; this.style.color='#94a3b8';">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
     </div>
   </aside>
 
@@ -494,12 +531,12 @@
       </div>
       <!-- Filter bar -->
       <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;" id="releaseDateFilterBar">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release date:</div>
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release/GA date:</div>
         <div id="releaseDatePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
       </div>
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Release Items</th><th>JIRA</th><th>Release date</th><th>QA completion date</th><th>Total QA efforts</th><th>Go ahead date</th><th>Go ahead by</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Release/GA date</th><th>Release Items</th><th>JIRA</th><th>Owner</th><th>Status</th><th>QA Go ahead date</th><th>QA completion date</th><th>Total QA efforts</th><th></th></tr></thead>
           <tbody id="projectTableBody"></tbody>
         </table>
       </div>
@@ -647,7 +684,7 @@
       <div class="panel-head">
         <div>
           <h3>Test plan</h3>
-          <div class="desc">Filter by release date, then pick a project to view or edit its test matrix</div>
+          <div class="desc">Filter by Release/GA date, then pick a release item to view or edit its test matrix</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
           <div class="export-wrap">
@@ -667,7 +704,7 @@
       </div>
       <!-- Project dropdown (filtered by selected release) -->
       <div style="display:flex; gap:8px; align-items:center;" id="testPlanProjectRow">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Project:</div>
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release item:</div>
         <select id="testPlanProjectSelect" style="width:260px;" onchange="onTestPlanProjectChange()"></select>
       </div>
       <div class="empty-state" id="testPlanNoProjects" style="display:none;">Add a release item in the Release tab first, then come back here to build its test plan.</div>
@@ -831,7 +868,7 @@
       <div class="panel-head">
         <div>
           <h3>Release summary</h3>
-          <div class="desc">Filter by release date — share the report with your manager</div>
+          <div class="desc">Filter by Release/GA date — share the report with your manager</div>
         </div>
         <button class="export-btn" onclick="exportSummaryReport()"><span class="ico">📄</span> Share report</button>
       </div>
@@ -843,15 +880,14 @@
       <table>
         <thead>
           <tr>
+            <th>Release/GA date</th>
             <th>Release Items</th>
             <th>JIRA</th>
-            <th>Release date</th>
-            <th>Status</th>
             <th>Working on it</th>
-            <th>QA done</th>
-            <th>Total efforts</th>
-            <th>Go ahead date</th>
-            <th>Go ahead by</th>
+            <th>Status</th>
+            <th>QA Go ahead date</th>
+            <th>QA completion date</th>
+            <th>Total QA efforts</th>
           </tr>
         </thead>
         <tbody id="summaryTableBody"></tbody>
@@ -880,26 +916,25 @@
 <div class="modal-overlay" id="projectModal">
   <div class="modal">
     <h3 id="projectModalTitle">Add release item</h3>
-    <div class="field"><label>Release item name</label><input id="projName" placeholder="e.g. Phoenix release"></div>
-    <div class="field"><label>Release date</label><input id="projReleaseDate" type="date"></div>
-    <div class="field"><label>Dev to QA build date</label><input id="projBuildDate" type="date"></div>
-    <div class="field"><label>BVT completion date</label><input id="projBvtCompletionDate" type="date"><div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Auto-fills from Test plan's "BVT completion" milestone, if set.</div></div>
-    <div class="field"><label>QA completion date</label><input id="projCompletionDate" type="date"><div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Auto-fills from Test plan's "Execution completion with buffer" milestone, if set.</div></div>
-    <div class="field"><label>Total QA efforts (person-days)</label><input id="projEffort" type="number" min="0" step="0.5" placeholder="e.g. 12"><div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Auto-fills from Test plan's "Total PDs with buffer" if one exists for this project. Edit manually only if no test plan is set up.</div></div>
-    <div class="field"><label>Go ahead date</label><input id="projGoAheadDate" type="date"><div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Auto-fills from Test plan's "Merged build go ahead" milestone, if set.</div></div>
+    <div class="field">
+      <label>Release item name</label>
+      <input id="projName" placeholder="e.g. CAD Removal v2.1">
+    </div>
     <div class="field">
       <label>JIRA ticket URL</label>
       <input id="projJiraUrl" type="url" placeholder="e.g. https://seclore.atlassian.net/browse/QA-123" oninput="updateJiraPreview()">
       <div id="projJiraPreview" style="font-size:12px; margin-top:5px; color:var(--accent);"></div>
     </div>
-    <div class="field"><label>Go ahead by</label><select id="projGoAheadBy"></select></div>
-    <div class="field"><label>Status</label>
-      <select id="projStatus">
-        <option value="Not started">Not started</option>
-        <option value="In progress">In progress</option>
-        <option value="Completed">Completed</option>
-        <option value="Blocked">Blocked</option>
-      </select>
+    <div class="field">
+      <label>Release/GA date</label>
+      <input id="projReleaseDate" type="date">
+    </div>
+    <div class="field">
+      <label>Owner</label>
+      <select id="projGoAheadBy"></select>
+    </div>
+    <div style="background:var(--panel-2); border:1px solid var(--border-soft); border-radius:8px; padding:10px 12px; font-size:11.5px; color:var(--text-faint); margin-bottom:14px; line-height:1.7;">
+      ℹ️ <strong style="color:var(--text-dim);">Dev to QA date, Total QA efforts & Status</strong> are auto-filled from the Test plan — no need to enter manually.
     </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('projectModal')">Cancel</button>
@@ -1163,6 +1198,8 @@ async function initApp(user) {
   currentUserEmail = user.email;
   document.getElementById('loginOverlay').classList.add('hidden');
   document.getElementById('userEmail').textContent = user.email;
+  const initials = user.email.split('@')[0].slice(0, 2).toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
   document.getElementById('loginError').textContent = '';
   document.getElementById('loginBtn').disabled = false;
   document.getElementById('loginBtn').textContent = 'Sign in';
@@ -1184,7 +1221,8 @@ function resetApp() {
   document.getElementById('loginBtn').textContent = 'Sign in';
   document.getElementById('loginError').textContent = '';
   document.getElementById('userEmail').textContent = '';
-  document.getElementById('lastSaved').textContent = 'not saved yet';
+  document.getElementById('userAvatar').textContent = '';
+  document.getElementById('lastSaved').textContent = '';
   const banner = document.getElementById('readOnlyBanner');
   if (banner) banner.remove();
 }
@@ -1699,35 +1737,24 @@ function openProjectModal(id) {
   editingProjectId = id || null;
   const titleEl = document.getElementById('projectModalTitle');
   const btnEl = document.getElementById('projectSaveBtn');
+  populateGoAheadBySelect('');
+
   if (id) {
     const proj = state.projects.find(p => p.id === id);
     if (!proj) return;
     titleEl.textContent = 'Edit release item';
     btnEl.textContent = 'Save changes';
     document.getElementById('projName').value = proj.name;
-    document.getElementById('projReleaseDate').value = proj.releaseDate || '';
-    document.getElementById('projBuildDate').value = proj.buildDate || '';
-    document.getElementById('projBvtCompletionDate').value = proj.bvtCompletionDate || '';
-    document.getElementById('projCompletionDate').value = proj.completionDate || '';
-    document.getElementById('projEffort').value = proj.effort || '';
-    document.getElementById('projGoAheadDate').value = proj.goAheadDate || '';
-    populateGoAheadBySelect(proj.goAheadBy || '');
-    document.getElementById('projStatus').value = proj.status || 'Not started';
     document.getElementById('projJiraUrl').value = proj.jiraUrl || '';
+    document.getElementById('projReleaseDate').value = proj.releaseDate || '';
+    populateGoAheadBySelect(proj.goAheadBy || '');
     updateJiraPreview();
   } else {
     titleEl.textContent = 'Add release item';
     btnEl.textContent = 'Add release item';
     document.getElementById('projName').value = '';
-    document.getElementById('projReleaseDate').value = '';
-    document.getElementById('projBuildDate').value = '';
-    document.getElementById('projBvtCompletionDate').value = '';
-    document.getElementById('projCompletionDate').value = '';
-    document.getElementById('projEffort').value = '';
-    document.getElementById('projGoAheadDate').value = '';
-    populateGoAheadBySelect('');
-    document.getElementById('projStatus').value = 'Not started';
     document.getElementById('projJiraUrl').value = '';
+    document.getElementById('projReleaseDate').value = '';
     document.getElementById('projJiraPreview').textContent = '';
   }
   document.getElementById('projectModal').classList.add('show');
@@ -1735,10 +1762,54 @@ function openProjectModal(id) {
 
 function extractJiraId(url) {
   if (!url) return null;
-  // Match patterns like QA-123, SCRUM-456, TL-789 from URL or plain text
   const match = url.match(/([A-Z][A-Z0-9]+-\d+)/);
   return match ? match[1] : null;
 }
+
+// Compute auto-status from test plan rows
+function computeAutoStatus(plan) {
+  if (!plan || !plan.rows || plan.rows.length === 0) return null;
+  const statuses = plan.rows.map(r => r.status || 'Not yet started');
+  const allDone = statuses.every(s => s === 'Done');
+  const anyInProgress = statuses.some(s => s === 'In progress');
+  const anyDone = statuses.some(s => s === 'Done');
+  if (allDone) return 'Completed';
+  if (anyInProgress || anyDone) return 'In progress';
+  return 'Not started';
+}
+
+// Auto-sync test plan data → release items
+function syncTestPlanToProjects() {
+  let changed = false;
+  state.projects.forEach(proj => {
+    const plan = state.testPlans && state.testPlans[proj.id];
+    if (!plan) return;
+
+    const metrics = computeTestPlanMetrics(plan);
+    const autoStatus = computeAutoStatus(plan);
+
+    // Sync Total QA efforts
+    if (metrics.totalEffort > 0 && String(proj.effort) !== String(metrics.totalEffort)) {
+      proj.effort = metrics.totalEffort;
+      changed = true;
+    }
+
+    // Sync Dev to QA date from build pickup milestone
+    if (plan.milestones && plan.milestones.buildPickup && proj.buildDate !== plan.milestones.buildPickup) {
+      proj.buildDate = plan.milestones.buildPickup;
+      changed = true;
+    }
+
+    // Sync status
+    if (autoStatus && proj.status !== autoStatus) {
+      proj.status = autoStatus;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+
 
 function updateJiraPreview() {
   const url = document.getElementById('projJiraUrl').value.trim();
@@ -1757,28 +1828,27 @@ function updateJiraPreview() {
 
 function saveProject() {
   const name = document.getElementById('projName').value.trim();
-  const releaseDate = document.getElementById('projReleaseDate').value;
-  const buildDate = document.getElementById('projBuildDate').value;
-  const bvtCompletionDate = document.getElementById('projBvtCompletionDate').value;
-  const completionDate = document.getElementById('projCompletionDate').value;
-  const effort = document.getElementById('projEffort').value;
-  const goAheadDate = document.getElementById('projGoAheadDate').value;
-  const goAheadBy = document.getElementById('projGoAheadBy').value;
-  const status = document.getElementById('projStatus').value;
   const jiraUrl = document.getElementById('projJiraUrl').value.trim();
+  const releaseDate = document.getElementById('projReleaseDate').value;
+  const goAheadBy = document.getElementById('projGoAheadBy').value;
   if (!name) return;
+
   if (editingProjectId) {
     const proj = state.projects.find(p => p.id === editingProjectId);
     if (proj) {
       const oldName = proj.name;
-      proj.name = name; proj.releaseDate = releaseDate; proj.buildDate = buildDate; proj.bvtCompletionDate = bvtCompletionDate; proj.completionDate = completionDate; proj.effort = effort; proj.goAheadDate = goAheadDate; proj.goAheadBy = goAheadBy; proj.status = status; proj.jiraUrl = jiraUrl;
+      proj.name = name; proj.jiraUrl = jiraUrl;
+      proj.releaseDate = releaseDate; proj.goAheadBy = goAheadBy;
       if (oldName !== name) {
         state.allocations.forEach(a => { if (a.project === oldName) a.project = name; });
         state.dailyPlan.forEach(d => { if (d.project === oldName) d.project = name; });
       }
     }
   } else {
-    state.projects.push({ id: uid(), name, releaseDate, buildDate, bvtCompletionDate, completionDate, effort, goAheadDate, goAheadBy, status, jiraUrl });
+    state.projects.push({
+      id: uid(), name, jiraUrl, releaseDate, goAheadBy,
+      buildDate: '', effort: '', status: 'Not started' // auto-synced from test plan
+    });
   }
   editingProjectId = null;
   closeModal('projectModal');
@@ -1936,7 +2006,7 @@ function populateTestPlanProjectSelect() {
     : state.projects;
 
   if (filteredProjects.length === 0) {
-    sel.innerHTML = '<option value="">No projects for this release</option>';
+    sel.innerHTML = '<option value="">No release items for this date</option>';
     body.style.display = 'none';
     return;
   }
@@ -2216,7 +2286,7 @@ function exportTestPlanReport(scope) {
   }
 
   if (projectsToInclude.length === 0) {
-    alert('No projects found for the selected filter. Please select a release or project first.');
+    alert('No release items found. Please select a Release/GA date filter first.');
     return;
   }
 
@@ -2826,19 +2896,18 @@ function exportSummaryReport() {
 
     return `
       <tr style="border-bottom:1px solid #f1f5f9;">
-        <td style="padding:12px 14px; font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(proj.name)}</td>
-        <td style="padding:12px 14px;">${jiraCell}</td>
         <td style="padding:12px 14px;">
           ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
-        <td style="padding:12px 14px;">${statusBadge}</td>
+        <td style="padding:12px 14px; font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(proj.name)}</td>
+        <td style="padding:12px 14px;">${jiraCell}</td>
         <td style="padding:12px 14px;">${members}</td>
+        <td style="padding:12px 14px;">${statusBadge}</td>
+        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.goAheadDate)}</td>
         <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
         <td style="padding:12px 14px; text-align:center;">
           ${proj.effort ? `<span style="font-weight:700; color:#1e3a8a; font-size:15px;">${proj.effort}</span><span style="font-size:11px; color:#94a3b8; margin-left:3px;">PDs</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
-        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.goAheadDate)}</td>
-        <td style="padding:12px 14px; font-size:13px; color:#334155;">${escapeHtml(proj.goAheadBy || '—')}</td>
       </tr>`;
   }).join('');
 
@@ -2872,15 +2941,14 @@ function exportSummaryReport() {
       <table style="width:100%; border-collapse:collapse;">
         <thead>
           <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release/GA date</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release item</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">JIRA</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release date</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Working on it</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Team</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA done</th>
-            <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Effort</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Go ahead</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Go ahead by</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA Go ahead date</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA completion date</th>
+            <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Total QA efforts</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -2924,7 +2992,7 @@ function renderProjects() {
   // Render filter pills
   if (pillsEl) {
     if (allDates.length === 0) {
-      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No release dates set yet</span>';
+      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>';
     } else {
       pillsEl.innerHTML =
         // "All" pill
@@ -2971,16 +3039,16 @@ function renderProjects() {
       : '<span style="color:var(--text-faint);">—</span>';
     return `
     <tr>
-      <td style="font-weight:500;">${escapeHtml(p.name)}</td>
-      <td>${jiraCell}</td>
       <td style="white-space:nowrap;">
         ${p.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 10px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(p.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
       </td>
-      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
-      <td style="font-family:var(--mono);">${p.effort ? p.effort + ' days' : '—'}</td>
-      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
+      <td style="font-weight:500;">${escapeHtml(p.name)}</td>
+      <td>${jiraCell}</td>
       <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(p.goAheadBy || '—')}</td>
       <td>${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${escapeHtml(p.status)}</span>` : '—'}</td>
+      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
+      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
+      <td style="font-family:var(--mono);">${p.effort ? p.effort + ' PDs' : '—'}</td>
       <td style="text-align:right; white-space:nowrap;">
         <button class="icon-btn edit" onclick="openProjectModal('${p.id}')" aria-label="Edit release item">✎</button>
         <button class="icon-btn" onclick="deleteProject('${p.id}')" aria-label="Remove release item">✕</button>
@@ -3231,7 +3299,7 @@ function renderSummary() {
   // Render filter pills
   if (pillsEl) {
     if (allDates.length === 0) {
-      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No release dates set yet</span>';
+      pillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>';
     } else {
       pillsEl.innerHTML =
         `<button onclick="setSummaryReleaseFilter(null)" style="
@@ -3260,7 +3328,7 @@ function renderSummary() {
   empty.style.display = 'none';
 
   if (projects.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No items for this release date.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No items for this Release/GA date.</td></tr>`;
     return;
   }
 
@@ -3280,19 +3348,18 @@ function renderSummary() {
 
     return `
       <tr>
-        <td style="font-weight:500;">${escapeHtml(proj.name)}</td>
-        <td>${jiraCell}</td>
         <td style="white-space:nowrap;">
           ${proj.releaseDate
             ? `<span style="background:#ede9fe; color:#7c3aed; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>`
             : '<span style="color:var(--text-faint);">—</span>'}
         </td>
-        <td>${proj.status ? `<span class="badge ${statusBadgeClass(proj.status)}">${escapeHtml(proj.status)}</span>` : '—'}</td>
+        <td style="font-weight:500;">${escapeHtml(proj.name)}</td>
+        <td>${jiraCell}</td>
         <td style="color:var(--text-dim); font-size:12px;">${members}</td>
-        <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.completionDate)}</td>
-        <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' days' : '—'}</td>
+        <td>${proj.status ? `<span class="badge ${statusBadgeClass(proj.status)}">${escapeHtml(proj.status)}</span>` : '—'}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.goAheadDate)}</td>
-        <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(proj.goAheadBy || '—')}</td>
+        <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.completionDate)}</td>
+        <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' PDs' : '—'}</td>
       </tr>`;
   }).join('');
 }
@@ -3590,6 +3657,7 @@ function renderDailyPlan() {
 
 // ====================== INIT ======================
 function renderAll() {
+  syncTestPlanToProjects(); // auto-sync test plan data to release items
   renderPeople();
   renderProjects();
   renderAllocation();
