@@ -637,19 +637,47 @@
 
   <!-- ADMIN TAB -->
   <div class="tab-content" id="tab-admin" style="display:none;">
+
+    <!-- Add new user role -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head">
+        <div>
+          <h3>Add user access</h3>
+          <div class="desc">First create the user in Supabase Dashboard → Authentication → Users → Add User (with Auto Confirm ✅). Then enter their email here to assign role and permissions.</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div class="field" style="margin:0; flex:2; min-width:200px;">
+          <label>Email</label>
+          <input id="adminNewEmail" type="email" placeholder="user@company.com">
+        </div>
+        <div class="field" style="margin:0; flex:1; min-width:120px;">
+          <label>Role</label>
+          <select id="adminNewRole">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button class="action" style="margin-bottom:0;" onclick="adminLinkUser()">Add user</button>
+      </div>
+      <div id="adminError" style="font-size:12px; color:var(--red); margin-top:10px;"></div>
+      <div id="adminSuccess" style="font-size:12px; color:var(--green); margin-top:10px;"></div>
+    </div>
+
+    <!-- Users list -->
     <div class="panel">
       <div class="panel-head">
         <div>
-          <h3>User management</h3>
-          <div class="desc">Add users via Supabase Dashboard → Authentication → Users → Add User, then assign their role and permissions here</div>
+          <h3>Users & permissions</h3>
+          <div class="desc">Manage each user's role and per-section access. Changes take effect on their next login or refresh.</div>
         </div>
-        <button class="action" onclick="fetchAllUserRoles().then(renderAdminPanel)">↻ Refresh</button>
+        <button class="action ghost" onclick="fetchAllUserRoles().then(renderAdminPanel)">↻ Refresh</button>
       </div>
       <div style="overflow-x:auto;">
         <table>
           <thead>
             <tr>
-              <th>Email</th>
+              <th style="min-width:180px;">Email</th>
               <th>Role</th>
               <th>People</th>
               <th>Projects</th>
@@ -666,11 +694,11 @@
           <tbody id="adminUsersTableBody"></tbody>
         </table>
       </div>
-      <div class="empty-state" id="adminUsersEmpty" style="display:none;">No users found. Add users in Supabase Dashboard first, then refresh.</div>
+      <div class="empty-state" id="adminUsersEmpty" style="display:none;">No users yet. Add a user above.</div>
       <div class="legend" style="margin-top:14px;">
         <span><strong>Read</strong> — can view only</span>
         <span><strong>Edit</strong> — can view and make changes</span>
-        <span><strong>None</strong> — tab is hidden from this user</span>
+        <span><strong>None</strong> — section is hidden for this user</span>
       </div>
     </div>
   </div>
@@ -906,10 +934,25 @@ function applyAccessUI() {
 
 async function fetchUserRole(userId) {
   try {
-    const { data, error } = await sbClient
+    // First try by user_id (most common case)
+    let { data, error } = await sbClient
       .from('user_roles').select('role,permissions,email')
       .eq('user_id', userId).maybeSingle();
-    if (error) { console.warn('fetchUserRole:', error.message); }
+
+    // If not found by user_id, try by email (user was added by admin before first login)
+    if (!data && currentUserEmail) {
+      const res = await sbClient
+        .from('user_roles').select('id,role,permissions,email')
+        .eq('email', currentUserEmail).maybeSingle();
+      if (res.data) {
+        data = res.data;
+        // Auto-fix: update the user_id so future lookups work correctly
+        await sbClient.from('user_roles').update({ user_id: userId }).eq('email', currentUserEmail);
+        console.log('Auto-linked user_id for:', currentUserEmail);
+      }
+    }
+
+    if (error) console.warn('fetchUserRole:', error.message);
     currentUserRole = (data && data.role) ? data.role : 'member';
     currentUserPermissions = (data && data.permissions) ? data.permissions : { ...DEFAULT_PERMISSIONS };
     console.log('Role:', currentUserRole);
@@ -1078,32 +1121,59 @@ async function fetchAllUserRoles() {
   }
 }
 
-async function adminAddUser() {
-  const email = document.getElementById('adminNewEmail').value.trim();
-  const password = document.getElementById('adminNewPassword').value;
+// Admin links an existing Supabase auth user (by email) to the user_roles table.
+// The user must already exist in Supabase Auth (created via dashboard).
+// We use a workaround: insert with a temporary placeholder UUID, then a trigger
+// or the user's own first login will update it — OR we use the email column
+// to find them on next fetch. Best approach: store by email + real UUID lookup.
+async function adminLinkUser() {
+  const email = document.getElementById('adminNewEmail').value.trim().toLowerCase();
   const role = document.getElementById('adminNewRole').value;
   const errEl = document.getElementById('adminError');
+  const successEl = document.getElementById('adminSuccess');
   errEl.textContent = '';
+  successEl.textContent = '';
 
-  if (!email || !password) { errEl.textContent = 'Email and password required.'; return; }
+  if (!email) { errEl.textContent = 'Please enter an email address.'; return; }
 
-  // Create user via Supabase admin API (needs service role — we'll use a workaround)
-  // Since we can't use service role in frontend, we insert into user_roles after
-  // the user self-registers, OR admin creates via Supabase dashboard.
-  // For now: insert a placeholder that activates when user first logs in.
-  errEl.textContent = 'Note: Create the user in Supabase Dashboard → Authentication → Users → Add User first, then assign role here.';
+  // Check if already in our list
+  if (allUserRoles.find(r => r.email.toLowerCase() === email)) {
+    errEl.textContent = 'This user already has a role assigned. Edit it in the table below.';
+    return;
+  }
 
-  // Assign role by email (user_id will link when they log in)
   const perms = buildDefaultPermsForRole(role);
+
+  // We need the user's UUID from auth.users. Since we can't query auth.users
+  // from the frontend directly, we use a workaround:
+  // 1. Try to find them by looking at existing auth session users
+  // 2. Store by email with a lookup UUID — when they log in, fetchUserRole
+  //    will find their record by user_id. So we need to know their UUID.
+  //
+  // Best approach: ask admin to paste the UUID from Supabase dashboard,
+  // OR store by email and have user_id filled later.
+  //
+  // For now we store with email reference — user must have been created first.
+  // The UUID 'pending' will be replaced when they first log in via a trigger.
+
+  // Try to get UUID from Supabase by attempting a sign-in check (not possible)
+  // Instead, use our own helper SQL or ask user to paste UUID.
+  // Cleanest UX: store email-only record, let it auto-link on first login.
+
   try {
+    // Store the role by email with null user_id initially.
+    // We add a unique constraint on email too — see SQL setup.
     const { error } = await sbClient
       .from('user_roles')
-      .upsert({ user_id: '00000000-0000-0000-0000-000000000000', email, role, permissions: perms },
-               { onConflict: 'email' });
+      .insert({ 
+        user_id: crypto.randomUUID(), // temporary — gets overwritten on first login
+        email, 
+        role, 
+        permissions: perms 
+      });
     if (error) throw error;
-    errEl.textContent = '';
+    successEl.textContent = `✓ Role assigned to ${email}. They can now log in and will have ${role} access.`;
     document.getElementById('adminNewEmail').value = '';
-    document.getElementById('adminNewPassword').value = '';
     await fetchAllUserRoles();
     renderAdminPanel();
   } catch (e) {
@@ -1115,7 +1185,7 @@ function buildDefaultPermsForRole(role) {
   if (role === 'admin') {
     return Object.fromEntries(Object.keys(DEFAULT_PERMISSIONS).map(k => [k, 'edit']));
   }
-  return { ...DEFAULT_PERMISSIONS }; // all read by default
+  return { ...DEFAULT_PERMISSIONS };
 }
 
 async function adminUpdatePermission(userId, section, value) {
