@@ -536,7 +536,7 @@
       </div>
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Release/GA date</th><th>Release Items</th><th>JIRA</th><th>Owner</th><th>Status</th><th>QA Go ahead date</th><th>QA completion date</th><th>Total QA efforts</th><th></th></tr></thead>
+          <thead><tr><th>Release/GA date</th><th>Release Items</th><th>JIRA</th><th>Dev POD</th><th>Dev to QA date</th><th>Total QA efforts</th><th>Owner</th><th>Status</th><th>QA Go ahead date</th><th>QA completion date</th><th></th></tr></thead>
           <tbody id="projectTableBody"></tbody>
         </table>
       </div>
@@ -928,6 +928,18 @@
     <div class="field">
       <label>Release/GA date</label>
       <input id="projReleaseDate" type="date">
+    </div>
+    <div class="field">
+      <label>Dev POD</label>
+      <select id="projDevPod">
+        <option value="">— Select POD —</option>
+        <option value="WinGuardians">WinGuardians</option>
+        <option value="Heisenbug">Heisenbug</option>
+        <option value="Hydra">Hydra</option>
+        <option value="Sentinels">Sentinels</option>
+        <option value="DareDevils">DareDevils</option>
+        <option value="Evil Inc.">Evil Inc.</option>
+      </select>
     </div>
     <div class="field">
       <label>Owner</label>
@@ -1747,6 +1759,7 @@ function openProjectModal(id) {
     document.getElementById('projName').value = proj.name;
     document.getElementById('projJiraUrl').value = proj.jiraUrl || '';
     document.getElementById('projReleaseDate').value = proj.releaseDate || '';
+    document.getElementById('projDevPod').value = proj.devPod || '';
     populateGoAheadBySelect(proj.goAheadBy || '');
     updateJiraPreview();
   } else {
@@ -1755,6 +1768,7 @@ function openProjectModal(id) {
     document.getElementById('projName').value = '';
     document.getElementById('projJiraUrl').value = '';
     document.getElementById('projReleaseDate').value = '';
+    document.getElementById('projDevPod').value = '';
     document.getElementById('projJiraPreview').textContent = '';
   }
   document.getElementById('projectModal').classList.add('show');
@@ -1830,6 +1844,7 @@ function saveProject() {
   const name = document.getElementById('projName').value.trim();
   const jiraUrl = document.getElementById('projJiraUrl').value.trim();
   const releaseDate = document.getElementById('projReleaseDate').value;
+  const devPod = document.getElementById('projDevPod').value;
   const goAheadBy = document.getElementById('projGoAheadBy').value;
   if (!name) return;
 
@@ -1838,7 +1853,7 @@ function saveProject() {
     if (proj) {
       const oldName = proj.name;
       proj.name = name; proj.jiraUrl = jiraUrl;
-      proj.releaseDate = releaseDate; proj.goAheadBy = goAheadBy;
+      proj.releaseDate = releaseDate; proj.devPod = devPod; proj.goAheadBy = goAheadBy;
       if (oldName !== name) {
         state.allocations.forEach(a => { if (a.project === oldName) a.project = name; });
         state.dailyPlan.forEach(d => { if (d.project === oldName) d.project = name; });
@@ -1846,8 +1861,8 @@ function saveProject() {
     }
   } else {
     state.projects.push({
-      id: uid(), name, jiraUrl, releaseDate, goAheadBy,
-      buildDate: '', effort: '', status: 'Not started' // auto-synced from test plan
+      id: uid(), name, jiraUrl, releaseDate, devPod, goAheadBy,
+      buildDate: '', effort: '', status: 'Not started'
     });
   }
   editingProjectId = null;
@@ -3030,6 +3045,15 @@ function renderProjects() {
     return;
   }
 
+  const POD_COLORS = {
+    'WinGuardians': '#dbeafe:#1d4ed8',
+    'Heisenbug':    '#dcfce7:#15803d',
+    'Hydra':        '#fce7f3:#9d174d',
+    'Sentinels':    '#fef3c7:#b45309',
+    'DareDevils':   '#fee2e2:#b91c1c',
+    'Evil Inc.':    '#f3e8ff:#7e22ce',
+  };
+
   tbody.innerHTML = filtered.map(p => {
     const jiraId = extractJiraId(p.jiraUrl);
     const jiraCell = jiraId
@@ -3037,6 +3061,13 @@ function renderProjects() {
           ? `<a href="${escapeHtml(p.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jiraId}</a>`
           : `<span style="background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600;">🎫 ${jiraId}</span>`)
       : '<span style="color:var(--text-faint);">—</span>';
+
+    const podColors = POD_COLORS[p.devPod] || '#f1f5f9:#475569';
+    const [pbg, pfg] = podColors.split(':');
+    const podCell = p.devPod
+      ? `<span style="background:${pbg}; color:${pfg}; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(p.devPod)}</span>`
+      : '<span style="color:var(--text-faint);">—</span>';
+
     return `
     <tr>
       <td style="white-space:nowrap;">
@@ -3044,11 +3075,13 @@ function renderProjects() {
       </td>
       <td style="font-weight:500;">${escapeHtml(p.name)}</td>
       <td>${jiraCell}</td>
+      <td>${podCell}</td>
+      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.buildDate)}</td>
+      <td style="font-family:var(--mono);">${p.effort ? p.effort + ' PDs' : '—'}</td>
       <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(p.goAheadBy || '—')}</td>
       <td>${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${escapeHtml(p.status)}</span>` : '—'}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
-      <td style="font-family:var(--mono);">${p.effort ? p.effort + ' PDs' : '—'}</td>
       <td style="text-align:right; white-space:nowrap;">
         <button class="icon-btn edit" onclick="openProjectModal('${p.id}')" aria-label="Edit release item">✎</button>
         <button class="icon-btn" onclick="deleteProject('${p.id}')" aria-label="Remove release item">✕</button>
