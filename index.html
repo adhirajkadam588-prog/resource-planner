@@ -432,7 +432,7 @@
         <button class="action" onclick="openProjectModal()">+ Add project</button>
       </div>
       <table>
-        <thead><tr><th>Project</th><th>Dev to QA build date</th><th>BVT completion date</th><th>QA completion date</th><th>Total QA efforts</th><th>Go ahead date</th><th>Go ahead by</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Project</th><th>JIRA</th><th>QA completion date</th><th>Total QA efforts</th><th>Go ahead date</th><th>Go ahead by</th><th>Status</th><th></th></tr></thead>
         <tbody id="projectTableBody"></tbody>
       </table>
       <div class="empty-state" id="projectEmpty" style="display:none;">No projects added yet. Click "Add project" to start.</div>
@@ -588,6 +588,7 @@
                 <th>Total cases</th>
                 <th>Effort (PD)</th>
                 <th>Assigned to</th>
+                <th>Status</th>
                 <th></th>
               </tr>
             </thead>
@@ -735,10 +736,10 @@
         <thead>
           <tr>
             <th>Project</th>
+            <th>JIRA</th>
             <th>Status</th>
             <th>Working on it</th>
-            <th>Start date</th>
-            <th>End date</th>
+            <th>QA done</th>
             <th>Total efforts</th>
             <th>Go ahead date</th>
             <th>Go ahead by</th>
@@ -776,6 +777,11 @@
     <div class="field"><label>QA completion date</label><input id="projCompletionDate" type="date"><div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Auto-fills from Test plan's "Execution completion with buffer" milestone, if set.</div></div>
     <div class="field"><label>Total QA efforts (person-days)</label><input id="projEffort" type="number" min="0" step="0.5" placeholder="e.g. 12"><div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Auto-fills from Test plan's "Total PDs with buffer" if one exists for this project. Edit manually only if no test plan is set up.</div></div>
     <div class="field"><label>Go ahead date</label><input id="projGoAheadDate" type="date"><div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Auto-fills from Test plan's "Merged build go ahead" milestone, if set.</div></div>
+    <div class="field">
+      <label>JIRA ticket URL</label>
+      <input id="projJiraUrl" type="url" placeholder="e.g. https://seclore.atlassian.net/browse/QA-123" oninput="updateJiraPreview()">
+      <div id="projJiraPreview" style="font-size:12px; margin-top:5px; color:var(--accent);"></div>
+    </div>
     <div class="field"><label>Go ahead by</label><select id="projGoAheadBy"></select></div>
     <div class="field"><label>Status</label>
       <select id="projStatus">
@@ -848,6 +854,14 @@
     </div>
     <div class="field"><label>Effort (PD)</label><input id="trEffort" type="number" min="0" step="0.5" placeholder="e.g. 5"></div>
     <div class="field"><label>Assigned to</label><select id="trAssignee"></select></div>
+    <div class="field">
+      <label>Completion status</label>
+      <select id="trStatus">
+        <option value="Not yet started">Not yet started</option>
+        <option value="In progress">In progress</option>
+        <option value="Done">Done</option>
+      </select>
+    </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('testRowModal')">Cancel</button>
       <button class="action" id="testRowSaveBtn" onclick="saveTestRow()">Add environment</button>
@@ -1588,6 +1602,8 @@ function openProjectModal(id) {
     document.getElementById('projGoAheadDate').value = proj.goAheadDate || '';
     populateGoAheadBySelect(proj.goAheadBy || '');
     document.getElementById('projStatus').value = proj.status || 'Not started';
+    document.getElementById('projJiraUrl').value = proj.jiraUrl || '';
+    updateJiraPreview();
   } else {
     titleEl.textContent = 'Add project';
     btnEl.textContent = 'Add project';
@@ -1599,8 +1615,32 @@ function openProjectModal(id) {
     document.getElementById('projGoAheadDate').value = '';
     populateGoAheadBySelect('');
     document.getElementById('projStatus').value = 'Not started';
+    document.getElementById('projJiraUrl').value = '';
+    document.getElementById('projJiraPreview').textContent = '';
   }
   document.getElementById('projectModal').classList.add('show');
+}
+
+function extractJiraId(url) {
+  if (!url) return null;
+  // Match patterns like QA-123, SCRUM-456, TL-789 from URL or plain text
+  const match = url.match(/([A-Z][A-Z0-9]+-\d+)/);
+  return match ? match[1] : null;
+}
+
+function updateJiraPreview() {
+  const url = document.getElementById('projJiraUrl').value.trim();
+  const preview = document.getElementById('projJiraPreview');
+  const id = extractJiraId(url);
+  if (id && url.startsWith('http')) {
+    preview.innerHTML = `🎫 Ticket: <a href="${escapeHtml(url)}" target="_blank" style="color:var(--accent); font-weight:600;">${id}</a>`;
+  } else if (id) {
+    preview.innerHTML = `🎫 Ticket ID: <strong style="color:var(--accent);">${id}</strong>`;
+  } else if (url) {
+    preview.textContent = 'Could not extract JIRA ID from this URL';
+  } else {
+    preview.textContent = '';
+  }
 }
 
 function saveProject() {
@@ -1612,21 +1652,20 @@ function saveProject() {
   const goAheadDate = document.getElementById('projGoAheadDate').value;
   const goAheadBy = document.getElementById('projGoAheadBy').value;
   const status = document.getElementById('projStatus').value;
+  const jiraUrl = document.getElementById('projJiraUrl').value.trim();
   if (!name) return;
   if (editingProjectId) {
     const proj = state.projects.find(p => p.id === editingProjectId);
     if (proj) {
       const oldName = proj.name;
-      proj.name = name; proj.buildDate = buildDate; proj.bvtCompletionDate = bvtCompletionDate; proj.completionDate = completionDate; proj.effort = effort; proj.goAheadDate = goAheadDate; proj.goAheadBy = goAheadBy; proj.status = status;
-      // If the project was renamed, update every allocation and daily plan
-      // entry that referenced the old name so they don't silently orphan.
+      proj.name = name; proj.buildDate = buildDate; proj.bvtCompletionDate = bvtCompletionDate; proj.completionDate = completionDate; proj.effort = effort; proj.goAheadDate = goAheadDate; proj.goAheadBy = goAheadBy; proj.status = status; proj.jiraUrl = jiraUrl;
       if (oldName !== name) {
         state.allocations.forEach(a => { if (a.project === oldName) a.project = name; });
         state.dailyPlan.forEach(d => { if (d.project === oldName) d.project = name; });
       }
     }
   } else {
-    state.projects.push({ id: uid(), name, buildDate, bvtCompletionDate, completionDate, effort, goAheadDate, goAheadBy, status });
+    state.projects.push({ id: uid(), name, buildDate, bvtCompletionDate, completionDate, effort, goAheadDate, goAheadBy, status, jiraUrl });
   }
   editingProjectId = null;
   closeModal('projectModal');
@@ -1778,6 +1817,7 @@ function openTestRowModal(id) {
     document.getElementById('trCoverage').value = row.coverage || '';
     document.getElementById('trEffort').value = row.effort || '';
     assigneeSel.value = row.assigneeId || '';
+    document.getElementById('trStatus').value = row.status || 'Not yet started';
   } else {
     titleEl.textContent = 'Add environment';
     btnEl.textContent = 'Add environment';
@@ -1786,6 +1826,7 @@ function openTestRowModal(id) {
     document.getElementById('trCoverage').value = '';
     document.getElementById('trEffort').value = '';
     assigneeSel.value = '';
+    document.getElementById('trStatus').value = 'Not yet started';
   }
   updateCalculatedCasesPreview();
   document.getElementById('testRowModal').classList.add('show');
@@ -1806,13 +1847,14 @@ function saveTestRow() {
   const cases = Math.round(baseCases * (coverage / 100));
   const effort = parseFloat(document.getElementById('trEffort').value) || 0;
   const assigneeId = document.getElementById('trAssignee').value;
+  const status = document.getElementById('trStatus').value;
 
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   if (editingTestRowId) {
     const row = plan.rows.find(r => r.id === editingTestRowId);
-    if (row) { row.name = name; row.baseCases = baseCases; row.coverage = coverage; row.cases = cases; row.effort = effort; row.assigneeId = assigneeId; }
+    if (row) { row.name = name; row.baseCases = baseCases; row.coverage = coverage; row.cases = cases; row.effort = effort; row.assigneeId = assigneeId; row.status = status; }
   } else {
-    plan.rows.push({ id: uid(), name, baseCases, coverage, cases, effort, assigneeId });
+    plan.rows.push({ id: uid(), name, baseCases, coverage, cases, effort, assigneeId, status });
   }
   editingTestRowId = null;
   closeModal('testRowModal');
@@ -1861,6 +1903,13 @@ function renderTestPlan() {
     empty.style.display = 'none';
     tbody.innerHTML = plan.rows.map(r => {
       const person = state.people.find(p => p.id === r.assigneeId);
+      const rowStatus = r.status || 'Not yet started';
+      const statusStyles = {
+        'Not yet started': 'background:var(--panel-2); color:var(--text-faint);',
+        'In progress':     'background:var(--amber-dim); color:var(--amber);',
+        'Done':            'background:#dcfce7; color:#15803d;'
+      };
+      const statusStyle = statusStyles[rowStatus] || statusStyles['Not yet started'];
       return `
         <tr>
           <td style="font-weight:600;">${escapeHtml(r.name)}</td>
@@ -1868,6 +1917,9 @@ function renderTestPlan() {
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.cases || 0}</td>
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.effort || 0}</td>
           <td style="font-weight:600; font-size:12px;">${person ? escapeHtml(person.name) : '—'}</td>
+          <td style="text-align:center;">
+            <span style="${statusStyle} padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(rowStatus)}</span>
+          </td>
           <td style="text-align:right; white-space:nowrap;">
             <button class="icon-btn edit" onclick="openTestRowModal('${r.id}')" aria-label="Edit environment">✎</button>
             <button class="icon-btn" onclick="deleteTestRow('${r.id}')" aria-label="Remove environment">✕</button>
@@ -2001,13 +2053,37 @@ function buildTestPlanProjectSectionHtml(proj) {
 
       <table class="matrix-table">
         <thead>
-          <tr><th>Environment</th><th>Coverage %</th><th>Total cases</th><th>Effort (PD)</th><th>Assigned to</th></tr>
+          <tr>
+            <th>Environment</th>
+            <th class="r">Coverage</th>
+            <th class="r">Base cases</th>
+            <th class="r">Total cases</th>
+            <th class="r">Effort (PD)</th>
+            <th>Assigned to</th>
+            <th>Status</th>
+          </tr>
         </thead>
         <tbody>
-          <tr class="sub-row"><td>Test prep — test scenarios, test cases, review</td><td class="num">—</td><td class="num">—</td><td class="num">${metrics.testPrepEffort || 0}</td><td>—</td></tr>
+          <tr class="row-prep">
+            <td>📋 Test prep — scenarios, test cases, review</td>
+            <td class="r">—</td><td class="r">—</td><td class="r">—</td>
+            <td class="r">${metrics.testPrepEffort || 0}</td>
+            <td>—</td><td>—</td>
+          </tr>
           ${envRowsHtml}
-          <tr class="sub-row"><td>Buffer</td><td class="num">—</td><td class="num">—</td><td class="num">${metrics.bufferEffort || 0}</td><td>—</td></tr>
-          <tr class="total-row"><td>Total</td><td class="num">—</td><td class="num">${metrics.rowsCases}</td><td class="num">${metrics.totalEffort}</td><td>—</td></tr>
+          <tr class="row-buffer">
+            <td>🔄 Buffer</td>
+            <td class="r">—</td><td class="r">—</td><td class="r">—</td>
+            <td class="r">${metrics.bufferEffort || 0}</td>
+            <td>—</td><td>—</td>
+          </tr>
+          <tr class="row-total">
+            <td>Total</td>
+            <td class="r">—</td><td class="r">—</td>
+            <td class="r">${metrics.rowsCases}</td>
+            <td class="r">${metrics.totalEffort}</td>
+            <td>—</td><td>—</td>
+          </tr>
         </tbody>
       </table>
 
@@ -2318,6 +2394,9 @@ function buildTestPlanProjectSectionHtml(proj) {
   const envRowsHtml = plan.rows.length > 0
     ? plan.rows.map(r => {
         const person = state.people.find(p => p.id === r.assigneeId);
+        const rowStatus = r.status || 'Not yet started';
+        const statusColors = { 'Not yet started': '#f1f5f9:#64748b', 'In progress': '#fef3c7:#b45309', 'Done': '#dcfce7:#15803d' };
+        const [sbg, sfg] = (statusColors[rowStatus] || '#f1f5f9:#64748b').split(':');
         return `
           <tr class="row-env">
             <td>${escapeHtml(r.name)}</td>
@@ -2326,6 +2405,7 @@ function buildTestPlanProjectSectionHtml(proj) {
             <td class="r">${r.cases || 0}</td>
             <td class="r">${r.effort || 0}</td>
             <td>${person ? escapeHtml(person.name) : '—'}</td>
+            <td><span style="background:${sbg}; color:${sfg}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(rowStatus)}</span></td>
           </tr>`;
       }).join('')
     : `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:18px; font-style:italic;">No environments added</td></tr>`;
@@ -2351,8 +2431,7 @@ function buildTestPlanProjectSectionHtml(proj) {
 
         ${(proj.goAheadBy || proj.goAheadDate || proj.buildDate || proj.completionDate) ? `
         <div class="meta-pills">
-          ${proj.buildDate ? `<span class="meta-pill"><span class="pill-icon">📥</span> Dev to QA: <strong>${formatDateDisplay(proj.buildDate)}</strong></span>` : ''}
-          ${proj.bvtCompletionDate ? `<span class="meta-pill"><span class="pill-icon">✅</span> BVT: <strong>${formatDateDisplay(proj.bvtCompletionDate)}</strong></span>` : ''}
+          ${proj.jiraUrl ? `<span class="meta-pill"><span class="pill-icon">🎫</span> JIRA: <strong><a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="color:#1d4ed8; text-decoration:none;">${extractJiraId(proj.jiraUrl) || proj.jiraUrl}</a></strong></span>` : ''}
           ${proj.completionDate ? `<span class="meta-pill"><span class="pill-icon">🏁</span> QA done: <strong>${formatDateDisplay(proj.completionDate)}</strong></span>` : ''}
           ${proj.goAheadDate ? `<span class="meta-pill"><span class="pill-icon">🚀</span> Go ahead: <strong>${formatDateDisplay(proj.goAheadDate)}</strong></span>` : ''}
           ${proj.goAheadBy ? `<span class="meta-pill"><span class="pill-icon">👤</span> By: <strong>${escapeHtml(proj.goAheadBy)}</strong></span>` : ''}
@@ -2721,7 +2800,9 @@ function exportSummaryReport() {
         <td style="padding:12px 14px; font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(proj.name)}</td>
         <td style="padding:12px 14px;">${statusBadge}</td>
         <td style="padding:12px 14px;">${members}</td>
-        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.buildDate)}</td>
+        <td style="padding:12px 14px;">
+          ${(() => { const jid = extractJiraId(proj.jiraUrl); return jid ? (proj.jiraUrl && proj.jiraUrl.startsWith('http') ? `<a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jid}</a>` : `<span style="background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600;">🎫 ${jid}</span>`) : '<span style="color:#94a3b8; font-size:12px;">—</span>'; })()}
+        </td>
         <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
         <td style="padding:12px 14px; text-align:center;">
           ${proj.effort ? `<span style="font-weight:700; color:#1e3a8a; font-size:15px;">${proj.effort}</span><span style="font-size:11px; color:#94a3b8; margin-left:3px;">PDs</span>` : '<span style="color:#94a3b8;">—</span>'}
@@ -2764,7 +2845,7 @@ function exportSummaryReport() {
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Project</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Team</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Start date</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">JIRA</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA done</th>
             <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Effort</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Go ahead</th>
@@ -2804,11 +2885,17 @@ function renderProjects() {
   const empty = document.getElementById('projectEmpty');
   if (state.projects.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  tbody.innerHTML = state.projects.map(p => `
+  tbody.innerHTML = state.projects.map(p => {
+    const jiraId = extractJiraId(p.jiraUrl);
+    const jiraCell = jiraId
+      ? (p.jiraUrl && p.jiraUrl.startsWith('http')
+          ? `<a href="${escapeHtml(p.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jiraId}</a>`
+          : `<span style="background:#dbeafe; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600;">🎫 ${jiraId}</span>`)
+      : '<span style="color:var(--text-faint);">—</span>';
+    return `
     <tr>
       <td>${escapeHtml(p.name)}</td>
-      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.buildDate)}</td>
-      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.bvtCompletionDate)}</td>
+      <td>${jiraCell}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
       <td style="font-family:var(--mono);">${p.effort ? p.effort + ' days' : '—'}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
@@ -2818,8 +2905,8 @@ function renderProjects() {
         <button class="icon-btn edit" onclick="openProjectModal('${p.id}')" aria-label="Edit project">✎</button>
         <button class="icon-btn" onclick="deleteProject('${p.id}')" aria-label="Remove project">✕</button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ====================== ALLOCATION ======================
@@ -3060,12 +3147,19 @@ function renderSummary() {
       return `${escapeHtml(personName)} (${a.pct}%)`;
     }).join(', ') || '<span style="color:var(--text-faint)">No one assigned yet</span>';
 
+    const jiraId = extractJiraId(proj.jiraUrl);
+    const jiraCell = jiraId
+      ? (proj.jiraUrl && proj.jiraUrl.startsWith('http')
+          ? `<a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; background:var(--accent-dim); color:var(--accent); padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600; text-decoration:none;">🎫 ${jiraId}</a>`
+          : `<span style="background:var(--accent-dim); color:var(--accent); padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">🎫 ${jiraId}</span>`)
+      : '<span style="color:var(--text-faint);">—</span>';
+
     return `
       <tr>
         <td>${escapeHtml(proj.name)}</td>
+        <td>${jiraCell}</td>
         <td>${proj.status ? `<span class="badge ${statusBadgeClass(proj.status)}">${escapeHtml(proj.status)}</span>` : '—'}</td>
         <td style="color:var(--text-dim); font-size:12px;">${members}</td>
-        <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.buildDate)}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.completionDate)}</td>
         <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' days' : '—'}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.goAheadDate)}</td>
