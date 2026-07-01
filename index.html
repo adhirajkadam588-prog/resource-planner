@@ -646,19 +646,29 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <h3>Select project</h3>
-          <div class="desc">Test plan is tracked per project — pick one to view or edit its matrix</div>
+          <h3>Test plan</h3>
+          <div class="desc">Filter by release date, then pick a project to view or edit its test matrix</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <select id="testPlanProjectSelect" style="width:220px;" onchange="onTestPlanProjectChange()"></select>
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleTestPlanReportMenu()"><span class="ico">📄</span> Share report</button>
             <div class="export-menu" id="testPlanReportMenu">
               <button onclick="exportTestPlanReport('selected')">This project's report</button>
-              <button onclick="exportTestPlanReport('all')">All projects — combined report</button>
+              <button onclick="exportTestPlanReport('release')">This release's report</button>
+              <button onclick="exportTestPlanReport('all')">All projects — combined</button>
             </div>
           </div>
         </div>
+      </div>
+      <!-- Release date filter pills -->
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Release:</div>
+        <div id="testPlanReleasePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
+      </div>
+      <!-- Project dropdown (filtered by selected release) -->
+      <div style="display:flex; gap:8px; align-items:center;" id="testPlanProjectRow">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">Project:</div>
+        <select id="testPlanProjectSelect" style="width:260px;" onchange="onTestPlanProjectChange()"></select>
       </div>
       <div class="empty-state" id="testPlanNoProjects" style="display:none;">Add a release item in the Release tab first, then come back here to build its test plan.</div>
     </div>
@@ -1853,6 +1863,7 @@ function renderHolidays() {
 
 // ====================== TEST PLAN ======================
 let selectedTestPlanProjectId = null;   // single project shown in tab UI
+let selectedTestPlanReleaseDate = null; // release filter for test plan tab
 let selectedReleaseDate = null;         // null = show all, date string = filter by that date
 let selectedSummaryReleaseDate = null;  // same for summary tab
 let editingTestRowId = null;
@@ -1883,21 +1894,70 @@ function populateTestPlanProjectSelect() {
   const sel = document.getElementById('testPlanProjectSelect');
   const noProjects = document.getElementById('testPlanNoProjects');
   const body = document.getElementById('testPlanBody');
+  const pillsEl = document.getElementById('testPlanReleasePills');
+  const projectRow = document.getElementById('testPlanProjectRow');
 
   if (state.projects.length === 0) {
     sel.innerHTML = '';
     noProjects.style.display = 'block';
     body.style.display = 'none';
+    if (pillsEl) pillsEl.innerHTML = '';
     return;
   }
   noProjects.style.display = 'none';
 
-  if (!selectedTestPlanProjectId || !state.projects.some(p => p.id === selectedTestPlanProjectId)) {
-    selectedTestPlanProjectId = state.projects[0].id;
+  // Build unique sorted release dates
+  const allDates = [...new Set(
+    state.projects.map(p => p.releaseDate).filter(Boolean)
+  )].sort();
+
+  // Render release filter pills
+  if (pillsEl) {
+    pillsEl.innerHTML =
+      `<button onclick="setTestPlanReleaseFilter(null)" style="
+        padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;
+        ${selectedTestPlanReleaseDate === null
+          ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
+          : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
+      ">All</button>` +
+      allDates.map(d => `
+        <button onclick="setTestPlanReleaseFilter('${d}')" style="
+          padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s;
+          ${selectedTestPlanReleaseDate === d
+            ? 'background:#7c3aed; color:white; border-color:#7c3aed;'
+            : 'background:var(--panel-2); color:var(--text-dim); border-color:var(--border);'}
+        ">${formatDateDisplay(d)}</button>
+      `).join('');
   }
 
-  sel.innerHTML = state.projects.map(p => `<option value="${p.id}" ${p.id === selectedTestPlanProjectId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+  // Filter projects by selected release date
+  const filteredProjects = selectedTestPlanReleaseDate
+    ? state.projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate)
+    : state.projects;
+
+  if (filteredProjects.length === 0) {
+    sel.innerHTML = '<option value="">No projects for this release</option>';
+    body.style.display = 'none';
+    return;
+  }
+
+  // Keep selected project valid within filtered list
+  if (!selectedTestPlanProjectId || !filteredProjects.some(p => p.id === selectedTestPlanProjectId)) {
+    selectedTestPlanProjectId = filteredProjects[0].id;
+  }
+
+  sel.innerHTML = filteredProjects.map(p =>
+    `<option value="${p.id}" ${p.id === selectedTestPlanProjectId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+  ).join('');
+
   body.style.display = 'block';
+}
+
+function setTestPlanReleaseFilter(date) {
+  selectedTestPlanReleaseDate = date;
+  selectedTestPlanProjectId = null; // reset project selection
+  populateTestPlanProjectSelect();
+  renderTestPlan();
 }
 
 function onTestPlanProjectChange() {
@@ -2130,22 +2190,37 @@ function computeTestPlanMetrics(plan) {
 function exportTestPlanReport(scope) {
   document.getElementById('testPlanReportMenu').classList.remove('show');
 
-  const projectsToInclude = scope === 'all'
-    ? state.projects
-    : state.projects.filter(p => p.id === selectedTestPlanProjectId);
+  let projectsToInclude;
+  let reportTitle;
+
+  if (scope === 'all') {
+    projectsToInclude = state.projects;
+    reportTitle = 'Test Plan Report — All Projects';
+  } else if (scope === 'release') {
+    if (!selectedTestPlanReleaseDate) {
+      // No release filter active — use all projects in dropdown
+      projectsToInclude = selectedTestPlanReleaseDate
+        ? state.projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate)
+        : state.projects;
+      reportTitle = 'Test Plan Report — All Projects';
+    } else {
+      projectsToInclude = state.projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
+      reportTitle = `Test Plan Report — Release ${formatDateDisplay(selectedTestPlanReleaseDate)}`;
+    }
+  } else {
+    // 'selected' — current project in dropdown
+    projectsToInclude = state.projects.filter(p => p.id === selectedTestPlanProjectId);
+    reportTitle = projectsToInclude.length > 0
+      ? `Test Plan Report — ${projectsToInclude[0].name}`
+      : 'Test Plan Report';
+  }
 
   if (projectsToInclude.length === 0) {
-    alert('No project selected. Pick a project from the dropdown first.');
+    alert('No projects found for the selected filter. Please select a release or project first.');
     return;
   }
 
-  const reportTitle = scope === 'all'
-    ? 'Test Plan Report — All Projects'
-    : `Test Plan Report — ${projectsToInclude[0].name}`;
-
-  // Build the HTML sections for each project
   const sectionsHtml = projectsToInclude.map(buildTestPlanProjectSectionHtml).join('\n');
-
   shareReportAsLink(reportTitle, sectionsHtml);
 }
 
