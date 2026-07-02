@@ -509,6 +509,12 @@
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
         Summary
       </button>
+
+      <div class="nav-section-label">Help</div>
+      <button class="tab-btn" data-tab="help" data-title="Help & User Guide" data-desc="How to use TeamLens — step by step guide for all features">
+        <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
+        Help & Guide
+      </button>
     </nav>
 
     <div class="sidebar-foot">
@@ -587,7 +593,7 @@
         <button class="action" onclick="openPersonModal()">+ Add person</button>
       </div>
       <table>
-        <thead><tr><th>Name</th><th>Title</th><th>Email</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Title</th><th>Email</th><th>Dev POD</th><th></th></tr></thead>
         <tbody id="peopleTableBody"></tbody>
       </table>
       <div class="empty-state" id="peopleEmpty" style="display:none;">No people added yet. Click "Add person" to start.</div>
@@ -718,16 +724,22 @@
         <div>
           <h3>Daily resource plan</h3>
           <div class="desc" id="dayMonthLabel">One project per person per day, across a date range</div>
+          <div id="dailyPlanPeopleCount" style="font-size:11px; color:var(--text-faint); margin-top:3px;"></div>
         </div>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <!-- Dev POD filter -->
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">POD:</span>
+            <div id="dailyPlanPodPills" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+          </div>
           <button class="ghost" onclick="shiftDayMonth(-1)">‹ Prev</button>
           <button class="ghost" onclick="shiftDayMonth(1)">Next ›</button>
           <button class="action" onclick="openDailyPlanModal()">+ Assign</button>
           <button class="export-btn" onclick="openDailyPlanReportModal()"><span class="ico">📄</span> Share report</button>
         </div>
       </div>
-      <div class="cal-scroll-wrap" id="dailyPlanScrollWrap">
-        <div class="cal-grid" id="dailyPlanGrid"></div>
+      <div class="cal-scroll-wrap" id="dailyPlanScrollWrap" style="overflow-x:auto; overflow-y:visible; border-radius:12px; border:1px solid var(--border-soft); position:relative;">
+        <div class="cal-grid" id="dailyPlanGrid" style="overflow:visible;"></div>
       </div>
       <div class="empty-state" id="dailyPlanEmpty" style="display:none;">Add people first, then assign them to a project for a date range.</div>
       <div class="legend">
@@ -963,6 +975,11 @@
     </div>
   </div>
 
+  <!-- HELP TAB -->
+  <div class="tab-content" id="tab-help" style="display:none;">
+    <div id="helpContent"></div>
+  </div>
+
   <!-- ADMIN TAB -->
   <div class="tab-content" id="tab-admin" style="display:none;">
 
@@ -1134,6 +1151,18 @@
     <div class="field"><label>Name</label><input id="personName" placeholder="e.g. Priya Sharma"></div>
     <div class="field"><label>Title / role</label><input id="personTitle" placeholder="e.g. QA Engineer"></div>
     <div class="field"><label>Email (optional)</label><input id="personEmail" placeholder="e.g. priya@company.com"></div>
+    <div class="field">
+      <label>Dev POD</label>
+      <select id="personDevPod">
+        <option value="">— No POD —</option>
+        <option value="WinGuardians">WinGuardians</option>
+        <option value="Heisenbug">Heisenbug</option>
+        <option value="Hydra">Hydra</option>
+        <option value="Sentinels">Sentinels</option>
+        <option value="DareDevils">DareDevils</option>
+        <option value="Evil Inc.">Evil Inc.</option>
+      </select>
+    </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('personModal')">Cancel</button>
       <button class="action" id="personSaveBtn" onclick="savePerson()">Add person</button>
@@ -1324,6 +1353,26 @@
 </div>
 
 <div class="save-toast" id="saveToast">Saved</div>
+<div id="undoToast" style="
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(8px);
+  background:#1e293b; border:1px solid #334155; color:#e2e8f0;
+  padding:10px 18px; border-radius:12px; font-size:12.5px;
+  display:flex; align-items:center; gap:10px;
+  box-shadow:0 8px 32px rgba(15,23,42,0.3); font-weight:500;
+  opacity:0; transition:all 0.25s; z-index:99; pointer-events:all;
+  white-space:nowrap;
+">
+  <span style="color:#94a3b8; font-size:11px;">Action:</span>
+  <span id="undoToastLabel"></span>
+  <button onclick="undoLastAction()" style="
+    background:#7c3aed; border:none; color:white; padding:4px 12px;
+    border-radius:7px; font-size:12px; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:background 0.15s;
+  " onmouseover="this.style.background='#6d28d9'" onmouseout="this.style.background='#7c3aed'">
+    ↩ Undo
+  </button>
+  <span style="color:#475569; font-size:10px;">Ctrl+Z</span>
+</div>
 
 <script>
 let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {} };
@@ -1355,7 +1404,88 @@ const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 const _dbgEl = document.getElementById('loginDebug');
 if (_dbgEl) _dbgEl.textContent = sbClient ? '✓ Connected to Supabase' : '✗ Connection failed';
 
-// ====================== REALTIME SYNC ======================
+// ====================== UNDO SYSTEM ======================
+const UNDO_STACK = [];       // array of {snapshot, label}
+const UNDO_MAX = 20;
+let _undoToastTimer = null;
+
+function snapshotState(label) {
+  // Deep clone only the parts we care about for undo
+  const snap = JSON.parse(JSON.stringify({
+    projects:  state.projects,
+    testPlans: state.testPlans,
+    dailyPlan: state.dailyPlan,
+    leaves:    state.leaves,
+    people:    state.people,
+    allocations: state.allocations
+  }));
+  UNDO_STACK.push({ snap, label });
+  if (UNDO_STACK.length > UNDO_MAX) UNDO_STACK.shift();
+  // Show undo toast
+  showUndoToast(label);
+}
+
+async function undoLastAction() {
+  if (UNDO_STACK.length === 0) {
+    showToastMsg('Nothing to undo');
+    return;
+  }
+  const { snap, label } = UNDO_STACK.pop();
+  state.projects    = snap.projects;
+  state.testPlans   = snap.testPlans;
+  state.dailyPlan   = snap.dailyPlan;
+  state.leaves      = snap.leaves;
+  state.people      = snap.people;
+  state.allocations = snap.allocations;
+  await saveState();
+  markAllDirty();
+  renderAll();
+  showToastMsg(`↩ Undone: ${label}`);
+}
+
+function showUndoToast(label) {
+  clearTimeout(_undoToastTimer);
+  const toast = document.getElementById('undoToast');
+  if (!toast) return;
+  toast.querySelector('#undoToastLabel').textContent = label;
+  toast.style.transform = 'translateY(0)';
+  toast.style.opacity = '1';
+  _undoToastTimer = setTimeout(() => {
+    toast.style.transform = 'translateY(8px)';
+    toast.style.opacity = '0';
+  }, 4000);
+}
+
+function showToastMsg(msg) {
+  const toast = document.getElementById('saveToast');
+  if (!toast) return;
+  const prev = toast.textContent;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.textContent = prev; }, 2500);
+}
+
+// Keyboard: Ctrl+Z or Cmd+Z
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) {
+      e.preventDefault();
+      undoLastAction();
+    }
+  }
+});
+
+
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
+// Debounced save — coalesce rapid saves (e.g. typing effort values) into one
+const debouncedSave = debounce(saveState, 600);
+
+// Use debouncedSave in rapid-fire inputs (milestones, effort fields)
+// Heavy saves (add/delete) still use saveState() directly
 let realtimeChannel = null;
 let _realtimeDebounce = null;
 let _lastSavedAt = null; // timestamp of our own last save — to skip self-updates
@@ -1381,6 +1511,7 @@ function initRealtime() {
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
         await loadState();
+        markAllDirty();
         renderAll();
         showSyncToast();
       }, 800);
@@ -1530,9 +1661,14 @@ async function initApp(user) {
   await fetchUserRole(user.id);
   await loadState();
   if (currentUserRole === 'admin') await fetchAllUserRoles();
-  renderAll();
+
+  // Set initial active tab and mark all dirty
+  _activeTab = 'people';
+  markAllDirty();
+  renderAll(); // renders only active tab (people)
+
   applyAccessUI();
-  initRealtime(); // start listening for changes from other users
+  initRealtime();
 }
 
 function resetApp() {
@@ -1657,18 +1793,11 @@ async function applyBulkStatus() {
   if (selectedProjectIds.size === 0) return;
 
   const names = [];
-  state.projects.forEach(p => {
-    if (selectedProjectIds.has(p.id)) {
-      p.status = newStatus;
-      names.push(p.name);
-    }
-  });
+  state.projects.forEach(p => { if (selectedProjectIds.has(p.id)) names.push(p.name); });
+  snapshotState(`Bulk status → ${newStatus} (${names.length} items)`);
+  state.projects.forEach(p => { if (selectedProjectIds.has(p.id)) p.status = newStatus; });
 
-  await logActivity('Bulk status update', {
-    items: names, newStatus,
-    count: names.length
-  });
-
+  await logActivity('Bulk status update', { items: names, newStatus, count: names.length });
   clearBulkSelection();
   saveState();
   renderAll();
@@ -1874,8 +2003,8 @@ async function openActivityLog() {
 async function bulkDelete() {
   if (selectedProjectIds.size === 0) return;
   const names = state.projects.filter(p => selectedProjectIds.has(p.id)).map(p => p.name);
-  if (!confirm(`Delete ${selectedProjectIds.size} release item${selectedProjectIds.size > 1 ? 's' : ''}?\n\n${names.join('\n')}\n\nThis cannot be undone.`)) return;
-
+  if (!confirm(`Delete ${selectedProjectIds.size} release item${selectedProjectIds.size > 1 ? 's' : ''}?\n\n${names.join('\n')}\n\nThis cannot be undone immediately — use Ctrl+Z or the Undo button.`)) return;
+  snapshotState(`Bulk delete (${names.length} items)`);
   await logActivity('Bulk delete', { items: names, count: names.length });
 
   state.projects = state.projects.filter(p => !selectedProjectIds.has(p.id));
@@ -2330,19 +2459,446 @@ function renderAdminPanel() {
 
 
 // ---------- Tabs ----------
+// ====================== HELP & USER GUIDE ======================
+function renderHelp() {
+  const el = document.getElementById('helpContent');
+  if (!el) return;
+
+  const section = (icon, title, color, content) => `
+    <div class="panel" style="margin-bottom:18px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--border-soft);">
+        <div style="width:40px; height:40px; border-radius:12px; background:${color}22; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">${icon}</div>
+        <h2 style="font-family:'Inter Tight',sans-serif; font-size:17px; font-weight:700; margin:0; color:var(--text); letter-spacing:-0.01em;">${title}</h2>
+      </div>
+      ${content}
+    </div>`;
+
+  const step = (num, title, desc) => `
+    <div style="display:flex; gap:12px; margin-bottom:14px; align-items:flex-start;">
+      <div style="width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#a855f7); color:white; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">${num}</div>
+      <div>
+        <div style="font-weight:600; font-size:13.5px; color:var(--text); margin-bottom:3px;">${title}</div>
+        <div style="font-size:12.5px; color:var(--text-dim); line-height:1.6;">${desc}</div>
+      </div>
+    </div>`;
+
+  const tip = (text) => `
+    <div style="background:var(--accent-dim); border:1px solid var(--accent); border-radius:9px; padding:10px 14px; font-size:12.5px; color:var(--accent-text); margin:10px 0; display:flex; gap:8px; align-items:flex-start;">
+      <span style="font-size:14px; flex-shrink:0;">💡</span>
+      <span style="line-height:1.6;">${text}</span>
+    </div>`;
+
+  const warn = (text) => `
+    <div style="background:#fef9c3; border:1px solid #fde047; border-radius:9px; padding:10px 14px; font-size:12.5px; color:#a16207; margin:10px 0; display:flex; gap:8px; align-items:flex-start;">
+      <span style="font-size:14px; flex-shrink:0;">⚠️</span>
+      <span style="line-height:1.6;">${text}</span>
+    </div>`;
+
+  const kbd = (key) => `<kbd style="background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:2px 7px; font-family:var(--mono); font-size:11px; font-weight:600;">${key}</kbd>`;
+
+  const badge = (text, bg, fg) => `<span style="background:${bg}; color:${fg}; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${text}</span>`;
+
+  const flow = (steps) => `
+    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:12px 0; padding:12px 14px; background:var(--panel-2); border-radius:10px;">
+      ${steps.map((s, i) => `
+        <span style="background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:5px 12px; font-size:12px; font-weight:600; color:var(--text);">${s}</span>
+        ${i < steps.length-1 ? '<span style="color:var(--text-faint); font-size:16px;">→</span>' : ''}
+      `).join('')}
+    </div>`;
+
+  el.innerHTML = `
+    <!-- Hero -->
+    <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed); border-radius:20px; padding:32px 36px; margin-bottom:24px; color:white; position:relative; overflow:hidden;">
+      <div style="position:absolute; right:24px; top:50%; transform:translateY(-50%); font-size:80px; opacity:0.15;">🔍</div>
+      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; opacity:0.8; margin-bottom:8px; font-weight:600;">TeamLens — User Guide</div>
+      <h1 style="font-family:'Inter Tight',sans-serif; font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.02em;">One lens. Full picture.</h1>
+      <p style="font-size:13.5px; opacity:0.85; margin:0; max-width:520px; line-height:1.6;">TeamLens is a QA resource planning tool. Manage your team, track releases, plan daily work, and share reports — all in one place.</p>
+    </div>
+
+    <!-- Quick start -->
+    ${section('🚀', 'Quick Start — 5 Steps to Get Going', '#7c3aed', `
+      ${flow(['Add People', 'Add Release Items', 'Build Test Plan', 'Assign Daily Plan', 'Share Report'])}
+      ${step(1, 'Add your team (People tab)', 'Go to <b>People</b> tab → click <b>"+ Add person"</b> → enter name, title, email, and assign their <b>Dev POD</b>. Repeat for all team members.')}
+      ${step(2, 'Add release items (Release tab)', 'Go to <b>Release</b> tab → click <b>"+ Add release item"</b> → fill Release item name, JIRA URL, Release/GA date, Dev POD, and Owner. Just 4 fields!')}
+      ${step(3, 'Build test plan (Test Plan tab)', 'Go to <b>Test Plan</b> tab → select a release item → add environments using <b>"+ Add environment"</b> → set coverage %, cases, effort, assignee, and status. Dev to QA date, Total efforts, and Status will auto-sync to Release tab.')}
+      ${step(4, 'Mark leaves (Leave Calendar tab)', 'Go to <b>Leave Calendar</b> → click any working day to mark <b>PL</b> (amber) or <b>UPL</b> (red). Click again to cycle. Leave summary table updates automatically.')}
+      ${step(5, 'Plan daily work (Daily Plan tab)', 'Go to <b>Daily Plan</b> → select a <b>Dev POD filter</b> to focus on one team → click <b>"+ Assign"</b> → select person, project, and date range.')}
+      ${tip('Start fresh? Go in order: People → Release → Test Plan → Leave → Daily Plan. Summary and Release Health update automatically.')}
+    `)}
+
+    <!-- People -->
+    ${section('👥', 'People Tab', '#7c3aed', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">Manage your QA team roster. Everyone added here will appear in Test Plan assignees, Daily Plan, Leave Calendar, and Allocation.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Fields when adding a person</div>
+          <div style="font-size:12px; color:var(--text-dim); line-height:2;">
+            📛 <b>Name</b> — Full name<br>
+            💼 <b>Title</b> — e.g. "QA Engineer"<br>
+            📧 <b>Email</b> — optional<br>
+            🏷️ <b>Dev POD</b> — assign to a POD for filtering
+          </div>
+        </div>
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Available Dev PODs</div>
+          <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:4px;">
+            <span style="background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">WinGuardians</span>
+            <span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">Heisenbug</span>
+            <span style="background:#fce7f3; color:#9d174d; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">Hydra</span>
+            <span style="background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">Sentinels</span>
+            <span style="background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">DareDevils</span>
+            <span style="background:#f3e8ff; color:#7e22ce; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">Evil Inc.</span>
+          </div>
+        </div>
+      </div>
+      ${tip('Dev POD is important — it enables POD-wise filtering in Daily Plan, Release tab, Test Plan, and Summary tabs.')}
+    `)}
+
+    <!-- Release -->
+    ${section('📁', 'Release Tab', '#0ea5e9', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">Track all release items with dates, JIRA links, Dev POD, and QA status. Most data auto-fills from Test Plan.</p>
+      <div style="background:var(--panel-2); border-radius:10px; padding:14px; margin-bottom:14px;">
+        <div style="font-weight:700; font-size:12.5px; margin-bottom:10px; color:var(--text);">Column guide</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; color:var(--text-dim); line-height:1.8;">
+          <div>📅 <b>Release/GA date</b> — Target release date</div>
+          <div>📋 <b>Release Items</b> — Feature/item name</div>
+          <div>🎫 <b>JIRA</b> — Auto-extracts ticket ID</div>
+          <div>🏷️ <b>Dev POD</b> — Which POD owns this</div>
+          <div>📥 <b>Dev to QA date</b> — Auto from Test Plan</div>
+          <div>⏱️ <b>Total QA efforts</b> — Auto from Test Plan</div>
+          <div>🚀 <b>QA Go ahead date</b> — From Test Plan milestone</div>
+          <div>🏁 <b>QA completion date</b> — From Test Plan milestone</div>
+          <div>👤 <b>Owner</b> — Person responsible</div>
+          <div>🔵 <b>Status</b> — Auto-syncs from Test Plan</div>
+        </div>
+      </div>
+      <div style="font-weight:700; font-size:12.5px; margin-bottom:10px; color:var(--text);">Filters — click column headers to filter</div>
+      <div style="font-size:12.5px; color:var(--text-dim); line-height:1.8; margin-bottom:12px;">
+        Each column with a dropdown lets you filter inline — <b>Release/GA date</b>, <b>Dev POD</b>, and <b>Status</b> all have dropdowns in the column header. Multiple filters work together.
+      </div>
+      <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Bulk actions</div>
+      <div style="font-size:12.5px; color:var(--text-dim); line-height:1.8;">
+        ☑️ Check multiple rows → blue action bar appears at top right<br>
+        → <b>Set status</b> dropdown → <b>Apply</b> — updates all selected at once<br>
+        → <b>🗑 Delete</b> — removes all selected (can Undo with Ctrl+Z)
+      </div>
+      ${tip('Notes button 📝 on each row — add internal notes/comments that are saved to Supabase and visible to all team members.')}
+    `)}
+
+    <!-- Test Plan -->
+    ${section('✅', 'Test Plan Tab', '#10b981', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">Build a detailed test plan per release item with environment matrix, effort estimation, and milestones.</p>
+      ${flow(['Select Release filter', 'Select Dev POD filter', 'Pick Release Item', 'Add Environments', 'Set Milestones'])}
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Fixed rows (always present)</div>
+          <div style="font-size:12px; color:var(--text-dim); line-height:2;">
+            📋 <b>Test prep</b> — Scenarios, test cases, review<br>
+            🔧 <b>Test env & Data prep</b> — Environment setup<br>
+            🔄 <b>Buffer</b> — Extra time padding<br>
+            📊 <b>Total</b> — Sum of all efforts
+          </div>
+        </div>
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Environment row fields</div>
+          <div style="font-size:12px; color:var(--text-dim); line-height:2;">
+            🌍 <b>Environment name</b><br>
+            📊 <b>Coverage %</b><br>
+            🔢 <b>Total cases</b><br>
+            ⏱️ <b>Effort (PDs)</b><br>
+            👤 <b>Assigned to</b><br>
+            🔵 <b>Status</b> — Not yet started / In progress / Done
+          </div>
+        </div>
+      </div>
+      <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Status colors</div>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        ${badge('Not yet started','#f1f5f9','#64748b')}
+        ${badge('In progress','#fef3c7','#b45309')}
+        ${badge('Done','#dcfce7','#15803d')}
+      </div>
+      <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Auto-sync to Release tab</div>
+      <div style="font-size:12.5px; color:var(--text-dim); line-height:1.8;">
+        When you update a Test Plan, these fields automatically update in Release tab:<br>
+        • <b>Dev to QA date</b> ← Build pickup milestone<br>
+        • <b>Total QA efforts</b> ← Total PDs with buffer<br>
+        • <b>Status</b> ← All Done = Completed, Any In progress = In progress
+      </div>
+      ${tip('Share report button → 4 options: This release item, This release date, This Dev POD, or All combined.')}
+    `)}
+
+    <!-- Leave Calendar -->
+    ${section('🏖️', 'Leave Calendar Tab', '#f59e0b', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">Mark planned and unplanned leaves for each team member. Weekends and public holidays are automatically blocked.</p>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;">
+        <div style="background:#f9fafb; border:2px solid #e2e8f0; border-radius:10px; padding:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:6px;">1st click</div>
+          <div style="background:#fef3c7; color:#b45309; padding:3px 12px; border-radius:20px; font-size:12px; font-weight:700; display:inline-block;">PL — Planned</div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:6px;">Amber color</div>
+        </div>
+        <div style="background:#f9fafb; border:2px solid #e2e8f0; border-radius:10px; padding:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:6px;">2nd click</div>
+          <div style="background:#fee2e2; color:#dc2626; padding:3px 12px; border-radius:20px; font-size:12px; font-weight:700; display:inline-block;">UPL — Unplanned</div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:6px;">Red color</div>
+        </div>
+        <div style="background:#f9fafb; border:2px solid #e2e8f0; border-radius:10px; padding:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:6px;">3rd click</div>
+          <div style="background:#f1f5f9; color:#64748b; padding:3px 12px; border-radius:20px; font-size:12px; font-weight:700; display:inline-block;">Clear</div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:6px;">Empty again</div>
+        </div>
+      </div>
+      <div style="font-size:12.5px; color:var(--text-dim); line-height:1.8;">
+        📅 Use <b>‹ Prev</b> / <b>Next ›</b> to navigate months<br>
+        📋 Leave summary table below shows all dates with PL/UPL counts per person<br>
+        H = Public holiday (set in <b>Holidays</b> tab)<br>
+        · = Weekend (Saturday/Sunday)
+      </div>
+    `)}
+
+    <!-- Daily Plan -->
+    ${section('📅', 'Daily Plan Tab', '#6366f1', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">Assign team members to projects day by day. Use Dev POD filter to focus on one team at a time.</p>
+      ${step(1, 'Filter by Dev POD', 'Use the POD pills at the top (WinGuardians, Heisenbug, etc.) to show only that team\'s members. Select "All" to see everyone.')}
+      ${step(2, 'Click "+ Assign"', 'Select person, release item, start date and end date. The person dropdown shows 🟢 free people at top, 🔴 busy people below — smart suggestion!')}
+      ${step(3, 'Click a cell to remove', 'Click any colored project cell in the grid to remove that assignment. An undo toast will appear.')}
+      <div style="background:var(--panel-2); border-radius:10px; padding:14px; margin:12px 0;">
+        <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Resource Availability panel</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+          <span style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:600; color:#15803d;">🟢 Available now</span>
+          <span style="background:#fefce8; border:1.5px solid #fde047; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:600; color:#a16207;">🟡 Free in 1-3 days</span>
+          <span style="background:#fff7ed; border:1.5px solid #fdba74; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:600; color:#c2410c;">🟠 Free in 4+ days</span>
+          <span style="background:#fef2f2; border:1.5px solid #fca5a5; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:600; color:#dc2626;">🔴 Busy 180+ days</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-dim);">Change the "Check from" date to see future availability. Considers both leave and daily plan assignments.</div>
+      </div>
+      ${tip('If you have 10+ people, use Dev POD filter — shows only 4-5 people at a time, much easier to manage!')}
+    `)}
+
+    <!-- Release Summary -->
+    ${section('📊', 'Release Summary Tab', '#22d3ee', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">Overview of all releases with health tracking, Gantt timeline, and shareable reports.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px;">
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-size:18px; margin-bottom:6px;">🏥</div>
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:6px; color:var(--text);">Release Health</div>
+          <div style="font-size:11.5px; color:var(--text-dim); line-height:1.7;">Auto-calculates risk based on dates vs today. Shows At risk / Needs attention / On track per release item.</div>
+        </div>
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-size:18px; margin-bottom:6px;">📅</div>
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:6px; color:var(--text);">Gantt Timeline</div>
+          <div style="font-size:11.5px; color:var(--text-dim); line-height:1.7;">Visual timeline of all releases. Red dashed line = today. 📅 = Release date, 🚀 = Go ahead date.</div>
+        </div>
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-size:18px; margin-bottom:6px;">📄</div>
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:6px; color:var(--text);">Share Report</div>
+          <div style="font-size:11.5px; color:var(--text-dim); line-height:1.7;">Generates a shareable link. No login needed to view. Apply filters first to share filtered view.</div>
+        </div>
+      </div>
+      <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Release Health risk checks</div>
+      <div style="font-size:12.5px; color:var(--text-dim); line-height:2;">
+        🔴 Dev to QA build date has passed today (not completed)<br>
+        🔴 QA completion date after release date<br>
+        🔴 Go ahead date has passed today (not completed)<br>
+        🟡 Less than 3 days buffer between QA done and release<br>
+        🟡 Release in 7 days but QA completion not set
+      </div>
+      ${tip('"Working on it" column shows who is actually assigned in Daily Plan (last 30 + next 30 days) — not allocation %.')}
+    `)}
+
+    <!-- Keyboard Shortcuts -->
+    ${section('⌨️', 'Keyboard Shortcuts', '#f43f5e', `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); margin-bottom:10px;">Navigation</div>
+          <div style="font-size:12.5px; color:var(--text-dim); line-height:2.2;">
+            ${kbd('Alt+P')} People tab<br>
+            ${kbd('Alt+R')} Release tab<br>
+            ${kbd('Alt+T')} Test Plan tab<br>
+            ${kbd('Alt+D')} Daily Plan tab<br>
+            ${kbd('Alt+S')} Summary tab<br>
+            ${kbd('Alt+L')} Leave Calendar<br>
+            ${kbd('Alt+H')} Holidays
+          </div>
+        </div>
+        <div style="background:var(--panel-2); border-radius:10px; padding:14px;">
+          <div style="font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); margin-bottom:10px;">Actions</div>
+          <div style="font-size:12.5px; color:var(--text-dim); line-height:2.2;">
+            ${kbd('N')} New item (current tab)<br>
+            ${kbd('Esc')} Close modal<br>
+            ${kbd('Ctrl+Z')} Undo last action<br>
+            ${kbd('Shift+D')} Toggle dark mode<br>
+            ${kbd('?')} Show shortcuts help
+          </div>
+        </div>
+      </div>
+    `)}
+
+    <!-- Undo System -->
+    ${section('↩️', 'Undo System', '#8b5cf6', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">TeamLens remembers your last 20 actions. Accidentally deleted something? Undo it!</p>
+      <div style="background:var(--panel-2); border-radius:10px; padding:14px; margin-bottom:14px;">
+        <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">How to undo</div>
+        <div style="font-size:12.5px; color:var(--text-dim); line-height:2;">
+          1. After any action, a toast appears at the bottom: <b>Action: [name]  [↩ Undo]  Ctrl+Z</b><br>
+          2. Click the <b>↩ Undo</b> button in the toast, OR<br>
+          3. Press ${kbd('Ctrl+Z')} (Windows/Linux) or ${kbd('Cmd+Z')} (Mac)<br>
+          4. Data is restored and saved to Supabase automatically
+        </div>
+      </div>
+      <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">What can be undone</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+        ${['Release item add/edit/delete','Bulk status update','Bulk delete','Test row add/edit/delete','Daily plan assign','Daily plan clear'].map(t => `
+          <div style="background:var(--panel-2); border-radius:7px; padding:8px 10px; font-size:11.5px; color:var(--text-dim); border:1px solid var(--border-soft);">✓ ${t}</div>
+        `).join('')}
+      </div>
+      ${warn('Undo stack resets when you refresh the page. Use Ctrl+Z immediately after a mistake!')}
+    `)}
+
+    <!-- Activity Log -->
+    ${section('📋', 'Activity Log', '#0ea5e9', `
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px; line-height:1.6;">Full audit trail of all actions across all users. Open from the sidebar → 📋 Activity log.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+        <div>
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">What gets logged</div>
+          <div style="font-size:12px; color:var(--text-dim); line-height:2;">
+            ➕ Release item added<br>
+            ✏️ Release item edited<br>
+            🗑️ Release item / row deleted<br>
+            🔄 Bulk status update<br>
+            📅 Daily plan assigned/cleared<br>
+            🏖️ Leave marked (PL/UPL)<br>
+            📝 Note added<br>
+            👤 Person added/edited/deleted
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Each log entry shows</div>
+          <div style="font-size:12px; color:var(--text-dim); line-height:2;">
+            🎨 Colored action badge<br>
+            📄 Action details<br>
+            👤 Who did it (email)<br>
+            🕐 When (date & time)<br>
+            <br>
+            Visible to all logged-in users
+          </div>
+        </div>
+      </div>
+      ${tip('Activity Log loads from Supabase — all users see each other\'s activity in real time.')}
+    `)}
+
+    <!-- Dark mode & Settings -->
+    ${section('🌙', 'Dark Mode & Settings', '#334155', `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Dark Mode</div>
+          <div style="font-size:12.5px; color:var(--text-dim); line-height:1.8;">
+            Toggle switch in the sidebar footer → GitHub-style dark theme.<br>
+            Preference saved — stays dark after refresh.<br>
+            Shortcut: ${kbd('Shift+D')}
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:700; font-size:12.5px; margin-bottom:8px; color:var(--text);">Real-time Sync 🟢</div>
+          <div style="font-size:12.5px; color:var(--text-dim); line-height:1.8;">
+            Green dot in sidebar = live sync active.<br>
+            When another user saves → your screen auto-updates within 1 second.<br>
+            "🔄 Synced from another user" toast appears.
+          </div>
+        </div>
+      </div>
+    `)}
+
+    <!-- FAQ -->
+    ${section('❓', 'Common Questions', '#64748b', `
+      ${[
+        ['Why is Release tab status not updating from Test Plan?', 'Status only auto-syncs when Test Plan has environment rows added. If no rows exist, status stays as manually set (allows bulk status updates to work correctly).'],
+        ['Dev to QA date / Total efforts not showing in Release tab?', 'Set "Build pickup" milestone in Test Plan → Milestones section. This auto-populates Dev to QA date. Set efforts in environment rows — total auto-calculates.'],
+        ['"Working on it" column is empty in Summary?', 'This shows people from Daily Plan (±30 days window). Assign people in Daily Plan tab first.'],
+        ['Release Health shows At risk but everything looks fine?', 'Check if dates have passed today. Health checks compare against today\'s date. If a milestone date has passed and status is not "Completed", it shows At risk.'],
+        ['Cannot save / data not persisting?', 'Check the "lastSaved" text in the sidebar footer. If it shows "save failed", contact admin to check Supabase RLS policies.'],
+        ['How to share a report without login?', 'In Test Plan or Summary tab → "Share report" → generates a public link. Anyone with the link can view — no login required.'],
+      ].map(([q,a]) => `
+        <div style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border-soft);">
+          <div style="font-weight:600; font-size:13px; color:var(--text); margin-bottom:5px; display:flex; gap:8px; align-items:flex-start;">
+            <span style="color:#7c3aed; flex-shrink:0;">Q</span>${q}
+          </div>
+          <div style="font-size:12.5px; color:var(--text-dim); line-height:1.7; padding-left:18px;">
+            <span style="color:#10b981; font-weight:700; margin-right:6px;">A</span>${a}
+          </div>
+        </div>
+      `).join('')}
+    `)}
+
+    <!-- Footer -->
+    <div style="text-align:center; padding:24px; color:var(--text-faint); font-size:12px;">
+      TeamLens v1.0 · Built for QA teams · <span style="color:#7c3aed; font-weight:600;">One lens. Full picture.</span>
+    </div>
+  `;
+}
+
+
+// Track which tabs need re-render
+const _dirtyTabs = new Set();
+let _activeTab = 'people';
+let _renderScheduled = false;
+
+function markDirty(...tabs) {
+  tabs.forEach(t => _dirtyTabs.add(t));
+}
+
+function markAllDirty() {
+  ['people','projects','allocation','capacity','summary','leave','dailyplan','holidays','testplan','admin','help'].forEach(t => _dirtyTabs.add(t));
+}
+
+// Map tab name → render function
+function renderTab(tab) {
+  switch(tab) {
+    case 'people':     renderPeople(); break;
+    case 'projects':   renderProjects(); break;
+    case 'allocation': renderAllocation(); break;
+    case 'capacity':   renderCapacity(); break;
+    case 'summary':    renderSummary(); renderReleaseHealth(); renderGantt(); break;
+    case 'leave':      renderLeaveCalendar(); break;
+    case 'dailyplan':  renderDailyPlan(); break;
+    case 'holidays':   renderHolidays(); break;
+    case 'testplan':   renderTestPlan(); break;
+    case 'help':       renderHelp(); break;
+    case 'admin':      if (currentUserRole === 'admin') renderAdminPanel(); break;
+  }
+}
+
+// Called after any data change — renders active tab immediately,
+// marks others dirty so they re-render when user switches to them
+function renderAll() {
+  syncTestPlanToProjects();
+  markAllDirty();
+  // Always render active tab immediately
+  _dirtyTabs.delete(_activeTab);
+  renderTab(_activeTab);
+  // For summary, always keep health + gantt fresh
+  if (_activeTab !== 'summary') {
+    _dirtyTabs.add('summary');
+  }
+}
+
+// Optimized tab switcher — only render if dirty
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    _activeTab = tab;
+
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-    document.getElementById('tab-' + btn.dataset.tab).style.display = 'block';
+    document.getElementById('tab-' + tab).style.display = 'block';
     document.getElementById('pageTitle').textContent = btn.dataset.title || btn.textContent.trim();
     document.getElementById('pageDesc').textContent = btn.dataset.desc || '';
-    if (btn.dataset.tab === 'leave') renderLeaveCalendar();
-    if (btn.dataset.tab === 'dailyplan') renderDailyPlan();
-    if (btn.dataset.tab === 'holidays') renderHolidays();
-    if (btn.dataset.tab === 'testplan') renderTestPlan();
-    if (btn.dataset.tab === 'admin') { fetchAllUserRoles().then(renderAdminPanel); }
+
+    // Render if dirty or first visit
+    if (_dirtyTabs.has(tab)) {
+      _dirtyTabs.delete(tab);
+      renderTab(tab);
+    }
   });
 });
 
@@ -2369,12 +2925,14 @@ function openPersonModal(id) {
     document.getElementById('personName').value = p.name;
     document.getElementById('personTitle').value = p.title || '';
     document.getElementById('personEmail').value = p.email || '';
+    document.getElementById('personDevPod').value = p.devPod || '';
   } else {
     titleEl.textContent = 'Add person';
     btnEl.textContent = 'Add person';
     document.getElementById('personName').value = '';
     document.getElementById('personTitle').value = '';
     document.getElementById('personEmail').value = '';
+    document.getElementById('personDevPod').value = '';
   }
   document.getElementById('personModal').classList.add('show');
 }
@@ -2383,14 +2941,15 @@ function savePerson() {
   const name = document.getElementById('personName').value.trim();
   const title = document.getElementById('personTitle').value.trim();
   const email = document.getElementById('personEmail').value.trim();
+  const devPod = document.getElementById('personDevPod').value;
   if (!name) return;
   if (editingPersonId) {
     const p = state.people.find(x => x.id === editingPersonId);
-    if (p) { p.name = name; p.title = title; p.email = email; }
-    logActivity('Person edited', { name });
+    if (p) { p.name = name; p.title = title; p.email = email; p.devPod = devPod; }
+    logActivity('Person edited', { name, devPod });
   } else {
-    state.people.push({ id: uid(), name, title, email });
-    logActivity('Person added', { name });
+    state.people.push({ id: uid(), name, title, email, devPod });
+    logActivity('Person added', { name, devPod });
   }
   editingPersonId = null;
   closeModal('personModal');
@@ -2415,17 +2974,30 @@ function renderPeople() {
   const empty = document.getElementById('peopleEmpty');
   if (state.people.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  tbody.innerHTML = state.people.map(p => `
+
+  const POD_COLORS = {
+    'WinGuardians': ['#dbeafe','#1d4ed8'], 'Heisenbug': ['#dcfce7','#15803d'],
+    'Hydra': ['#fce7f3','#9d174d'], 'Sentinels': ['#fef3c7','#b45309'],
+    'DareDevils': ['#fee2e2','#b91c1c'], 'Evil Inc.': ['#f3e8ff','#7e22ce'],
+  };
+
+  tbody.innerHTML = state.people.map(p => {
+    const podC = POD_COLORS[p.devPod] || null;
+    const podCell = podC
+      ? `<span style="background:${podC[0]}; color:${podC[1]}; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${escapeHtml(p.devPod)}</span>`
+      : '<span style="color:var(--text-faint);">—</span>';
+    return `
     <tr>
-      <td>${escapeHtml(p.name)}</td>
+      <td style="font-weight:500;">${escapeHtml(p.name)}</td>
       <td style="color:var(--text-dim)">${escapeHtml(p.title || '—')}</td>
       <td style="color:var(--text-dim)">${escapeHtml(p.email || '—')}</td>
+      <td>${podCell}</td>
       <td style="text-align:right; white-space:nowrap;">
-        <button class="icon-btn edit" onclick="openPersonModal('${p.id}')" aria-label="Edit person">✎</button>
-        <button class="icon-btn" onclick="deletePerson('${p.id}')" aria-label="Remove person">✕</button>
+        <button class="icon-btn edit" onclick="openPersonModal('${p.id}')">✎</button>
+        <button class="icon-btn" onclick="deletePerson('${p.id}')">✕</button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ====================== PROJECTS ======================
@@ -2550,6 +3122,7 @@ function saveProject() {
   if (!name) return;
 
   if (editingProjectId) {
+    snapshotState(`Edit release item: ${name}`);
     const proj = state.projects.find(p => p.id === editingProjectId);
     if (proj) {
       const oldName = proj.name;
@@ -2562,6 +3135,7 @@ function saveProject() {
     }
     logActivity('Release item edited', { name, devPod, releaseDate });
   } else {
+    snapshotState(`Add release item: ${name}`);
     state.projects.push({
       id: uid(), name, jiraUrl, releaseDate, devPod, goAheadBy,
       buildDate: '', effort: '', status: 'Not started'
@@ -2575,8 +3149,9 @@ function saveProject() {
 }
 
 function deleteProject(id) {
-  if (!confirm('Remove this project? Related allocations, daily plan entries, and its test plan will also be removed.')) return;
   const proj = state.projects.find(p => p.id === id);
+  if (!confirm(`Remove "${proj?.name}"? Related allocations, daily plan entries, and test plan will also be removed.`)) return;
+  snapshotState(`Delete release item: ${proj?.name}`);
   state.projects = state.projects.filter(p => p.id !== id);
   if (proj) {
     state.allocations = state.allocations.filter(a => a.project !== proj.name);
@@ -2660,6 +3235,7 @@ let selectedTestPlanDevPod = null;
 let selectedSummaryDevPod = null;
 let selectedReleaseStatus = null;
 let selectedSummaryStatus = null;
+let selectedDailyPlanPod = null;
 let editingTestRowId = null;
 
 function getTestPlanForProject(projectId) {
@@ -2802,9 +3378,11 @@ function saveTestRow() {
 
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   if (editingTestRowId) {
+    snapshotState(`Edit test row: ${name}`);
     const row = plan.rows.find(r => r.id === editingTestRowId);
     if (row) { row.name = name; row.baseCases = baseCases; row.coverage = coverage; row.cases = cases; row.effort = effort; row.assigneeId = assigneeId; row.status = status; }
   } else {
+    snapshotState(`Add test row: ${name}`);
     plan.rows.push({ id: uid(), name, baseCases, coverage, cases, effort, assigneeId, status });
   }
   editingTestRowId = null;
@@ -2815,6 +3393,8 @@ function saveTestRow() {
 
 function deleteTestRow(id) {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
+  const row = plan.rows.find(r => r.id === id);
+  snapshotState(`Delete test row: ${row?.name || id}`);
   plan.rows = plan.rows.filter(r => r.id !== id);
   saveState();
   renderTestPlan();
@@ -2839,7 +3419,7 @@ function saveBufferValues() {
   plan.testEnvEffort = parseFloat(document.getElementById('testEnvEffort').value) || 0;
   plan.testEnvStatus = document.getElementById('testEnvStatus').value;
   plan.buffer.effort = parseFloat(document.getElementById('testBufferEffort').value) || 0;
-  saveState();
+  debouncedSave(); // debounced — rapid typing won't spam Supabase
   renderTestPlan();
 }
 
@@ -2850,7 +3430,7 @@ function saveMilestones() {
   plan.milestones.execNoBuffer = document.getElementById('msExecNoBuffer').value;
   plan.milestones.execWithBuffer = document.getElementById('msExecWithBuffer').value;
   plan.milestones.mergedBuildGoAhead = document.getElementById('msMergedBuildGoAhead').value;
-  saveState();
+  debouncedSave(); // debounced — date picker changes won't spam Supabase
   renderTestPlan();
 }
 
@@ -4511,6 +5091,11 @@ function renderSummary() {
   }).join('');
 }
 
+function setDailyPlanPodFilter(pod) {
+  selectedDailyPlanPod = pod;
+  renderDailyPlan();
+}
+
 function setSummaryReleaseDateFilter(date) {
   selectedSummaryReleaseDate = date || null;
   renderSummary();
@@ -4759,18 +5344,15 @@ function saveDailyPlan() {
   if (!personId || !project || !start || !end) return;
   const dates = dateRange(start, end);
   if (dates.length === 0) return;
+  const person = state.people.find(p => p.id === personId);
+  snapshotState(`Assign ${person?.name || ''} → ${project}`);
   dates.forEach(date => {
     const alreadyExists = state.dailyPlan.some(d => d.personId === personId && d.project === project && d.date === date);
-    if (!alreadyExists) {
-      state.dailyPlan.push({ id: uid(), personId, project, date });
-    }
+    if (!alreadyExists) state.dailyPlan.push({ id: uid(), personId, project, date });
   });
-  const person = state.people.find(p => p.id === personId);
   logActivity('Daily plan assigned', {
-    name: person?.name || personId,
-    project,
-    from: formatDateDisplay(start),
-    to: formatDateDisplay(end)
+    name: person?.name || personId, project,
+    from: formatDateDisplay(start), to: formatDateDisplay(end)
   });
   closeModal('dailyPlanModal');
   saveState();
@@ -4780,6 +5362,7 @@ function saveDailyPlan() {
 function clearDailyPlanCell(personId, date, entryId) {
   const entry = state.dailyPlan.find(d => d.id === entryId || (d.personId === personId && d.date === date));
   const person = state.people.find(p => p.id === personId);
+  snapshotState(`Clear daily plan: ${person?.name || ''} on ${formatDateDisplay(date)}`);
   if (entryId) {
     state.dailyPlan = state.dailyPlan.filter(d => d.id !== entryId);
   } else {
@@ -4941,6 +5524,45 @@ function renderDailyPlan() {
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   monthLabel.textContent = monthNames[dayMonth] + ' ' + dayYear + ' — working days only (Sat/Sun and holidays excluded)';
 
+  const countEl = document.getElementById('dailyPlanPeopleCount');
+  const podPillsEl = document.getElementById('dailyPlanPodPills');
+
+  // Dev POD pills — only show PODs that exist in people
+  const POD_COLORS = {
+    'WinGuardians': ['#dbeafe','#1d4ed8'], 'Heisenbug': ['#dcfce7','#15803d'],
+    'Hydra': ['#fce7f3','#9d174d'], 'Sentinels': ['#fef3c7','#b45309'],
+    'DareDevils': ['#fee2e2','#b91c1c'], 'Evil Inc.': ['#f3e8ff','#7e22ce'],
+  };
+  const ALL_PODS = ['WinGuardians','Heisenbug','Hydra','Sentinels','DareDevils','Evil Inc.'];
+  const usedPods = [...new Set(state.people.map(p => p.devPod).filter(Boolean))];
+
+  if (podPillsEl) {
+    if (usedPods.length === 0) {
+      podPillsEl.innerHTML = '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">Set POD in People tab</span>';
+    } else {
+      podPillsEl.innerHTML =
+        `<button onclick="setDailyPlanPodFilter(null)" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedDailyPlanPod === null ? 'background:#0f172a; color:white; border-color:#0f172a;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
+        ALL_PODS.filter(pod => usedPods.includes(pod)).map(pod => {
+          const [bg, fg] = POD_COLORS[pod] || ['#f1f5f9','#475569'];
+          const isActive = selectedDailyPlanPod === pod;
+          return `<button onclick="setDailyPlanPodFilter('${pod}')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${isActive ? `background:${fg}; color:white; border-color:${fg};` : `background:${bg}; color:${fg}; border-color:${bg};`}">${pod}</button>`;
+        }).join('');
+    }
+  }
+
+  // Filter people by selected POD
+  const filteredPeople = selectedDailyPlanPod
+    ? state.people.filter(p => p.devPod === selectedDailyPlanPod)
+    : state.people;
+
+  if (countEl) {
+    const n = filteredPeople.length;
+    const total = state.people.length;
+    countEl.textContent = selectedDailyPlanPod
+      ? `${n} of ${total} people (${selectedDailyPlanPod})${n > 5 ? ' · ← scroll right →' : ''}`
+      : `${total} people${total > 5 ? ' · ← scroll right to see all →' : ''}`;
+  }
+
   const daysInMonth = new Date(dayYear, dayMonth + 1, 0).getDate();
 
   if (state.people.length === 0) {
@@ -4949,11 +5571,17 @@ function renderDailyPlan() {
     statsEl.innerHTML = '';
     return;
   }
+  if (filteredPeople.length === 0) {
+    grid.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-faint); font-style:italic;">No people in ${selectedDailyPlanPod} POD. Add people with this POD in the People tab.</div>`;
+    empty.style.display = 'none';
+    return;
+  }
   empty.style.display = 'none';
 
-  // ---- Stats: Total working CD, Total available PD, Leave days, Available PD after leave ----
+  const totalPeople = filteredPeople.length;
+
+  // Stats use all people (not filtered) for accuracy
   const totalWorkingCD = getWorkingDaysInMonth(dayYear, dayMonth);
-  const totalPeople = state.people.length;
   const totalAvailablePD = totalWorkingCD * totalPeople;
 
   const holidaysThisMonth = state.holidays.filter(h => {
@@ -4989,15 +5617,30 @@ function renderDailyPlan() {
     <div class="stat-card"><div class="label">Available PDs after leave</div><div class="value ${freePDRemaining < 0 ? 'red' : 'green'}">${availablePDAfterLeave}</div></div>
   `;
 
-  // Vertical layout: each row is one day of the month, each person gets
-  // their own column, with their full project name(s) shown for that day.
-  // This avoids the cramped horizontal scroll of one-column-per-day.
-  const colWidth = Math.max(150, Math.floor(700 / Math.max(totalPeople, 1)));
-  grid.style.gridTemplateColumns = `90px 50px repeat(${totalPeople}, minmax(${colWidth}px, 1fr))`;
+  // Fixed column widths — scroll horizontally if many people
+  const COL_DATE = 80;
+  const COL_DAY  = 44;
+  const COL_PERSON = 160; // fixed per person — no squishing
+  const totalWidth = COL_DATE + COL_DAY + (totalPeople * COL_PERSON);
+  grid.style.gridTemplateColumns = `${COL_DATE}px ${COL_DAY}px repeat(${totalPeople}, ${COL_PERSON}px)`;
+  grid.style.minWidth = totalWidth + 'px';
 
-  let html = `<div class="cal-cell name cal-header">Date</div><div class="cal-cell cal-header">Day</div>`;
-  state.people.forEach(p => {
-    html += `<div class="cal-cell cal-header" style="text-align:left; padding-left:10px;">${escapeHtml(p.name)}</div>`;
+  // Header row — person names with avatar initials
+  let html = `<div class="cal-cell name cal-header" style="position:sticky; left:0; z-index:10;">Date</div>`;
+  html += `<div class="cal-cell cal-header" style="position:sticky; left:${COL_DATE}px; z-index:10;">Day</div>`;
+  filteredPeople.forEach(p => {
+    const initials = p.name.trim().split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    const podC = POD_COLORS[p.devPod];
+    const podDot = podC ? `<div style="width:8px; height:8px; border-radius:50%; background:${podC[1]}; flex-shrink:0;"></div>` : '';
+    html += `<div class="cal-cell cal-header" style="text-align:left; padding:6px 8px;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div style="width:24px; height:24px; border-radius:6px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:white; flex-shrink:0;">${initials}</div>
+        <div style="min-width:0;">
+          <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:11.5px; font-weight:600;">${escapeHtml(p.name)}</div>
+          ${p.devPod && !selectedDailyPlanPod ? `<div style="font-size:10px; color:${podC?.[1] || '#64748b'}; font-weight:500;">${escapeHtml(p.devPod)}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
   });
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -5007,17 +5650,16 @@ function renderDailyPlan() {
     const holidayMatch = state.holidays.find(h => h.date === dateKey);
     const dateLabel = formatDateShort(dateKey);
 
-    html += `<div class="cal-cell name" style="${nonWorking ? 'opacity:0.55;' : ''}" title="${holidayMatch ? escapeHtml(holidayMatch.name) : ''}">${dateLabel}</div>`;
-    html += `<div class="cal-cell" style="${nonWorking ? 'opacity:0.55;' : ''}">${dayNames[dateObj.getDay()]}</div>`;
+    html += `<div class="cal-cell name" style="position:sticky; left:0; z-index:5; ${nonWorking ? 'opacity:0.55;' : ''}" title="${holidayMatch ? escapeHtml(holidayMatch.name) : ''}">${dateLabel}</div>`;
+    html += `<div class="cal-cell" style="position:sticky; left:${COL_DATE}px; z-index:5; background:var(--panel); ${nonWorking ? 'opacity:0.55;' : ''}">${dayNames[dateObj.getDay()]}</div>`;
 
-    state.people.forEach(p => {
+    filteredPeople.forEach(p => {
       const leaveMap_ = getLeaveMap(p.id); const leaveDays = Object.keys(leaveMap_);
       const onLeave = leaveDays.includes(dateKey);
       const entries = state.dailyPlan.filter(e => e.personId === p.id && e.date === dateKey);
 
       if (nonWorking) {
-        const label = holidayMatch ? holidayMatch.name : 'Weekend';
-        html += `<div class="cal-cell" style="background:var(--panel-2); color:var(--text-faint); opacity:0.5; text-align:left; padding-left:10px;">${holidayMatch ? escapeHtml(label) : ''}</div>`;
+        html += `<div class="cal-cell" style="background:var(--panel-2); color:var(--text-faint); opacity:0.5; text-align:left; padding-left:10px;">${holidayMatch ? escapeHtml(holidayMatch.name) : ''}</div>`;
       } else if (onLeave) {
         html += `<div class="cal-cell leave" style="text-align:left; padding-left:10px;">On leave</div>`;
       } else if (entries.length > 0) {
@@ -5036,22 +5678,6 @@ function renderDailyPlan() {
 
 
 // ====================== INIT ======================
-function renderAll() {
-  syncTestPlanToProjects();
-  renderPeople();
-  renderProjects();
-  renderAllocation();
-  renderCapacity();
-  renderSummary();
-  renderReleaseHealth();
-  renderGantt();
-  renderLeaveCalendar();
-  renderDailyPlan();
-  renderHolidays();
-  renderTestPlan();
-  if (currentUserRole === 'admin') renderAdminPanel();
-}
-
 // App is initialised by sbClient.auth.onAuthStateChange above —
 // it fires on page load if a session exists (auto-restore) and after login.
 </script>
