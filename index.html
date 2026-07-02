@@ -156,10 +156,10 @@
   [data-tab="leave"] .nav-ico     { background: rgba(245,158,11,0.2); color: #fbbf24; }
   [data-tab="holidays"] .nav-ico  { background: rgba(236,72,153,0.2); color: #f472b6; }
   [data-tab="dailyplan"] .nav-ico { background: rgba(99,102,241,0.2); color: #818cf8; }
-  [data-tab="allocation"] .nav-ico{ background: rgba(6,182,212,0.2);  color: #22d3ee; }
-  [data-tab="capacity"] .nav-ico  { background: rgba(234,179,8,0.2);  color: #facc15; }
   [data-tab="admin"] .nav-ico     { background: rgba(239,68,68,0.2);  color: #f87171; }
   [data-tab="summary"] .nav-ico   { background: rgba(52,211,153,0.2); color: #6ee7b7; }
+  [data-tab="help"] .nav-ico      { background: linear-gradient(135deg,rgba(251,191,36,0.25),rgba(251,113,133,0.25)); color: #fbbf24; }
+  [data-tab="vmrepo"] .nav-ico    { background: linear-gradient(135deg,rgba(6,182,212,0.2),rgba(99,102,241,0.2)); color: #22d3ee; }
 
   nav.tabs button.active {
     background: var(--sidebar-active);
@@ -489,13 +489,21 @@
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span>
         Daily plan
       </button>
-      <button class="tab-btn" data-tab="allocation" data-title="Resource allocation" data-desc="Who is working on what, and how much of their time it takes">
-        <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-        Allocation
-      </button>
-      <button class="tab-btn" data-tab="capacity" data-title="Workload by person" data-desc="Total allocation across all projects, against 100% capacity">
-        <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span>
-        Capacity
+
+
+      <div class="nav-section-label">Infrastructure</div>
+      <button class="tab-btn" data-tab="vmrepo" data-title="QA VM Repository" data-desc="Track VM allocations, usage, and availability across all QA team members">
+        <span class="nav-ico">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2"/>
+            <rect x="2" y="14" width="20" height="8" rx="2"/>
+            <line x1="6" y1="6" x2="6.01" y2="6" stroke-width="3"/>
+            <line x1="6" y1="18" x2="6.01" y2="18" stroke-width="3"/>
+            <line x1="10" y1="6" x2="16" y2="6"/>
+            <line x1="10" y1="18" x2="16" y2="18"/>
+          </svg>
+        </span>
+        VM Repository
       </button>
 
       <div class="nav-section-label" id="adminNavSection" style="display:none;">Admin</div>
@@ -512,7 +520,23 @@
 
       <div class="nav-section-label">Help</div>
       <button class="tab-btn" data-tab="help" data-title="Help & User Guide" data-desc="How to use TeamLens — step by step guide for all features">
-        <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
+        <span class="nav-ico">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Book shape -->
+            <path d="M4 4C4 2.9 4.9 2 6 2H18C19.1 2 20 2.9 20 4V20C20 21.1 19.1 22 18 22H6C4.9 22 4 21.1 4 20V4Z" fill="currentColor" opacity="0.3"/>
+            <path d="M4 4C4 2.9 4.9 2 6 2H18C19.1 2 20 2.9 20 4V20C20 21.1 19.1 22 18 22H6C4.9 22 4 21.1 4 20V4Z" stroke="currentColor" stroke-width="1.5"/>
+            <!-- Pages lines -->
+            <line x1="8" y1="8" x2="16" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+            <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+            <line x1="8" y1="16" x2="12" y2="16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+            <!-- Sparkle top right -->
+            <circle cx="19" cy="5" r="2" fill="#fbbf24"/>
+            <line x1="19" y1="2.5" x2="19" y2="3.5" stroke="#fbbf24" stroke-width="1" stroke-linecap="round"/>
+            <line x1="19" y1="6.5" x2="19" y2="7.5" stroke="#fbbf24" stroke-width="1" stroke-linecap="round"/>
+            <line x1="16.5" y1="5" x2="17.5" y2="5" stroke="#fbbf24" stroke-width="1" stroke-linecap="round"/>
+            <line x1="20.5" y1="5" x2="21.5" y2="5" stroke="#fbbf24" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+        </span>
         Help & Guide
       </button>
     </nav>
@@ -593,7 +617,7 @@
         <button class="action" onclick="openPersonModal()">+ Add person</button>
       </div>
       <table>
-        <thead><tr><th>Name</th><th>Title</th><th>Email</th><th>Dev POD</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Title</th><th>Email</th><th>Dev POD</th><th>Daily Plan</th><th></th></tr></thead>
         <tbody id="peopleTableBody"></tbody>
       </table>
       <div class="empty-state" id="peopleEmpty" style="display:none;">No people added yet. Click "Add person" to start.</div>
@@ -679,26 +703,6 @@
   </div>
 
   <!-- ALLOCATION TAB -->
-  <div class="tab-content" id="tab-allocation" style="display:none;">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <h3>Resource allocation</h3>
-          <div class="desc">Who is working on what, and how much of their time it takes</div>
-        </div>
-        <button class="action" onclick="openAllocModal()">+ Add allocation</button>
-      </div>
-      <table>
-        <thead><tr><th>Person</th><th>Project</th><th>Allocation</th><th>Role</th><th>Busy days (from daily plan)</th><th>Free from</th><th></th></tr></thead>
-        <tbody id="allocTableBody"></tbody>
-      </table>
-      <div class="empty-state" id="allocEmpty" style="display:none;">No allocations yet. Add a person to a project to get started.</div>
-      <div class="legend">
-        <span>Busy days and free-from date come from the Daily plan tab assignments for that person, not from the allocation %</span>
-      </div>
-    </div>
-  </div>
-
   <!-- DAILY PLAN TAB -->
   <div class="tab-content" id="tab-dailyplan" style="display:none;">
     <div class="grid-4" id="dailyPlanStats"></div>
@@ -750,28 +754,6 @@
   </div>
 
   <!-- CAPACITY TAB -->
-  <div class="tab-content" id="tab-capacity" style="display:none;">
-    <div class="grid-4" id="capacityStats"></div>
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <h3>Workload by person</h3>
-          <div class="desc">Total allocation across all projects, against 100% capacity</div>
-        </div>
-      </div>
-      <table>
-        <thead><tr><th>Person</th><th>Total load</th><th>Status</th><th>Projects</th></tr></thead>
-        <tbody id="capacityTableBody"></tbody>
-      </table>
-      <div class="empty-state" id="capacityEmpty" style="display:none;">Add people and allocations to see capacity here.</div>
-      <div class="legend">
-        <span><span class="dot" style="background:var(--green)"></span>Under 80% — has room</span>
-        <span><span class="dot" style="background:var(--amber)"></span>80–100% — fully booked</span>
-        <span><span class="dot" style="background:var(--red)"></span>Over 100% — overallocated</span>
-      </div>
-    </div>
-  </div>
-
   <!-- LEAVE TAB -->
   <div class="tab-content" id="tab-leave" style="display:none;">
     <div class="panel">
@@ -885,13 +867,22 @@
           <button class="action" onclick="openTestRowModal()">+ Add environment</button>
         </div>
         <div style="overflow-x:auto;">
-          <table>
+          <table style="table-layout:fixed; width:100%;">
+            <colgroup>
+              <col style="width:160px;"><!-- Environment name -->
+              <col style="width:80px;"> <!-- Coverage % -->
+              <col style="width:90px;"> <!-- Total cases -->
+              <col style="width:90px;"> <!-- Effort PD -->
+              <col style="width:130px;"><!-- Assigned to -->
+              <col style="width:140px;"><!-- Status -->
+              <col style="width:80px;"> <!-- Actions -->
+            </colgroup>
             <thead>
               <tr>
                 <th>Environment</th>
-                <th>Coverage %</th>
-                <th>Total cases</th>
-                <th>Effort (PD)</th>
+                <th style="text-align:center;">Coverage %</th>
+                <th style="text-align:center;">Total cases</th>
+                <th style="text-align:center;">Effort (PD)</th>
                 <th>Assigned to</th>
                 <th>Status</th>
                 <th></th>
@@ -899,7 +890,9 @@
             </thead>
             <tbody>
               <tr style="background:var(--panel-2);">
-                <td colspan="2" style="color:var(--text-dim); font-weight:500;">📋 Test prep — test scenarios, test cases, review</td>
+                <td colspan="2" style="color:var(--text-dim); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;" title="Test prep — test scenarios, test cases, review">
+                  <span style="display:flex; align-items:center; gap:6px;">📋 <span>Test prep</span></span>
+                </td>
                 <td style="text-align:center; color:var(--text-faint);">—</td>
                 <td style="text-align:center;">
                   <input id="testPrepEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
@@ -915,7 +908,9 @@
                 <td></td>
               </tr>
               <tr style="background:var(--panel-2);">
-                <td colspan="2" style="color:var(--text-dim); font-weight:500;">🔧 Test environment & Data prep</td>
+                <td colspan="2" style="color:var(--text-dim); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;" title="Test environment & Data prep">
+                  <span style="display:flex; align-items:center; gap:6px;">🔧 <span>Test env & Data prep</span></span>
+                </td>
                 <td style="text-align:center; color:var(--text-faint);">—</td>
                 <td style="text-align:center;">
                   <input id="testEnvEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
@@ -978,6 +973,135 @@
   <!-- HELP TAB -->
   <div class="tab-content" id="tab-help" style="display:none;">
     <div id="helpContent"></div>
+  </div>
+
+  <!-- VM REPOSITORY TAB -->
+  <div class="tab-content" id="tab-vmrepo" style="display:none;">
+    <!-- Stats row -->
+    <div class="grid-4" id="vmStats"></div>
+
+    <!-- Filters + Add button -->
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <div>
+          <h3>🖥️ QA VM Repository</h3>
+          <div class="desc">Track VM allocations, current usage, and availability across all PODs</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <!-- POD filter — dynamically populated -->
+          <select id="vmPodFilter" onchange="renderVMRepo()" style="font-size:12px; padding:7px 12px; border-radius:9px; width:160px;">
+            <option value="">All groups</option>
+          </select>
+          <!-- Status filter -->
+          <select id="vmStatusFilter" onchange="renderVMRepo()" style="font-size:12px; padding:7px 12px; border-radius:9px; width:140px;">
+            <option value="">All status</option>
+            <option value="in-use">In use</option>
+            <option value="free">Free</option>
+            <option value="expiring">Expiring soon</option>
+          </select>
+          <button class="ghost" onclick="openVMPodsModal()" style="display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Manage groups
+          </button>
+          <button class="action" onclick="openVMModal()">+ Add VM</button>
+        </div>
+      </div>
+      <!-- Table -->
+      <div style="overflow-x:auto;">
+        <table style="table-layout:auto; width:100%;">
+          <thead>
+            <tr>
+              <th style="white-space:nowrap; min-width:120px;">POD / Group</th>
+              <th style="white-space:nowrap; min-width:100px;">Member</th>
+              <th style="white-space:nowrap; min-width:220px;">VM Details</th>
+              <th style="white-space:nowrap;">VM Expiry</th>
+              <th style="white-space:nowrap; text-align:center;">In Use</th>
+              <th style="white-space:nowrap;">Used By</th>
+              <th style="white-space:nowrap;">Start Date</th>
+              <th style="white-space:nowrap;">End Date</th>
+              <th style="white-space:nowrap;">Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="vmTableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="vmEmpty" style="display:none;">
+        No VMs added yet. Click <b>+ Add VM</b> to start tracking your VM inventory.
+      </div>
+    </div>
+  </div>
+
+  <!-- VM Manage Groups Modal -->
+  <div class="modal-overlay" id="vmPodsModal">
+    <div class="modal" style="width:440px;">
+      <h3>⚙️ Manage VM Groups</h3>
+      <div class="desc" style="margin-bottom:16px; font-size:12.5px; color:var(--text-faint);">Add, rename, or remove VM groups. Changes apply immediately across all dropdowns.</div>
+      <div id="vmPodsList" style="display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto; margin-bottom:16px;"></div>
+      <div style="display:flex; gap:8px;">
+        <input id="vmNewPodInput" placeholder="New group name…" style="flex:1;" onkeydown="if(event.key==='Enter') addVMPod()">
+        <button class="action" onclick="addVMPod()" style="white-space:nowrap;">+ Add group</button>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="closeModal('vmPodsModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VM Modal -->
+  <div class="modal-overlay" id="vmModal">
+    <div class="modal" style="width:480px;">
+      <h3 id="vmModalTitle">Add VM</h3>
+      <div class="field">
+        <label>POD / Group</label>
+        <input id="vmPod" placeholder="e.g. Akash, Regression VMs" list="vmPodList">
+        <datalist id="vmPodList"></datalist>
+      </div>
+      <div class="field">
+        <label>Member (owner)</label>
+        <input id="vmMember" placeholder="e.g. Yashna, Mayuri, Harish">
+      </div>
+      <div class="field">
+        <label>VM Details</label>
+        <input id="vmDetails" placeholder="e.g. S19x64O21X64-Yashna - 172.30.34.108">
+      </div>
+      <div class="field">
+        <label>VM Expiry Date</label>
+        <input id="vmExpiry" type="date">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="field">
+          <label>Start Date</label>
+          <input id="vmStart" type="date">
+        </div>
+        <div class="field">
+          <label>End Date</label>
+          <input id="vmEnd" type="date">
+        </div>
+      </div>
+      <div class="field">
+        <label>Currently in use?</label>
+        <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--panel-2); border-radius:9px; border:1.5px solid var(--border);">
+          <div onclick="toggleVMInUse()" id="vmInUseToggle" style="width:40px; height:22px; border-radius:11px; background:#334155; cursor:pointer; position:relative; transition:background 0.2s; flex-shrink:0;">
+            <div id="vmInUseThumb" style="position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:white; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+          </div>
+          <div id="vmInUseLabel" style="font-size:12.5px; font-weight:600; color:var(--text);">Not in use</div>
+        </div>
+        <input type="hidden" id="vmInUse" value="false">
+      </div>
+      <div class="field">
+        <label>Used by (person currently using)</label>
+        <input id="vmUsedBy" placeholder="e.g. Mayuri, Harish">
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <input id="vmNotes" placeholder="e.g. Hotfolder setup, Beta channel">
+      </div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="closeModal('vmModal')">Cancel</button>
+        <button class="action" id="vmSaveBtn" onclick="saveVM()">Add VM</button>
+      </div>
+    </div>
   </div>
 
   <!-- ADMIN TAB -->
@@ -1163,6 +1287,19 @@
         <option value="Evil Inc.">Evil Inc.</option>
       </select>
     </div>
+    <div class="field">
+      <label>Show in Daily Plan</label>
+      <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--panel-2); border-radius:9px; border:1.5px solid var(--border);">
+        <div onclick="togglePersonDailyPlan()" id="dailyPlanToggle" style="width:40px; height:22px; border-radius:11px; background:#334155; cursor:pointer; position:relative; transition:background 0.2s; flex-shrink:0;">
+          <div id="dailyPlanToggleThumb" style="position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:white; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+        </div>
+        <div>
+          <div id="dailyPlanToggleLabel" style="font-size:12.5px; font-weight:600; color:var(--text);">Included in Daily Plan</div>
+          <div style="font-size:11px; color:var(--text-faint); margin-top:1px;">Turn off for PM, Managers — they won't appear in the Daily Plan calendar</div>
+        </div>
+      </div>
+      <input type="hidden" id="personShowInDailyPlan" value="true">
+    </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('personModal')">Cancel</button>
       <button class="action" id="personSaveBtn" onclick="savePerson()">Add person</button>
@@ -1214,19 +1351,6 @@
 </div>
 
 <!-- Allocation modal -->
-<div class="modal-overlay" id="allocModal">
-  <div class="modal">
-    <h3 id="allocModalTitle">Add allocation</h3>
-    <div class="field"><label>Person</label><select id="allocPerson"></select></div>
-    <div class="field"><label>Project</label><select id="allocProject"></select></div>
-    <div class="field"><label>Role on project</label><input id="allocRole" placeholder="e.g. Lead QA"></div>
-    <div class="field"><label>Allocation %</label><input id="allocPct" type="number" min="1" max="100" value="50"></div>
-    <div class="modal-actions">
-      <button class="ghost" onclick="closeModal('allocModal')">Cancel</button>
-      <button class="action" id="allocSaveBtn" onclick="saveAllocation()">Add</button>
-    </div>
-  </div>
-</div>
 
 <!-- Daily plan modal -->
 <div class="modal-overlay" id="dailyPlanModal">
@@ -1375,7 +1499,7 @@
 </div>
 
 <script>
-let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {} };
+let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [] };
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let dayMonth = new Date().getMonth();
@@ -1587,7 +1711,7 @@ function applyAccessUI() {
   if (isAdmin) return; // Admin sees everything
 
   // For non-admins enforce per-section permissions
-  const SECTION_TABS = ['people','projects','testplan','dailyplan','allocation','capacity','leave','holidays','summary'];
+  const SECTION_TABS = ['people','projects','testplan','dailyplan','leave','holidays','summary'];
   SECTION_TABS.forEach(section => {
     const perm = currentUserPermissions[section] || 'read';
     const tabBtn = document.querySelector(`.tab-btn[data-tab="${section}"]`);
@@ -2213,6 +2337,9 @@ async function loadState() {
       state.dailyPlan = Array.isArray(parsed.dailyPlan) ? parsed.dailyPlan : [];
       state.holidays = Array.isArray(parsed.holidays) ? parsed.holidays : [];
       state.testPlans = (parsed.testPlans && typeof parsed.testPlans === 'object') ? parsed.testPlans : {};
+      state.vms       = Array.isArray(parsed.vms) ? parsed.vms : [];
+      state.vmPods    = Array.isArray(parsed.vmPods) ? parsed.vmPods :
+        ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
     } else {
       el.textContent = 'no data yet — start by adding people';
@@ -2463,7 +2590,340 @@ function renderAdminPanel() {
 
 
 // ---------- Tabs ----------
-// ====================== HELP & USER GUIDE ======================
+// ====================== VM POD MANAGEMENT ======================
+function getVMPods() {
+  if (!state.vmPods || state.vmPods.length === 0) {
+    state.vmPods = ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
+  }
+  return state.vmPods;
+}
+
+function populateVMPodDropdowns() {
+  const pods = getVMPods();
+  // Filter dropdown
+  const filterSel = document.getElementById('vmPodFilter');
+  if (filterSel) {
+    const cur = filterSel.value;
+    filterSel.innerHTML = '<option value="">All groups</option>' +
+      pods.map(p => `<option value="${escapeHtml(p)}" ${cur === p ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('');
+  }
+  // Modal datalist
+  const dl = document.getElementById('vmPodList');
+  if (dl) dl.innerHTML = pods.map(p => `<option value="${escapeHtml(p)}">`).join('');
+}
+
+function openVMPodsModal() {
+  renderVMPodsList();
+  document.getElementById('vmPodsModal').classList.add('show');
+}
+
+function renderVMPodsList() {
+  const pods = getVMPods();
+  const listEl = document.getElementById('vmPodsList');
+  if (!listEl) return;
+
+  // Colors for visual distinction
+  const COLORS = ['#dbeafe:#1d4ed8','#dcfce7:#15803d','#fee2e2:#b91c1c','#f3e8ff:#7e22ce',
+    '#fef3c7:#b45309','#fce7f3:#9d174d','#dcfce7:#065f46','#e0e7ff:#3730a3','#fff7ed:#c2410c',
+    '#f0fdf4:#16a34a','#fdf4ff:#9333ea','#fff1f2:#e11d48'];
+
+  if (pods.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--text-faint); text-align:center; padding:16px; font-style:italic;">No groups yet. Add one below.</div>';
+    return;
+  }
+
+  listEl.innerHTML = pods.map((pod, i) => {
+    const [bg, fg] = (COLORS[i % COLORS.length]).split(':');
+    const vmCount = (state.vms || []).filter(v => v.pod === pod).length;
+    return `
+      <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--panel-2); border:1px solid var(--border-soft); border-radius:10px;">
+        <span style="background:${bg}; color:${fg}; padding:3px 10px; border-radius:6px; font-size:11.5px; font-weight:700; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(pod)}</span>
+        <span style="font-size:11px; color:var(--text-faint); white-space:nowrap; flex-shrink:0;">${vmCount} VM${vmCount !== 1 ? 's' : ''}</span>
+        <button onclick="renameVMPod(${i})" class="icon-btn edit" title="Rename" style="flex-shrink:0;">✎</button>
+        <button onclick="deleteVMPod(${i})" class="icon-btn" title="Delete" style="flex-shrink:0; ${vmCount > 0 ? 'opacity:0.4; cursor:not-allowed;' : ''}">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function addVMPod() {
+  const input = document.getElementById('vmNewPodInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (getVMPods().includes(name)) { alert('Group already exists.'); return; }
+  state.vmPods.push(name);
+  input.value = '';
+  saveState();
+  renderVMPodsList();
+  populateVMPodDropdowns();
+  showToastMsg(`✓ Group "${name}" added`);
+}
+
+function renameVMPod(index) {
+  const pods = getVMPods();
+  const oldName = pods[index];
+  const newName = prompt(`Rename group "${oldName}" to:`, oldName);
+  if (!newName || newName.trim() === oldName) return;
+  const trimmed = newName.trim();
+  if (pods.includes(trimmed)) { alert('A group with that name already exists.'); return; }
+  // Update all VMs using old pod name
+  snapshotState(`Rename VM group: ${oldName} → ${trimmed}`);
+  state.vmPods[index] = trimmed;
+  (state.vms || []).forEach(vm => { if (vm.pod === oldName) vm.pod = trimmed; });
+  saveState();
+  renderVMPodsList();
+  populateVMPodDropdowns();
+  renderVMRepo();
+  showToastMsg(`✓ Renamed "${oldName}" → "${trimmed}"`);
+}
+
+function deleteVMPod(index) {
+  const pods = getVMPods();
+  const name = pods[index];
+  const vmCount = (state.vms || []).filter(v => v.pod === name).length;
+  if (vmCount > 0) {
+    alert(`Cannot delete "${name}" — it has ${vmCount} VM(s). Remove or reassign those VMs first.`);
+    return;
+  }
+  if (!confirm(`Delete group "${name}"?`)) return;
+  state.vmPods.splice(index, 1);
+  saveState();
+  renderVMPodsList();
+  populateVMPodDropdowns();
+  showToastMsg(`✓ Group "${name}" deleted`);
+}
+
+
+let editingVMId = null;
+
+function toggleVMInUse() {
+  const cur = document.getElementById('vmInUse').value === 'true';
+  setVMInUseToggle(!cur);
+}
+function setVMInUseToggle(val) {
+  document.getElementById('vmInUse').value = val ? 'true' : 'false';
+  const toggle = document.getElementById('vmInUseToggle');
+  const thumb  = document.getElementById('vmInUseThumb');
+  const label  = document.getElementById('vmInUseLabel');
+  if (toggle) toggle.style.background = val ? '#7c3aed' : '#334155';
+  if (thumb)  thumb.style.transform   = val ? 'translateX(18px)' : 'translateX(0)';
+  if (label)  label.textContent       = val ? 'Currently in use' : 'Not in use';
+}
+
+function openVMModal(id) {
+  editingVMId = id || null;
+  populateVMPodDropdowns(); // refresh datalist
+  const titleEl = document.getElementById('vmModalTitle');
+  const btnEl   = document.getElementById('vmSaveBtn');
+  if (id) {
+    const vm = (state.vms || []).find(v => v.id === id);
+    if (!vm) return;
+    titleEl.textContent = 'Edit VM';
+    btnEl.textContent   = 'Save changes';
+    document.getElementById('vmPod').value     = vm.pod || '';
+    document.getElementById('vmMember').value  = vm.member || '';
+    document.getElementById('vmDetails').value = vm.details || '';
+    document.getElementById('vmExpiry').value  = vm.expiry || '';
+    document.getElementById('vmStart').value   = vm.startDate || '';
+    document.getElementById('vmEnd').value     = vm.endDate || '';
+    document.getElementById('vmUsedBy').value  = vm.usedBy || '';
+    document.getElementById('vmNotes').value   = vm.notes || '';
+    setVMInUseToggle(vm.inUse === true);
+  } else {
+    titleEl.textContent = 'Add VM';
+    btnEl.textContent   = 'Add VM';
+    ['vmPod','vmMember','vmDetails','vmExpiry','vmStart','vmEnd','vmUsedBy','vmNotes'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    setVMInUseToggle(false);
+  }
+  document.getElementById('vmModal').classList.add('show');
+}
+
+function saveVM() {
+  const pod      = document.getElementById('vmPod').value.trim();
+  const member   = document.getElementById('vmMember').value.trim();
+  const details  = document.getElementById('vmDetails').value.trim();
+  const expiry   = document.getElementById('vmExpiry').value;
+  const startDate= document.getElementById('vmStart').value;
+  const endDate  = document.getElementById('vmEnd').value;
+  const inUse    = document.getElementById('vmInUse').value === 'true';
+  const usedBy   = document.getElementById('vmUsedBy').value.trim();
+  const notes    = document.getElementById('vmNotes').value.trim();
+  if (!details) return;
+
+  if (!state.vms) state.vms = [];
+
+  if (editingVMId) {
+    const vm = state.vms.find(v => v.id === editingVMId);
+    if (vm) Object.assign(vm, { pod, member, details, expiry, startDate, endDate, inUse, usedBy, notes });
+  } else {
+    snapshotState(`Add VM: ${details.slice(0,30)}`);
+    state.vms.push({ id: uid(), pod, member, details, expiry, startDate, endDate, inUse, usedBy, notes });
+  }
+  editingVMId = null;
+  closeModal('vmModal');
+  saveState();
+  renderVMRepo();
+}
+
+function deleteVM(id) {
+  const vm = (state.vms || []).find(v => v.id === id);
+  if (!confirm(`Remove VM: ${vm?.details || id}?`)) return;
+  snapshotState(`Delete VM: ${vm?.details?.slice(0,30)}`);
+  state.vms = state.vms.filter(v => v.id !== id);
+  saveState();
+  renderVMRepo();
+}
+
+function toggleVMInUseRow(id) {
+  const vm = (state.vms || []).find(v => v.id === id);
+  if (!vm) return;
+  vm.inUse = !vm.inUse;
+  saveState();
+  renderVMRepo();
+}
+
+function renderVMRepo() {
+  if (!state.vms) state.vms = [];
+  populateVMPodDropdowns();
+  const tbody  = document.getElementById('vmTableBody');
+  const empty  = document.getElementById('vmEmpty');
+  const statsEl= document.getElementById('vmStats');
+  if (!tbody) return;
+
+  const podFilter    = document.getElementById('vmPodFilter')?.value || '';
+  const statusFilter = document.getElementById('vmStatusFilter')?.value || '';
+  const today = toDateKey(new Date());
+
+  // Filter
+  let filtered = state.vms;
+  if (podFilter) filtered = filtered.filter(v => v.pod === podFilter);
+  if (statusFilter === 'in-use') filtered = filtered.filter(v => v.inUse);
+  if (statusFilter === 'free')   filtered = filtered.filter(v => !v.inUse);
+  if (statusFilter === 'expiring') filtered = filtered.filter(v => {
+    if (!v.expiry) return false;
+    const daysLeft = Math.round((new Date(v.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+    return daysLeft >= 0 && daysLeft <= 14;
+  });
+
+  // Stats
+  const total     = state.vms.length;
+  const inUseCount= state.vms.filter(v => v.inUse).length;
+  const freeCount = total - inUseCount;
+  const expiringCount = state.vms.filter(v => {
+    if (!v.expiry) return false;
+    const d = Math.round((new Date(v.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+    return d >= 0 && d <= 14;
+  }).length;
+
+  if (statsEl) {
+    statsEl.innerHTML = `
+      <div class="stat-card">
+        <div class="label">Total VMs</div>
+        <div class="value">${total}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">In use</div>
+        <div class="value amber">${inUseCount}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Free / Available</div>
+        <div class="value green">${freeCount}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Expiring ≤14 days</div>
+        <div class="value ${expiringCount > 0 ? 'red' : ''}">${expiringCount}</div>
+      </div>`;
+  }
+
+  if (state.vms.length === 0) {
+    tbody.innerHTML = ''; empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No VMs match the selected filters.</td></tr>`;
+    return;
+  }
+
+  // Group by POD for visual grouping
+  const grouped = {};
+  filtered.forEach(vm => {
+    const pod = vm.pod || 'Ungrouped';
+    if (!grouped[pod]) grouped[pod] = [];
+    grouped[pod].push(vm);
+  });
+
+  const POD_COLORS_VM = {
+    'Akash':'#dbeafe:#1d4ed8','Dikshit':'#dcfce7:#15803d',
+    'Regression VMs':'#fee2e2:#b91c1c','Automation VMs':'#f3e8ff:#7e22ce',
+    'Insider Testing':'#fef3c7:#b45309','KLA Machines':'#fce7f3:#9d174d',
+    'Hot Folder':'#dcfce7:#065f46','BJ':'#e0e7ff:#3730a3',
+    'AppConnect Server':'#fff7ed:#c2410c'
+  };
+
+  let html = '';
+  Object.entries(grouped).forEach(([pod, vms]) => {
+    const [pbg, pfg] = (POD_COLORS_VM[pod] || '#f1f5f9:#475569').split(':');
+    vms.forEach((vm, i) => {
+      const daysLeft = vm.expiry
+        ? Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000)
+        : null;
+      const expiryBadge = vm.expiry
+        ? daysLeft < 0
+          ? `<span style="background:#fee2e2;color:#dc2626;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;">Expired</span>`
+          : daysLeft <= 14
+            ? `<span style="background:#fef3c7;color:#b45309;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;">⚠ ${daysLeft}d left</span>`
+            : `<span style="font-size:12px;color:var(--text-dim);">${formatDateDisplay(vm.expiry)}</span>`
+        : '<span style="color:var(--text-faint);">—</span>';
+
+      const statusBadge = vm.inUse
+        ? `<span style="background:#fef3c7;color:#b45309;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">🔴 In use</span>`
+        : `<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">🟢 Free</span>`;
+
+      const endDateDisplay = vm.endDate
+        ? (() => {
+            const d = Math.round((new Date(vm.endDate+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+            return d < 0
+              ? `<span style="color:#dc2626;font-size:12px;font-weight:500;">${formatDateDisplay(vm.endDate)}</span>`
+              : d <= 3
+                ? `<span style="color:#b45309;font-size:12px;font-weight:500;">${formatDateDisplay(vm.endDate)} <span style="font-size:10px;">(${d}d)</span></span>`
+                : `<span style="font-size:12px;color:var(--text-dim);">${formatDateDisplay(vm.endDate)}</span>`;
+          })()
+        : '<span style="color:var(--text-faint);">—</span>';
+
+      html += `
+        <tr style="${i === 0 ? 'border-top:2px solid var(--border-soft);' : ''}">
+          <td style="white-space:nowrap;">
+            ${i === 0 ? `<span style="background:${pbg};color:${pfg};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;">${escapeHtml(pod)}</span>` : ''}
+          </td>
+          <td style="font-size:12.5px;color:var(--text-dim);white-space:nowrap;">${escapeHtml(vm.member||'—')}</td>
+          <td style="font-family:var(--mono);font-size:12px;min-width:200px;">
+            <div style="font-weight:500;color:var(--text);">${escapeHtml(vm.details)}</div>
+            ${vm.notes ? `<div style="font-size:10.5px;color:var(--text-faint);margin-top:2px;">📝 ${escapeHtml(vm.notes)}</div>` : ''}
+          </td>
+          <td style="white-space:nowrap;">${expiryBadge}</td>
+          <td style="text-align:center;">
+            <div onclick="toggleVMInUseRow('${vm.id}')" style="width:36px;height:20px;border-radius:10px;background:${vm.inUse?'#7c3aed':'#334155'};cursor:pointer;position:relative;transition:background 0.2s;margin:0 auto;">
+              <div style="position:absolute;top:2px;left:${vm.inUse?'16px':'2px'};width:16px;height:16px;border-radius:50%;background:white;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+            </div>
+          </td>
+          <td style="font-size:12.5px;color:var(--text-dim);white-space:nowrap;">${escapeHtml(vm.usedBy||'—')}</td>
+          <td style="font-size:12px;color:var(--text-dim);white-space:nowrap;">${vm.startDate ? formatDateDisplay(vm.startDate) : '—'}</td>
+          <td style="white-space:nowrap;">${endDateDisplay}</td>
+          <td>${statusBadge}</td>
+          <td style="text-align:right;white-space:nowrap;">
+            <button class="icon-btn edit" onclick="openVMModal('${vm.id}')">✎</button>
+            <button class="icon-btn" onclick="deleteVM('${vm.id}')">✕</button>
+          </td>
+        </tr>`;
+    });
+  });
+
+  tbody.innerHTML = html;
+}
+
+
 function renderHelp() {
   const el = document.getElementById('helpContent');
   if (!el) return;
@@ -2837,7 +3297,7 @@ function markDirty(...tabs) {
 }
 
 function markAllDirty() {
-  ['people','projects','allocation','capacity','summary','leave','dailyplan','holidays','testplan','admin','help'].forEach(t => _dirtyTabs.add(t));
+  ['people','projects','summary','leave','dailyplan','holidays','testplan','admin','help','vmrepo'].forEach(t => _dirtyTabs.add(t));
 }
 
 // Map tab name → render function
@@ -2845,14 +3305,13 @@ function renderTab(tab) {
   switch(tab) {
     case 'people':     renderPeople(); break;
     case 'projects':   renderProjects(); break;
-    case 'allocation': renderAllocation(); break;
-    case 'capacity':   renderCapacity(); break;
     case 'summary':    renderSummary(); renderReleaseHealth(); renderGantt(); break;
     case 'leave':      renderLeaveCalendar(); break;
     case 'dailyplan':  renderDailyPlan(); break;
     case 'holidays':   renderHolidays(); break;
     case 'testplan':   renderTestPlan(); break;
     case 'help':       renderHelp(); break;
+    case 'vmrepo':     renderVMRepo(); break;
     case 'admin':      if (currentUserRole === 'admin') renderAdminPanel(); break;
   }
 }
@@ -2903,6 +3362,21 @@ document.addEventListener('click', (e) => {
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
 // ====================== PEOPLE ======================
+function togglePersonDailyPlan() {
+  const cur = document.getElementById('personShowInDailyPlan').value === 'true';
+  setPersonDailyPlanToggle(!cur);
+}
+
+function setPersonDailyPlanToggle(val) {
+  document.getElementById('personShowInDailyPlan').value = val ? 'true' : 'false';
+  const toggle = document.getElementById('dailyPlanToggle');
+  const thumb  = document.getElementById('dailyPlanToggleThumb');
+  const label  = document.getElementById('dailyPlanToggleLabel');
+  if (toggle) toggle.style.background = val ? '#7c3aed' : '#334155';
+  if (thumb)  thumb.style.transform   = val ? 'translateX(18px)' : 'translateX(0)';
+  if (label)  label.textContent       = val ? 'Included in Daily Plan' : 'Excluded from Daily Plan';
+}
+
 function openPersonModal(id) {
   editingPersonId = id || null;
   const titleEl = document.getElementById('personModalTitle');
@@ -2916,6 +3390,7 @@ function openPersonModal(id) {
     document.getElementById('personTitle').value = p.title || '';
     document.getElementById('personEmail').value = p.email || '';
     document.getElementById('personDevPod').value = p.devPod || '';
+    setPersonDailyPlanToggle(p.showInDailyPlan !== false); // default true
   } else {
     titleEl.textContent = 'Add person';
     btnEl.textContent = 'Add person';
@@ -2923,22 +3398,24 @@ function openPersonModal(id) {
     document.getElementById('personTitle').value = '';
     document.getElementById('personEmail').value = '';
     document.getElementById('personDevPod').value = '';
+    setPersonDailyPlanToggle(true); // default ON for new person
   }
   document.getElementById('personModal').classList.add('show');
 }
 
 function savePerson() {
-  const name = document.getElementById('personName').value.trim();
-  const title = document.getElementById('personTitle').value.trim();
-  const email = document.getElementById('personEmail').value.trim();
+  const name   = document.getElementById('personName').value.trim();
+  const title  = document.getElementById('personTitle').value.trim();
+  const email  = document.getElementById('personEmail').value.trim();
   const devPod = document.getElementById('personDevPod').value;
+  const showInDailyPlan = document.getElementById('personShowInDailyPlan').value !== 'false';
   if (!name) return;
   if (editingPersonId) {
     const p = state.people.find(x => x.id === editingPersonId);
-    if (p) { p.name = name; p.title = title; p.email = email; p.devPod = devPod; }
+    if (p) { p.name = name; p.title = title; p.email = email; p.devPod = devPod; p.showInDailyPlan = showInDailyPlan; }
     logActivity('Person edited', { name, devPod });
   } else {
-    state.people.push({ id: uid(), name, title, email, devPod });
+    state.people.push({ id: uid(), name, title, email, devPod, showInDailyPlan });
     logActivity('Person added', { name, devPod });
   }
   editingPersonId = null;
@@ -2976,12 +3453,17 @@ function renderPeople() {
     const podCell = podC
       ? `<span style="background:${podC[0]}; color:${podC[1]}; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${escapeHtml(p.devPod)}</span>`
       : '<span style="color:var(--text-faint);">—</span>';
+    const inDailyPlan = p.showInDailyPlan !== false;
+    const dpBadge = inDailyPlan
+      ? `<span style="background:#dcfce7; color:#15803d; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">✓ Yes</span>`
+      : `<span style="background:#f1f5f9; color:#94a3b8; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">— No</span>`;
     return `
     <tr>
       <td style="font-weight:500;">${escapeHtml(p.name)}</td>
       <td style="color:var(--text-dim)">${escapeHtml(p.title || '—')}</td>
       <td style="color:var(--text-dim)">${escapeHtml(p.email || '—')}</td>
       <td>${podCell}</td>
+      <td>${dpBadge}</td>
       <td style="text-align:right; white-space:nowrap;">
         <button class="icon-btn edit" onclick="openPersonModal('${p.id}')">✎</button>
         <button class="icon-btn" onclick="deletePerson('${p.id}')">✕</button>
@@ -3829,12 +4311,20 @@ function buildTestPlanProjectSectionHtml(proj) {
 
         <div class="section-label">Test matrix</div>
         <div class="matrix-wrap">
-          <table class="matrix-table">
+          <table class="matrix-table" style="table-layout:fixed; width:100%;">
+            <colgroup>
+              <col style="width:180px;">
+              <col style="width:70px;">
+              <col style="width:80px;">
+              <col style="width:80px;">
+              <col style="width:120px;">
+              <col style="width:130px;">
+            </colgroup>
             <thead>
               <tr>
                 <th>Environment</th>
                 <th class="r">Coverage</th>
-                <th class="r">Total cases</th>
+                <th class="r">Cases</th>
                 <th class="r">Effort (PD)</th>
                 <th>Assigned to</th>
                 <th>Status</th>
@@ -3842,14 +4332,14 @@ function buildTestPlanProjectSectionHtml(proj) {
             </thead>
             <tbody>
               <tr class="row-prep">
-                <td>📋 Test prep — scenarios, test cases, review</td>
+                <td title="Test prep — test scenarios, test cases, review">📋 Test prep</td>
                 <td class="r">—</td><td class="r">—</td>
                 <td class="r">${metrics.testPrepEffort || 0}</td>
                 <td>—</td>
                 <td>${fixedStatusBadge(plan.testPrepStatus || 'Not yet started')}</td>
               </tr>
               <tr class="row-prep">
-                <td>🔧 Test environment & Data prep</td>
+                <td title="Test environment & Data prep">🔧 Test env & Data</td>
                 <td class="r">—</td><td class="r">—</td>
                 <td class="r">${metrics.testEnvEffort || 0}</td>
                 <td>—</td>
@@ -3959,7 +4449,6 @@ function downloadReportHtml(filename, title, bodyHtml) {
 }
 
 async function shareReportAsLink(title, bodyHtml) {
-  // Show modal immediately with loading state
   document.getElementById('shareLinkTitle').textContent = `📎 ${title}`;
   document.getElementById('shareLinkInput').value = 'Generating link…';
   document.getElementById('shareLinkStatus').textContent = '';
@@ -3970,18 +4459,29 @@ async function shareReportAsLink(title, bodyHtml) {
     const fullHtml = buildFullReportHtml(title, bodyHtml);
     const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
 
-    const { error } = await sbClient
+    const { data, error } = await sbClient
       .from('shared_reports')
       .insert({
         id: reportId,
         title,
         html: fullHtml,
-        created_by: currentUserEmail
-      });
+        created_by: currentUserEmail || 'unknown',
+        created_at: new Date().toISOString()
+      })
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Share report error:', error);
+      // Fallback: open report in new tab directly
+      const blob = new Blob([fullHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      document.getElementById('shareLinkInput').value = 'Opened in new tab (Supabase save failed)';
+      document.getElementById('shareLinkStatus').textContent = `⚠ Supabase error: ${error.message}. Report opened in new tab instead.`;
+      document.getElementById('copyLinkBtn').disabled = true;
+      return;
+    }
 
-    // Build the shareable URL — same GitHub Pages URL + ?report=ID
     const baseUrl = window.location.origin + window.location.pathname;
     const shareUrl = `${baseUrl}?report=${reportId}`;
 
@@ -3990,8 +4490,9 @@ async function shareReportAsLink(title, bodyHtml) {
     document.getElementById('shareLinkStatus').textContent = '✓ Link ready — copy and share via Teams, WhatsApp, or email.';
 
   } catch (e) {
+    console.error('Share report exception:', e);
     document.getElementById('shareLinkInput').value = '';
-    document.getElementById('shareLinkStatus').textContent = '✗ Failed to generate link: ' + e.message;
+    document.getElementById('shareLinkStatus').textContent = '✗ Failed: ' + (e.message || e);
     document.getElementById('copyLinkBtn').disabled = true;
   }
 }
@@ -4480,56 +4981,8 @@ function populateProjectSelect(selectEl) {
   selectEl.innerHTML = state.projects.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
 }
 
-function openAllocModal(id) {
-  editingAllocId = id || null;
-  const sel = document.getElementById('allocPerson');
-  sel.innerHTML = state.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-  if (state.people.length === 0) sel.innerHTML = '<option value="">Add a person first</option>';
-  populateProjectSelect(document.getElementById('allocProject'));
 
-  const titleEl = document.getElementById('allocModalTitle');
-  const btnEl = document.getElementById('allocSaveBtn');
-  if (id) {
-    const a = state.allocations.find(x => x.id === id);
-    if (!a) return;
-    titleEl.textContent = 'Edit allocation';
-    btnEl.textContent = 'Save changes';
-    sel.value = a.personId;
-    document.getElementById('allocProject').value = a.project;
-    document.getElementById('allocRole').value = a.role || '';
-    document.getElementById('allocPct').value = a.pct;
-  } else {
-    titleEl.textContent = 'Add allocation';
-    btnEl.textContent = 'Add';
-    document.getElementById('allocRole').value = '';
-    document.getElementById('allocPct').value = 50;
-  }
-  document.getElementById('allocModal').classList.add('show');
-}
 
-function saveAllocation() {
-  const personId = document.getElementById('allocPerson').value;
-  const project = document.getElementById('allocProject').value;
-  const role = document.getElementById('allocRole').value.trim();
-  const pct = parseInt(document.getElementById('allocPct').value) || 0;
-  if (!personId || !project || pct <= 0) return;
-  if (editingAllocId) {
-    const a = state.allocations.find(x => x.id === editingAllocId);
-    if (a) { a.personId = personId; a.project = project; a.role = role; a.pct = pct; }
-  } else {
-    state.allocations.push({ id: uid(), personId, project, role, pct });
-  }
-  editingAllocId = null;
-  closeModal('allocModal');
-  saveState();
-  renderAll();
-}
-
-function deleteAllocation(id) {
-  state.allocations = state.allocations.filter(a => a.id !== id);
-  saveState();
-  renderAll();
-}
 
 function formatDateShort(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -4614,85 +5067,8 @@ function getBusyInfoForPerson(personId, project) {
   return { busyText, freeText, busyCount: entries.length };
 }
 
-function renderAllocation() {
-  const tbody = document.getElementById('allocTableBody');
-  const empty = document.getElementById('allocEmpty');
-  if (state.allocations.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
-  tbody.innerHTML = state.allocations.map(a => {
-    const person = state.people.find(p => p.id === a.personId);
-    const name = person ? person.name : '(removed)';
-    const color = a.pct >= 80 ? 'var(--red)' : a.pct >= 50 ? 'var(--amber)' : 'var(--green)';
-    const busy = getBusyInfoForPerson(a.personId, a.project);
-    return `
-      <tr>
-        <td>${escapeHtml(name)}</td>
-        <td>${escapeHtml(a.project)}</td>
-        <td>
-          <div class="pct-bar">
-            <div class="pct-track"><div class="pct-fill" style="width:${Math.min(a.pct,100)}%; background:${color}"></div></div>
-            <span class="pct-label">${a.pct}%</span>
-          </div>
-        </td>
-        <td style="color:var(--text-dim)">${escapeHtml(a.role || '—')}</td>
-        <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(busy.busyText)}${busy.busyCount ? ` <span style="color:var(--text-faint)">(${busy.busyCount} PD)</span>` : ''}</td>
-        <td style="font-size:12px;"><span class="badge ${busy.freeText === 'Free now' ? 'ok' : 'warn'}">${escapeHtml(busy.freeText)}</span></td>
-        <td style="text-align:right; white-space:nowrap;">
-          <button class="icon-btn edit" onclick="openAllocModal('${a.id}')" aria-label="Edit allocation">✎</button>
-          <button class="icon-btn" onclick="deleteAllocation('${a.id}')" aria-label="Remove allocation">✕</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
 
 // ====================== CAPACITY ======================
-function renderCapacity() {
-  const tbody = document.getElementById('capacityTableBody');
-  const empty = document.getElementById('capacityEmpty');
-  const statsEl = document.getElementById('capacityStats');
-
-  if (state.people.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; statsEl.innerHTML = ''; return; }
-  empty.style.display = 'none';
-
-  const loads = state.people.map(p => {
-    const allocs = state.allocations.filter(a => a.personId === p.id);
-    const total = allocs.reduce((s, a) => s + a.pct, 0);
-    return { person: p, total, allocs };
-  });
-
-  const overCount = loads.filter(l => l.total > 100).length;
-  const fullCount = loads.filter(l => l.total >= 80 && l.total <= 100).length;
-  const avgLoad = Math.round(loads.reduce((s, l) => s + l.total, 0) / loads.length) || 0;
-
-  statsEl.innerHTML = `
-    <div class="stat-card"><div class="label">Total people</div><div class="value">${state.people.length}</div></div>
-    <div class="stat-card"><div class="label">Overallocated</div><div class="value ${overCount > 0 ? 'red' : ''}">${overCount}</div></div>
-    <div class="stat-card"><div class="label">Fully booked</div><div class="value amber">${fullCount}</div></div>
-    <div class="stat-card"><div class="label">Avg. load</div><div class="value ${avgLoad>100?'red':avgLoad>=80?'amber':'green'}">${avgLoad}%</div></div>
-  `;
-
-  tbody.innerHTML = loads.map(l => {
-    let badge = 'ok', label = 'Has room';
-    if (l.total > 100) { badge = 'over'; label = 'Overallocated'; }
-    else if (l.total >= 80) { badge = 'warn'; label = 'Fully booked'; }
-    const color = l.total > 100 ? 'var(--red)' : l.total >= 80 ? 'var(--amber)' : 'var(--green)';
-    const projects = l.allocs.map(a => `${escapeHtml(a.project)} (${a.pct}%)`).join(', ') || '—';
-    return `
-      <tr>
-        <td>${escapeHtml(l.person.name)}</td>
-        <td>
-          <div class="pct-bar">
-            <div class="pct-track"><div class="pct-fill" style="width:${Math.min(l.total,100)}%; background:${color}"></div></div>
-            <span class="pct-label">${l.total}%</span>
-          </div>
-        </td>
-        <td><span class="badge ${badge}">${label}</span></td>
-        <td style="color:var(--text-dim); font-size:12px;">${projects}</td>
-      </tr>
-    `;
-  }).join('');
-}
 
 // ====================== SUMMARY ======================
 // ====================== GANTT TIMELINE ======================
@@ -4987,9 +5363,9 @@ function renderReleaseHealth() {
         </div>
         <!-- Date timeline -->
         <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
-          ${effectiveBuild ? `<span style="font-size:11px; color:#64748b;">📥 Dev to QA: <strong style="color:#334155;">${formatDateDisplay(effectiveBuild)}</strong>${tpBuildPickup ? ' <span style="color:#94a3b8;">(test plan)</span>' : ''}</span>` : ''}
-          ${effectiveQADone ? `<span style="font-size:11px; color:#64748b;">🏁 QA done: <strong style="color:#334155;">${formatDateDisplay(effectiveQADone)}</strong>${tpQAComplete ? ' <span style="color:#94a3b8;">(test plan)</span>' : ''}</span>` : ''}
-          ${effectiveGoAhead ? `<span style="font-size:11px; color:#64748b;">🚀 Go ahead: <strong style="color:#334155;">${formatDateDisplay(effectiveGoAhead)}</strong>${tpGoAhead ? ' <span style="color:#94a3b8;">(test plan)</span>' : ''}</span>` : ''}
+          ${effectiveBuild ? `<span style="font-size:11px; color:#64748b;">📥 Dev to QA: <strong style="color:#334155;">${formatDateDisplay(effectiveBuild)}</strong></span>` : ''}
+          ${effectiveQADone ? `<span style="font-size:11px; color:#64748b;">🏁 QA done: <strong style="color:#334155;">${formatDateDisplay(effectiveQADone)}</strong></span>` : ''}
+          ${effectiveGoAhead ? `<span style="font-size:11px; color:#64748b;">🚀 Go ahead: <strong style="color:#334155;">${formatDateDisplay(effectiveGoAhead)}</strong></span>` : ''}
           ${releaseDate ? `<span style="font-size:11px; color:#64748b;">📅 Release: <strong style="color:${overallText};">${formatDateDisplay(releaseDate)}</strong></span>` : ''}
         </div>
         <!-- Risk items -->
@@ -5271,8 +5647,9 @@ function openDailyPlanModal() {
   const sel = document.getElementById('dpPerson');
   const todayStr = toLocalDateKey(new Date());
 
-  // Build smart-sorted people list — free people first
-  const sortedPeople = [...state.people].sort((a, b) => {
+  // Only show people who are enabled for Daily Plan
+  const dpPeople = state.people.filter(p => p.showInDailyPlan !== false);
+  const sortedPeople = [...dpPeople].sort((a, b) => {
     const aFree = isPersonFreeOn(a.id, todayStr);
     const bFree = isPersonFreeOn(b.id, todayStr);
     if (aFree && !bFree) return -1;
@@ -5411,6 +5788,13 @@ function renderResourceAvailability() {
     return;
   }
 
+  // Only show people enabled for Daily Plan
+  const dpPeople = state.people.filter(p => p.showInDailyPlan !== false);
+  if (dpPeople.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-faint); font-size:13px; grid-column:1/-1;">No QA team members enabled for Daily Plan. Edit people in the People tab.</div>';
+    return;
+  }
+
   // Build a Set of assigned dateKeys per person from daily plan
   const assignedDays = {}; // personId → Set of dateKeys
   state.people.forEach(p => { assignedDays[p.id] = new Set(); });
@@ -5430,7 +5814,7 @@ function renderResourceAvailability() {
     }
   });
 
-  const cards = state.people.map(p => {
+  const cards = dpPeople.map(p => {
     const leaveMap = getLeaveMap(p.id);
     const leaveKeys = new Set(Object.keys(leaveMap));
     const assigned = assignedDays[p.id] || new Set();
@@ -5540,10 +5924,11 @@ function renderDailyPlan() {
     }
   }
 
-  // Filter people by selected POD
+  // Filter people — only show those with showInDailyPlan !== false, then apply POD filter
+  const dailyPlanPeople = state.people.filter(p => p.showInDailyPlan !== false);
   const filteredPeople = selectedDailyPlanPod
-    ? state.people.filter(p => p.devPod === selectedDailyPlanPod)
-    : state.people;
+    ? dailyPlanPeople.filter(p => p.devPod === selectedDailyPlanPod)
+    : dailyPlanPeople;
 
   if (countEl) {
     const n = filteredPeople.length;
