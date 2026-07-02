@@ -887,34 +887,36 @@
             </thead>
             <tbody>
               <tr style="background:var(--panel-2);">
-                <td colspan="2" style="color:var(--text-dim);">Test prep — test scenarios, test cases, review</td>
+                <td colspan="2" style="color:var(--text-dim); font-weight:500;">📋 Test prep — test scenarios, test cases, review</td>
                 <td style="text-align:center; color:var(--text-faint);">—</td>
                 <td style="text-align:center;">
                   <input id="testPrepEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
                 </td>
-                <td style="text-align:center;">—</td>
+                <td style="text-align:center; color:var(--text-faint);">—</td>
                 <td style="text-align:center;">
-                  <select id="testPrepStatus" onchange="saveBufferValues()" style="font-size:11px; padding:2px 6px; border-radius:6px;">
+                  <select id="testPrepStatus" onchange="saveBufferValues(); updateFixedRowStatusStyle('testPrepStatus')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:none; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; text-align:center;">
                     <option value="Not yet started">Not yet started</option>
                     <option value="In progress">In progress</option>
                     <option value="Done">Done</option>
                   </select>
                 </td>
+                <td></td>
               </tr>
               <tr style="background:var(--panel-2);">
-                <td colspan="2" style="color:var(--text-dim);">Test environment & Data prep</td>
+                <td colspan="2" style="color:var(--text-dim); font-weight:500;">🔧 Test environment & Data prep</td>
                 <td style="text-align:center; color:var(--text-faint);">—</td>
                 <td style="text-align:center;">
                   <input id="testEnvEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
                 </td>
-                <td style="text-align:center;">—</td>
+                <td style="text-align:center; color:var(--text-faint);">—</td>
                 <td style="text-align:center;">
-                  <select id="testEnvStatus" onchange="saveBufferValues()" style="font-size:11px; padding:2px 6px; border-radius:6px;">
+                  <select id="testEnvStatus" onchange="saveBufferValues(); updateFixedRowStatusStyle('testEnvStatus')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:none; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; text-align:center;">
                     <option value="Not yet started">Not yet started</option>
                     <option value="In progress">In progress</option>
                     <option value="Done">Done</option>
                   </select>
                 </td>
+                <td></td>
               </tr>
             </tbody>
             <tbody id="testRowTableBody"></tbody>
@@ -1742,81 +1744,127 @@ async function logActivity(action, details = {}) {
     created_at: new Date().toISOString()
   };
 
-  // Always save to localStorage as primary store
+  // Always save to localStorage (instant, no network)
   try {
     const existing = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
     existing.unshift(entry);
-    if (existing.length > 200) existing.splice(200); // keep last 200
+    if (existing.length > 300) existing.splice(300);
     localStorage.setItem(LOCAL_LOG_KEY, JSON.stringify(existing));
-  } catch (e) { console.warn('Local log failed', e); }
+  } catch (e) { /* ignore */ }
 
-  // Also try Supabase (optional — won't fail if table missing)
+  // Also save to Supabase for cross-user visibility
   try {
     await sbClient.from('activity_log').insert({
-      user_email: entry.user_email, action, details,
+      user_email: entry.user_email,
+      action,
+      details,
       created_at: entry.created_at
     });
-  } catch (e) { /* silently ignore — table may not exist */ }
+  } catch (e) { /* silently ignore if table missing */ }
 }
 
 async function openActivityLog() {
   const listEl = document.getElementById('activityLogList');
-  listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:8px;">Loading…</div>';
+  listEl.innerHTML = `<div style="color:var(--text-faint); font-size:12px; padding:16px; text-align:center;">Loading…</div>`;
   document.getElementById('activityLogModal').classList.add('show');
 
-  // Load from localStorage first (always available)
   let logs = [];
-  try {
-    logs = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
-  } catch(e) {}
 
-  // Also try Supabase
+  // Try Supabase first — has all users' logs
   try {
-    const { data } = await sbClient
+    const { data, error } = await sbClient
       .from('activity_log')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(100);
-    if (data && data.length > 0) {
-      // Merge — Supabase has shared logs, localStorage has local
-      const supaIds = new Set(data.map(d => d.created_at));
-      const localOnly = logs.filter(l => !supaIds.has(l.created_at));
-      logs = [...localOnly, ...data].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      .limit(200);
+
+    if (!error && data && data.length > 0) {
+      logs = data;
     }
-  } catch(e) { /* use localStorage only */ }
+  } catch (e) { /* fall through to localStorage */ }
+
+  // Merge with localStorage (has local unsaved entries)
+  try {
+    const local = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
+    if (local.length > 0) {
+      const supaIds = new Set(logs.map(l => l.created_at));
+      const localOnly = local.filter(l => !supaIds.has(l.created_at));
+      logs = [...localOnly, ...logs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+  } catch (e) { /* ignore */ }
 
   if (logs.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:16px; text-align:center; font-style:italic;">No activity recorded yet.<br><span style="font-size:11px;">Activity will appear here as you use the app.</span></div>';
+    listEl.innerHTML = `
+      <div style="text-align:center; padding:32px 20px;">
+        <div style="font-size:32px; margin-bottom:12px;">📋</div>
+        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:6px;">No activity yet</div>
+        <div style="font-size:12px; color:var(--text-faint);">Actions like adding people, assigning tasks, marking leaves will appear here.</div>
+      </div>`;
     return;
   }
 
   const ACTION_ICONS = {
-    'Bulk status update': '🔄', 'Bulk delete': '🗑️', 'Note added': '📝',
     'Release item added': '➕', 'Release item edited': '✏️', 'Release item deleted': '🗑️',
-    'Person added': '👤', 'Person deleted': '👤', 'Login': '🔐', 'Password changed': '🔒'
+    'Bulk status update': '🔄', 'Bulk delete': '🗑️',
+    'Note added': '📝',
+    'Person added': '👤', 'Person edited': '✏️', 'Person deleted': '🗑️',
+    'Daily plan assigned': '📅', 'Daily plan cleared': '❌',
+    'Leave marked': '🏖️',
+    'Login': '🔐', 'Password changed': '🔒'
   };
 
-  listEl.innerHTML = logs.slice(0, 100).map(entry => {
+  const ACTION_COLORS = {
+    'Release item added': '#dcfce7:#15803d', 'Release item edited': '#dbeafe:#1d4ed8',
+    'Release item deleted': '#fee2e2:#dc2626', 'Bulk delete': '#fee2e2:#dc2626',
+    'Bulk status update': '#fef3c7:#b45309',
+    'Note added': '#f3e8ff:#7e22ce',
+    'Person added': '#dcfce7:#15803d', 'Person edited': '#dbeafe:#1d4ed8',
+    'Person deleted': '#fee2e2:#dc2626',
+    'Daily plan assigned': '#dbeafe:#1d4ed8', 'Daily plan cleared': '#fee2e2:#dc2626',
+    'Leave marked': '#fef3c7:#b45309',
+  };
+
+  listEl.innerHTML = logs.slice(0, 150).map(entry => {
     const icon = ACTION_ICONS[entry.action] || '📌';
+    const colorStr = ACTION_COLORS[entry.action] || '#f1f5f9:#64748b';
+    const [cbg, cfg] = colorStr.split(':');
     const time = new Date(entry.created_at).toLocaleString('en-IN', {
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
+
     const details = entry.details || {};
     const detailParts = [];
-    if (details.items) detailParts.push(`Items: ${Array.isArray(details.items) ? details.items.join(', ') : details.items}`);
-    if (details.newStatus) detailParts.push(`→ ${details.newStatus}`);
-    if (details.count) detailParts.push(`${details.count} items`);
-    if (details.note) detailParts.push(`"${String(details.note).slice(0,60)}"`);
     if (details.name) detailParts.push(details.name);
+    if (details.project) detailParts.push(`→ ${details.project}`);
+    if (details.devPod) detailParts.push(`[${details.devPod}]`);
+    if (details.releaseDate) detailParts.push(`📅 ${details.releaseDate}`);
+    if (details.newStatus) detailParts.push(`→ ${details.newStatus}`);
+    if (details.items && Array.isArray(details.items)) detailParts.push(details.items.join(', '));
+    if (details.count) detailParts.push(`(${details.count} items)`);
+    if (details.from && details.to) detailParts.push(`${details.from} – ${details.to}`);
+    if (details.date) detailParts.push(details.date);
+    if (details.type && details.type !== 'Cleared') detailParts.push(details.type);
+    if (details.type === 'Cleared') detailParts.push('Cleared');
+    if (details.note) detailParts.push(`"${String(details.note).slice(0, 60)}"`);
     const detailStr = detailParts.join(' · ');
 
+    // Avatar initials from email
+    const emailParts = (entry.user_email || '?').split('@');
+    const initials = emailParts[0].slice(0, 2).toUpperCase();
+
     return `
-      <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft);">
-        <span style="font-size:18px; flex-shrink:0;">${icon}</span>
+      <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft); align-items:flex-start;">
+        <div style="width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white; flex-shrink:0;">${initials}</div>
         <div style="flex:1; min-width:0;">
-          <div style="font-size:13px; font-weight:600; color:var(--text);">${escapeHtml(entry.action)}</div>
-          ${detailStr ? `<div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">${escapeHtml(detailStr)}</div>` : ''}
-          <div style="font-size:10.5px; color:var(--text-faint); margin-top:3px;">${escapeHtml(entry.user_email || '')} · ${time}</div>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="background:${cbg}; color:${cfg}; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">${icon} ${escapeHtml(entry.action)}</span>
+          </div>
+          ${detailStr ? `<div style="font-size:12px; color:var(--text-dim); margin-top:3px;">${escapeHtml(detailStr)}</div>` : ''}
+          <div style="font-size:10.5px; color:var(--text-faint); margin-top:3px; display:flex; gap:8px;">
+            <span>👤 ${escapeHtml(entry.user_email || 'Unknown')}</span>
+            <span>🕐 ${time}</span>
+          </div>
         </div>
       </div>`;
   }).join('');
@@ -2449,7 +2497,6 @@ function syncTestPlanToProjects() {
     if (!plan) return;
 
     const metrics = computeTestPlanMetrics(plan);
-    const autoStatus = computeAutoStatus(plan);
 
     // Sync Total QA efforts
     if (metrics.totalEffort > 0 && String(proj.effort) !== String(metrics.totalEffort)) {
@@ -2463,10 +2510,15 @@ function syncTestPlanToProjects() {
       changed = true;
     }
 
-    // Sync status
-    if (autoStatus && proj.status !== autoStatus) {
-      proj.status = autoStatus;
-      changed = true;
+    // Sync status ONLY if test plan has environment rows with actual progress
+    // Don't override manually set status (e.g. from bulk update)
+    const hasRows = plan.rows && plan.rows.length > 0;
+    if (hasRows) {
+      const autoStatus = computeAutoStatus(plan);
+      if (autoStatus && proj.status !== autoStatus) {
+        proj.status = autoStatus;
+        changed = true;
+      }
     }
   });
   return changed;
@@ -2508,11 +2560,13 @@ function saveProject() {
         state.dailyPlan.forEach(d => { if (d.project === oldName) d.project = name; });
       }
     }
+    logActivity('Release item edited', { name, devPod, releaseDate });
   } else {
     state.projects.push({
       id: uid(), name, jiraUrl, releaseDate, devPod, goAheadBy,
       buildDate: '', effort: '', status: 'Not started'
     });
+    logActivity('Release item added', { name, devPod, releaseDate });
   }
   editingProjectId = null;
   closeModal('projectModal');
@@ -2527,6 +2581,7 @@ function deleteProject(id) {
   if (proj) {
     state.allocations = state.allocations.filter(a => a.project !== proj.name);
     state.dailyPlan = state.dailyPlan.filter(d => d.project !== proj.name);
+    logActivity('Release item deleted', { name: proj.name });
   }
   delete state.testPlans[id];
   if (selectedTestPlanProjectId === id) selectedTestPlanProjectId = null;
@@ -2765,6 +2820,18 @@ function deleteTestRow(id) {
   renderTestPlan();
 }
 
+function updateFixedRowStatusStyle(id) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const STATUS_STYLES = {
+    'Not yet started': 'background:var(--panel-3); color:var(--text-faint);',
+    'In progress':     'background:var(--amber-dim); color:var(--amber);',
+    'Done':            'background:#dcfce7; color:#15803d;'
+  };
+  const style = STATUS_STYLES[sel.value] || STATUS_STYLES['Not yet started'];
+  sel.setAttribute('style', `${style} padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:none; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; text-align:center; width:auto;`);
+}
+
 function saveBufferValues() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   plan.testPrepEffort = parseFloat(document.getElementById('testPrepEffort').value) || 0;
@@ -2834,6 +2901,9 @@ function renderTestPlan() {
   document.getElementById('testEnvEffort').value = plan.testEnvEffort || '';
   document.getElementById('testEnvStatus').value = plan.testEnvStatus || 'Not yet started';
   document.getElementById('testBufferEffort').value = plan.buffer.effort || '';
+  // Apply colored badge style to fixed row status selects
+  updateFixedRowStatusStyle('testPrepStatus');
+  updateFixedRowStatusStyle('testEnvStatus');
 
   // Totals: cases from environment rows; effort = test prep + env prep + rows + buffer
   const rowsCases = plan.rows.reduce((s, r) => s + (r.cases || 0), 0);
@@ -3145,6 +3215,7 @@ function buildTestPlanProjectSectionHtml(proj) {
         const person = state.people.find(p => p.id === r.assigneeId);
         const rowStatus = r.status || 'Not yet started';
         const statusColors = { 'Not yet started': '#f1f5f9:#64748b', 'In progress': '#fef3c7:#b45309', 'Done': '#dcfce7:#15803d' };
+        const fixedStatusBadge = (s) => { const [bg,fg] = (statusColors[s] || statusColors['Not yet started']).split(':'); return `<span style="background:${bg}; color:${fg}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;">${s}</span>`; };
         const [sbg, sfg] = (statusColors[rowStatus] || '#f1f5f9:#64748b').split(':');
         return `
           <tr class="row-env">
@@ -3153,7 +3224,7 @@ function buildTestPlanProjectSectionHtml(proj) {
             <td class="r">${r.cases || 0}</td>
             <td class="r">${r.effort || 0}</td>
             <td>${person ? escapeHtml(person.name) : '—'}</td>
-            <td><span style="background:${sbg}; color:${sfg}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(rowStatus)}</span></td>
+            <td>${fixedStatusBadge(rowStatus)}</td>
           </tr>`;
       }).join('')
     : `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:18px; font-style:italic;">No environments added</td></tr>`;
@@ -3205,14 +3276,14 @@ function buildTestPlanProjectSectionHtml(proj) {
                 <td class="r">—</td><td class="r">—</td>
                 <td class="r">${metrics.testPrepEffort || 0}</td>
                 <td>—</td>
-                <td>${(() => { const s = plan.testPrepStatus || 'Not yet started'; const sc = s === 'Done' ? '#dcfce7:#15803d' : s === 'In progress' ? '#fef3c7:#b45309' : '#f1f5f9:#64748b'; const [bg,fg] = sc.split(':'); return `<span style="background:${bg}; color:${fg}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">${s}</span>`; })()}</td>
+                <td>${fixedStatusBadge(plan.testPrepStatus || 'Not yet started')}</td>
               </tr>
               <tr class="row-prep">
                 <td>🔧 Test environment & Data prep</td>
                 <td class="r">—</td><td class="r">—</td>
                 <td class="r">${metrics.testEnvEffort || 0}</td>
                 <td>—</td>
-                <td>${(() => { const s = plan.testEnvStatus || 'Not yet started'; const sc = s === 'Done' ? '#dcfce7:#15803d' : s === 'In progress' ? '#fef3c7:#b45309' : '#f1f5f9:#64748b'; const [bg,fg] = sc.split(':'); return `<span style="background:${bg}; color:${fg}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">${s}</span>`; })()}</td>
+                <td>${fixedStatusBadge(plan.testEnvStatus || 'Not yet started')}</td>
               </tr>
               ${envRowsHtml}
               <tr class="row-buffer">
@@ -4469,13 +4540,11 @@ function shiftMonth(delta) {
 }
 
 function toggleLeave(personId, dateKey) {
-  // Block weekends and holidays
   const d = new Date(dateKey + 'T00:00:00');
   const dow = d.getDay();
   if (dow === 0 || dow === 6) return;
   if (state.holidays.some(h => h.date === dateKey)) return;
 
-  // Migrate old array format to object format
   if (Array.isArray(state.leaves[personId])) {
     const obj = {};
     state.leaves[personId].forEach(date => { obj[date] = 'PL'; });
@@ -4485,15 +4554,26 @@ function toggleLeave(personId, dateKey) {
     state.leaves[personId] = {};
   }
 
-  // Cycle: empty → PL → UPL → empty
   const current = state.leaves[personId][dateKey];
+  const person = state.people.find(p => p.id === personId);
+  let newType = '';
+
   if (!current) {
     state.leaves[personId][dateKey] = 'PL';
+    newType = 'PL';
   } else if (current === 'PL') {
     state.leaves[personId][dateKey] = 'UPL';
+    newType = 'UPL';
   } else {
     delete state.leaves[personId][dateKey];
+    newType = 'Cleared';
   }
+
+  logActivity('Leave marked', {
+    name: person?.name || personId,
+    date: formatDateDisplay(dateKey),
+    type: newType
+  });
 
   saveState();
   renderLeaveCalendar();
@@ -4679,15 +4759,18 @@ function saveDailyPlan() {
   if (!personId || !project || !start || !end) return;
   const dates = dateRange(start, end);
   if (dates.length === 0) return;
-  // A person can now be assigned to more than one project on the same day
-  // (e.g. working part of the day on each). We only skip an exact duplicate
-  // (same person, same project, same date) rather than wiping other
-  // projects already assigned to that person on these dates.
   dates.forEach(date => {
     const alreadyExists = state.dailyPlan.some(d => d.personId === personId && d.project === project && d.date === date);
     if (!alreadyExists) {
       state.dailyPlan.push({ id: uid(), personId, project, date });
     }
+  });
+  const person = state.people.find(p => p.id === personId);
+  logActivity('Daily plan assigned', {
+    name: person?.name || personId,
+    project,
+    from: formatDateDisplay(start),
+    to: formatDateDisplay(end)
   });
   closeModal('dailyPlanModal');
   saveState();
@@ -4695,10 +4778,19 @@ function saveDailyPlan() {
 }
 
 function clearDailyPlanCell(personId, date, entryId) {
+  const entry = state.dailyPlan.find(d => d.id === entryId || (d.personId === personId && d.date === date));
+  const person = state.people.find(p => p.id === personId);
   if (entryId) {
     state.dailyPlan = state.dailyPlan.filter(d => d.id !== entryId);
   } else {
     state.dailyPlan = state.dailyPlan.filter(d => !(d.personId === personId && d.date === date));
+  }
+  if (entry) {
+    logActivity('Daily plan cleared', {
+      name: person?.name || personId,
+      project: entry.project,
+      date: formatDateDisplay(date)
+    });
   }
   saveState();
   renderDailyPlan();
