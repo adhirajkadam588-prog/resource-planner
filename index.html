@@ -150,6 +150,7 @@
     transition: all 0.12s;
   }
   /* Colorful icons per section */
+  [data-tab="dashboard"] .nav-ico  { background: linear-gradient(135deg,rgba(124,58,237,0.2),rgba(37,99,235,0.2)); color: #a78bfa; }
   [data-tab="people"] .nav-ico    { background: rgba(139,92,246,0.2); color: #a78bfa; }
   [data-tab="projects"] .nav-ico  { background: rgba(14,165,233,0.2); color: #38bdf8; }
   [data-tab="testplan"] .nav-ico  { background: rgba(16,185,129,0.2); color: #34d399; }
@@ -460,6 +461,20 @@
     </div>
 
     <nav class="tabs">
+      <!-- Search bar -->
+      <div style="padding:4px 8px 10px; position:relative;">
+        <input id="globalSearch" type="text" placeholder="🔍 Search people, releases, VMs…"
+          oninput="renderGlobalSearch(this.value)"
+          onfocus="document.getElementById('searchResults').style.display='block'"
+          style="width:100%; font-size:11.5px; padding:7px 10px 7px 10px; border-radius:8px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; box-sizing:border-box;"
+          autocomplete="off">
+        <div id="searchResults" style="display:none; position:absolute; left:8px; right:8px; top:100%; background:#1e293b; border:1px solid #334155; border-radius:10px; z-index:50; max-height:280px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
+      <div class="nav-section-label">Home</div>
+      <button class="tab-btn" data-tab="dashboard" data-title="Dashboard" data-desc="Today's snapshot — who's free, urgent alerts, what's happening right now">
+        <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+        Dashboard
+      </button>
       <div class="nav-section-label">Setup</div>
       <button class="tab-btn active" data-tab="people" data-title="People" data-desc="Team roster available for resource planning">
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
@@ -624,6 +639,11 @@
     </div>
   </div>
 
+  <!-- DASHBOARD TAB -->
+  <div class="tab-content" id="tab-dashboard" style="display:none;">
+    <div id="dashboardContent"></div>
+  </div>
+
   <!-- PROJECTS TAB -->
   <div class="tab-content" id="tab-projects" style="display:none;">
     <div class="panel">
@@ -751,6 +771,44 @@
         <span>A person can be assigned to more than one project on the same day — assign again with a different project to add it alongside</span>
       </div>
     </div>
+
+    <!-- AI Assistant Panel -->
+    <div class="panel" id="aiChatPanel">
+      <div class="panel-head" style="margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#2563eb); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">✨</div>
+          <div>
+            <h3 style="margin:0;">AI Planning Assistant</h3>
+            <div class="desc">Ask anything about your team, assignments, availability, or releases</div>
+          </div>
+        </div>
+        <button class="ghost" onclick="clearAIChat()" style="font-size:12px;">Clear</button>
+      </div>
+
+      <!-- Suggested questions -->
+      <div id="aiSuggestions" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+        <button onclick="askAI(this.textContent)" style="background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:20px; padding:5px 12px; font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.12s;" onmouseover="this.style.background='var(--accent)'; this.style.color='white';" onmouseout="this.style.background='var(--accent-dim)'; this.style.color='var(--accent)';">Who is free today?</button>
+        <button onclick="askAI(this.textContent)" style="background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:20px; padding:5px 12px; font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.12s;" onmouseover="this.style.background='var(--accent)'; this.style.color='white';" onmouseout="this.style.background='var(--accent-dim)'; this.style.color='var(--accent)';">When is Harish next free?</button>
+        <button onclick="askAI(this.textContent)" style="background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:20px; padding:5px 12px; font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.12s;" onmouseover="this.style.background='var(--accent)'; this.style.color='white';" onmouseout="this.style.background='var(--accent-dim)'; this.style.color='var(--accent)';">Which releases are at risk?</button>
+        <button onclick="askAI(this.textContent)" style="background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:20px; padding:5px 12px; font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.12s;" onmouseover="this.style.background='var(--accent)'; this.style.color='white';" onmouseout="this.style.background='var(--accent-dim)'; this.style.color='var(--accent)';">Who is working on what this week?</button>
+        <button onclick="askAI(this.textContent)" style="background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:20px; padding:5px 12px; font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.12s;" onmouseover="this.style.background='var(--accent)'; this.style.color='white';" onmouseout="this.style.background='var(--accent-dim)'; this.style.color='var(--accent)';">Which VMs are expiring soon?</button>
+        <button onclick="askAI(this.textContent)" style="background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:20px; padding:5px 12px; font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:500; transition:all 0.12s;" onmouseover="this.style.background='var(--accent)'; this.style.color='white';" onmouseout="this.style.background='var(--accent-dim)'; this.style.color='var(--accent)';">Suggest who to assign for a new task</button>
+      </div>
+
+      <!-- Chat messages -->
+      <div id="aiChatMessages" style="min-height:80px; max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; padding:4px 0;"></div>
+
+      <!-- Input -->
+      <div style="display:flex; gap:8px;">
+        <input id="aiChatInput" type="text" placeholder="Ask about your team, assignments, releases, or VMs…"
+          style="flex:1; padding:10px 14px; border-radius:10px; font-size:13px;"
+          onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendAIMessage(); }">
+        <button class="action" id="aiSendBtn" onclick="sendAIMessage()" style="padding:10px 18px; white-space:nowrap;">
+          Send ↑
+        </button>
+      </div>
+      <div style="font-size:10.5px; color:var(--text-faint); margin-top:6px;">Powered by Claude · Knows your team, releases, daily plan, and VMs</div>
+    </div>
   </div>
 
   <!-- CAPACITY TAB -->
@@ -828,6 +886,10 @@
           <div class="desc">Filter by Release/GA date, then pick a release item to view or edit its test matrix</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
+          <button class="ghost" onclick="openCopyTestPlanModal()" style="display:flex; align-items:center; gap:6px; font-size:12.5px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy plan
+          </button>
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleTestPlanReportMenu()"><span class="ico">📄</span> Share report</button>
             <div class="export-menu" id="testPlanReportMenu">
@@ -1032,6 +1094,29 @@
     </div>
   </div>
 
+  <!-- Copy Test Plan Modal -->
+  <div class="modal-overlay" id="copyTestPlanModal">
+    <div class="modal" style="width:440px;">
+      <h3>📋 Copy test plan</h3>
+      <div style="font-size:12.5px; color:var(--text-faint); margin-bottom:16px; line-height:1.6;">
+        Copy environments from one release item's test plan to another. Efforts and status will be reset to 0 / "Not yet started".
+      </div>
+      <div class="field">
+        <label>Copy FROM</label>
+        <select id="copyTPFrom" style="width:100%;"></select>
+      </div>
+      <div class="field">
+        <label>Copy TO</label>
+        <select id="copyTPTo" style="width:100%;"></select>
+      </div>
+      <div id="copyTPPreview" style="background:var(--panel-2); border-radius:9px; padding:12px 14px; font-size:12px; color:var(--text-dim); min-height:40px; margin-bottom:4px;"></div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="closeModal('copyTestPlanModal')">Cancel</button>
+        <button class="action" onclick="copyTestPlan()">Copy plan</button>
+      </div>
+    </div>
+  </div>
+
   <!-- VM Manage Groups Modal -->
   <div class="modal-overlay" id="vmPodsModal">
     <div class="modal" style="width:440px;">
@@ -1160,11 +1245,11 @@
               <th>Projects</th>
               <th>Test plan</th>
               <th>Daily plan</th>
-              <th>Allocation</th>
-              <th>Capacity</th>
               <th>Leave</th>
               <th>Holidays</th>
               <th>Summary</th>
+              <th style="white-space:nowrap;">VM Repo</th>
+              <th style="white-space:nowrap;">Copy from</th>
               <th></th>
             </tr>
           </thead>
@@ -1691,36 +1776,58 @@ function applyAccessUI() {
   if (adminTabBtn) adminTabBtn.style.display = isAdmin ? 'flex' : 'none';
   if (adminNavSection) adminNavSection.style.display = isAdmin ? 'block' : 'none';
 
-  // Read-only banner for non-admin users
+  // Smart banner — only show if user actually has restrictions
   const existingBanner = document.getElementById('readOnlyBanner');
-  if (!isAdmin && !existingBanner) {
-    const banner = document.createElement('div');
-    banner.id = 'readOnlyBanner';
-    banner.style.cssText = 'background:var(--amber-dim);color:var(--amber);font-size:12px;font-weight:500;padding:8px 16px;border-radius:6px;margin-bottom:12px;';
-    banner.innerHTML = '⚠ You have limited access. Some sections may be read-only or hidden based on your permissions.';
-    const mainEl = document.querySelector('.main');
-    if (mainEl) mainEl.insertBefore(banner, mainEl.firstChild);
-  } else if (isAdmin && existingBanner) {
-    existingBanner.remove();
+  const mainEl = document.querySelector('.main');
+
+  if (!isAdmin) {
+    const hiddenTabs  = Object.entries(currentUserPermissions).filter(([,v]) => v === 'none').map(([k]) => k);
+    const readOnlyTabs = Object.entries(currentUserPermissions).filter(([,v]) => v === 'read').map(([k]) => k);
+    const tabLabels = { people:'People', projects:'Release', testplan:'Test Plan',
+      dailyplan:'Daily Plan', leave:'Leave', holidays:'Holidays',
+      summary:'Summary', vmrepo:'VM Repository' };
+
+    if (hiddenTabs.length > 0 || readOnlyTabs.length > 0) {
+      let bannerMsg = '';
+      if (hiddenTabs.length > 0)
+        bannerMsg += `🚫 Hidden: <strong>${hiddenTabs.map(k => tabLabels[k]||k).join(', ')}</strong>`;
+      if (hiddenTabs.length > 0 && readOnlyTabs.length > 0) bannerMsg += ' &nbsp;·&nbsp; ';
+      if (readOnlyTabs.length > 0)
+        bannerMsg += `👁 Read-only: <strong>${readOnlyTabs.map(k => tabLabels[k]||k).join(', ')}</strong>`;
+
+      if (!existingBanner) {
+        const banner = document.createElement('div');
+        banner.id = 'readOnlyBanner';
+        banner.style.cssText = 'background:var(--amber-dim); color:var(--amber); font-size:12px; font-weight:500; padding:8px 16px; border-radius:6px; margin-bottom:12px; display:flex; align-items:center; gap:8px;';
+        banner.innerHTML = `<span>⚠</span><span>${bannerMsg}</span>`;
+        if (mainEl) mainEl.insertBefore(banner, mainEl.firstChild);
+      } else {
+        existingBanner.innerHTML = `<span>⚠</span><span>${bannerMsg}</span>`;
+      }
+    } else {
+      // No restrictions — remove banner if it exists
+      if (existingBanner) existingBanner.remove();
+    }
+  } else {
+    if (existingBanner) existingBanner.remove();
   }
 
-  // Help tab is always visible to everyone — no permission needed
+  // Help and Dashboard tabs always visible to everyone
   const helpBtn = document.querySelector('.tab-btn[data-tab="help"]');
   if (helpBtn) helpBtn.style.display = 'flex';
+  const dashBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
+  if (dashBtn) dashBtn.style.display = 'flex';
 
-  if (isAdmin) return; // Admin sees everything
+  if (isAdmin) return;
 
-  // For non-admins enforce per-section permissions
-  const SECTION_TABS = ['people','projects','testplan','dailyplan','leave','holidays','summary'];
+  const SECTION_TABS = ['people','projects','testplan','dailyplan','leave','holidays','summary','vmrepo'];
   SECTION_TABS.forEach(section => {
     const perm = currentUserPermissions[section] || 'read';
     const tabBtn = document.querySelector(`.tab-btn[data-tab="${section}"]`);
     const tabContent = document.getElementById(`tab-${section}`);
 
-    // Hide tab entirely if permission is 'none'
     if (tabBtn) tabBtn.style.display = perm === 'none' ? 'none' : 'flex';
 
-    // If read-only, hide all add/edit/delete buttons inside that tab
     if (perm === 'read' && tabContent) {
       tabContent.querySelectorAll('.action').forEach(btn => {
         if (!btn.classList.contains('export-btn')) btn.style.display = 'none';
@@ -1729,7 +1836,40 @@ function applyAccessUI() {
         btn.style.display = 'none';
       });
     }
+    // If previously hidden tab becomes visible — restore buttons
+    if (perm !== 'read' && tabContent) {
+      tabContent.querySelectorAll('.action, .icon-btn').forEach(btn => {
+        btn.style.display = '';
+      });
+    }
   });
+}
+
+// Real-time permission sync — listens for changes to current user's role row
+let _permChannel = null;
+
+function initPermissionRealtime(userRowId) {
+  if (_permChannel) { sbClient.removeChannel(_permChannel); _permChannel = null; }
+  if (!userRowId) return;
+
+  _permChannel = sbClient
+    .channel('user-perm-' + userRowId)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'user_roles',
+      filter: `id=eq.${userRowId}`
+    }, async (payload) => {
+      const newPerms = payload.new?.permissions;
+      const newRole  = payload.new?.role;
+      if (newPerms) currentUserPermissions = newPerms;
+      if (newRole)  currentUserRole = newRole;
+      applyAccessUI();
+      markAllDirty();
+      renderAll();
+      showToastMsg('🔄 Your permissions were updated by admin');
+    })
+    .subscribe();
 }
 
 async function fetchUserRole(userId) {
@@ -1766,6 +1906,8 @@ async function fetchUserRole(userId) {
     currentUserRole = (data && data.role) ? data.role : 'member';
     currentUserPermissions = (data && data.permissions) ? data.permissions : { ...DEFAULT_PERMISSIONS };
     console.log('Role loaded:', currentUserRole, '| Permissions:', currentUserPermissions);
+    // Start listening for permission changes on this user's row
+    if (data?.id) initPermissionRealtime(data.id);
   } catch (e) {
     console.warn('fetchUserRole exception:', e.message);
     currentUserRole = 'member';
@@ -1790,13 +1932,94 @@ async function initApp(user) {
   await loadState();
   if (currentUserRole === 'admin') await fetchAllUserRoles();
 
+  // Seed Excel VM data once if not done yet
+  seedVMData();
+
   // Set initial active tab and mark all dirty
-  _activeTab = 'people';
+  _activeTab = 'dashboard';
   markAllDirty();
-  renderAll(); // renders only active tab (people)
+  renderAll(); // renders only active tab (dashboard)
 
   applyAccessUI();
   initRealtime();
+}
+
+function seedVMData() {
+  if (state.vmSeeded) return;
+  if (!state.vms) state.vms = [];
+  if (state.vms.length > 0) { state.vmSeeded = true; return; }
+  state.vmSeeded = true;
+
+  state.vmPods = ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing',
+    'KLA Machines','Hot Folder','BJ','AppConnect Server',
+    'AppConnect Client O21','AppConnect Client O24','AppConnect Client O365'];
+
+  const d = (pod,member,details,inUse,usedBy,startDate,endDate,expiry,notes) => ({
+    id: uid(), pod, member:member||'', details, inUse:!!inUse,
+    usedBy:usedBy||'', startDate:startDate||'', endDate:endDate||'',
+    expiry:expiry||'', notes:notes||''
+  });
+
+  state.vms = [
+    // Akash
+    d('Akash','Yashna',  'S19x64O21X64-Yashna - 172.30.34.108',            false,'','','','',''),
+    d('Akash','Yashna',  'Win11x64O24x64-Yashna - 172.30.34.82',            true,'Mayuri','2026-06-29','2026-07-03','',''),
+    d('Akash','Mayuri',  'Win11x64O365x64-Mayuri - 172.30.34.80',           true,'Shilpa','2026-06-29','2026-07-06','',''),
+    d('Akash','Mayuri',  'Win10x64O365x32-Mayuri - 172.30.34.51',           true,'','','','',''),
+    d('Akash','Harish',  'Win10x64O365x32-HarishZ - 172.30.34.81',          true,'Harish','2026-07-01','2026-07-01','',''),
+    d('Akash','Harish',  'Win11x64O365x64-HarishZ - 172.30.34.50',          true,'Harish','2026-07-02','2026-07-02','',''),
+    d('Akash','Kunal',   'Win11x64O19x64-Kunal - 172.30.34.94',             false,'','','','',''),
+    d('Akash','Kunal',   'S22x64O21X64-Kunal - 172.30.34.83',               true,'Kunal','2026-07-01','2026-07-02','',''),
+    d('Akash','Akash',   'W11x64O19x64-AkashK - 172.30.34.157',             true,'Harish','2026-07-01','2026-07-01','',''),
+    // Dikshit
+    d('Dikshit','Ajay D',   'S22x64O21X64-AjaykumarD - 172.30.34.87',       true,'Mayuri','2026-06-26','2026-07-01','','Hotfolder setup'),
+    d('Dikshit','Ajay D',   '2026W11O24-AjaykumarD - 172.30.34.48',          true,'AjayD','2026-06-23','2026-06-23','',''),
+    d('Dikshit','Ajay D',   '29327W10-AjaykumarD - 172.30.34.158',           false,'','','','',''),
+    d('Dikshit','Rushikesh','2023WS19x64O16x64-RushikeshG - 172.30.34.155', true,'Vishal','','','',''),
+    d('Dikshit','Ajay B',   'Win10x64O365x32-AjayB - 172.30.34.85',         true,'Kunal','2026-07-01','2026-07-02','',''),
+    d('Dikshit','Ajay B',   '2067W11O365-AjayB - 172.30.34.122',             true,'Vishal','2026-06-30','2026-07-01','',''),
+    d('Dikshit','Vishal',   'Win11x64O24x64-Vishal - 172.30.34.86',          false,'','','','',''),
+    d('Dikshit','Vishal',   'Win11x64O365x64-Vishal - 172.30.34.84',         true,'Dikshit','2026-06-30','2026-07-01','',''),
+    d('Dikshit','Dikshit',  'W10x64O16x64-Dikshit - 172.30.34.113',          false,'','','','',''),
+    d('Dikshit','Dikshit',  '1768W10O365-DikshitS - 172.30.34.??',           true,'Dikshit','2026-06-29','2026-06-30','',''),
+    // Regression VMs
+    d('Regression VMs','','Win11x64O365x64-QA_Regression - 172.30.34.115',  true,'AjayB','2026-06-30','2026-06-30','',''),
+    d('Regression VMs','','Win11x64O24x64-QA_Regression - 172.30.34.141',   true,'Ajay D','2026-06-09','2026-06-10','',''),
+    d('Regression VMs','','Win10x64O365x32-QA_Regression - 172.30.34.55',   false,'','','','','Beta'),
+    d('Regression VMs','','S22x64O21X64-QA_Regression - 172.30.34.127',     true,'Dikshit','2026-06-19','2026-06-19','',''),
+    // Automation VMs
+    d('Automation VMs','','W11X64O365X64-QA_Automation - 172.30.34.61',      true,'Vishal','2026-07-01','2026-07-02','',''),
+    d('Automation VMs','','QAW106436564-AUTOMATION-ADMINLESS - 172.30.34.29',true,'Mayuri','2026-07-01','2026-07-02','',''),
+    d('Automation VMs','','W10x64O365x32-QA_Automation - 172.30.34.93',      true,'ajay d','','','',''),
+    d('Automation VMs','','S19X64O19X64-QA_Automation - 172.30.34.43',       true,'ajay d','','','',''),
+    // Insider Testing
+    d('Insider Testing','','W11x64_O365x64-Beta Channel - 172.30.34.88',                            false,'','','','',''),
+    d('Insider Testing','','W11x64_O365x64-Current preview Channel - 172.30.34.89',                 false,'','','','','Permanent delete'),
+    d('Insider Testing','','W11X64O365x64-QA_Automation_Current preview channel - 172.30.34.58',    false,'','','','','Converted to Beta channel'),
+    // KLA Machines
+    d('KLA Machines','','Win11x64O365x64-KLA-QA1 - 172.30.34.117',true,'Kunal', '2026-05-11','2026-07-31','',''),
+    d('KLA Machines','','Win11x64O365x64-KLA-QA2 - 172.30.34.38', true,'Harish','2026-05-11','2026-07-31','',''),
+    d('KLA Machines','','Win11x64O24x64-KLA-QA - 172.30.34.104',  true,'Harish','2026-05-11','2026-07-31','',''),
+    d('KLA Machines','','Win11x64O21x64-KLA-QA - 172.30.34.105',  true,'Harish','2026-05-11','2026-07-31','',''),
+    d('KLA Machines','','Win10x64O365x32-KLA-QA - 172.30.34.106', true,'Mayuri','2026-05-11','2026-07-31','',''),
+    d('KLA Machines','','WS22O19x64-KLA-QA - 172.30.34.48',       true,'Harish','2026-05-11','2026-07-31','',''),
+    // Hot Folder
+    d('Hot Folder','','Hot Folder VM',true,'Ayush','','','',''),
+    // BJ
+    d('BJ','','BJW1064O36564 - 172.30.34.31', false,'','','','',''),
+    d('BJ','','BJW1164O36564 - 172.30.34.71', false,'','','','',''),
+    d('BJ','','UAP-BoJ-AdminServer - 172.30.34.75',false,'','','','',''),
+    // AppConnect Server
+    d('AppConnect Server','','28767WS25-Sujitkumar - 172.30.34.104',false,'','2026-06-26','2026-06-29','',''),
+    // AppConnect Client O21
+    d('AppConnect Client O21','','29080W11-SujitkumarS - 172.30.34.28',false,'','2026-06-08','2026-06-08','',''),
+    // AppConnect Client O24
+    d('AppConnect Client O24','','AyushG-Win1164O24 - 172.30.34.22',false,'','2026-06-08','2026-06-08','',''),
+    // AppConnect Client O365
+    d('AppConnect Client O365','','28811W11O24_SS - 172.30.34.128',false,'Rushikesh','','','',''),
+  ];
+
+  saveState();
 }
 
 function resetApp() {
@@ -2502,7 +2725,11 @@ async function adminUpdatePermission(rowId, section, value) {
     const { error } = await sbClient.from('user_roles').update({ permissions: newPerms }).eq('id', rowId);
     if (error) throw error;
     userRole.permissions = newPerms;
-  } catch (e) { console.error('updatePermission failed', e); }
+    showToastMsg(`✓ Permission updated for ${userRole.email.split('@')[0]}`);
+  } catch (e) {
+    console.error('updatePermission failed', e);
+    showToastMsg('✗ Failed to save permission');
+  }
 }
 
 async function adminUpdateRole(rowId, newRole) {
@@ -2513,6 +2740,7 @@ async function adminUpdateRole(rowId, newRole) {
     const ur = allUserRoles.find(r => r.id === rowId);
     if (ur) { ur.role = newRole; ur.permissions = perms; }
     renderAdminPanel();
+    showToastMsg(`✓ Role updated for ${ur?.email?.split('@')[0]}`);
   } catch (e) { console.error('adminUpdateRole failed', e); }
 }
 
@@ -2527,15 +2755,14 @@ async function adminRemoveUser(rowId, email) {
 }
 
 const SECTIONS_LIST = [
-  { key: 'people', label: 'People' },
-  { key: 'projects', label: 'Projects' },
-  { key: 'testplan', label: 'Test plan' },
+  { key: 'people',    label: 'People' },
+  { key: 'projects',  label: 'Projects' },
+  { key: 'testplan',  label: 'Test plan' },
   { key: 'dailyplan', label: 'Daily plan' },
-  { key: 'allocation', label: 'Allocation' },
-  { key: 'capacity', label: 'Capacity' },
-  { key: 'leave', label: 'Leave calendar' },
-  { key: 'holidays', label: 'Holidays' },
-  { key: 'summary', label: 'Summary' },
+  { key: 'leave',     label: 'Leave calendar' },
+  { key: 'holidays',  label: 'Holidays' },
+  { key: 'summary',   label: 'Summary' },
+  { key: 'vmrepo',    label: 'VM Repository' },
 ];
 
 function renderAdminPanel() {
@@ -2560,12 +2787,23 @@ function renderAdminPanel() {
       <td style="text-align:center;">
         <select onchange="adminUpdatePermission('${rowId}','${s.key}',this.value)"
                 ${isMe || ur.role === 'admin' ? 'disabled' : ''}
-                style="width:70px; font-size:11px; padding:2px 4px;">
+                style="width:68px; font-size:11px; padding:2px 4px;">
           <option value="read" ${(perms[s.key] || 'read') === 'read' ? 'selected' : ''}>Read</option>
           <option value="edit" ${perms[s.key] === 'edit' ? 'selected' : ''}>Edit</option>
           <option value="none" ${perms[s.key] === 'none' ? 'selected' : ''}>None</option>
         </select>
       </td>`).join('');
+
+    // Copy permissions from another user dropdown
+    const otherUsers = allUserRoles.filter(u => u.id !== rowId && u.role !== 'admin');
+    const copyFromCell = isMe || ur.role === 'admin' ? '<td>—</td>' : `
+      <td style="text-align:center;">
+        <select onchange="inheritPermissions('${rowId}', this.value); this.value='';"
+                style="width:110px; font-size:11px; padding:2px 4px; border-color:var(--accent);">
+          <option value="">Copy from…</option>
+          ${otherUsers.map(u => `<option value="${u.id}">${escapeHtml(u.email.split('@')[0])}</option>`).join('')}
+        </select>
+      </td>`;
 
     return `
       <tr style="${isMe ? 'background:var(--accent-dim);' : ''}">
@@ -2579,6 +2817,7 @@ function renderAdminPanel() {
           </select>
         </td>
         ${permCells}
+        ${copyFromCell}
         <td style="text-align:center;">
           ${!isMe ? `<button class="icon-btn" onclick="adminRemoveUser('${rowId}','${escapeHtml(ur.email)}')" style="color:var(--red);">✕</button>` : '—'}
         </td>
@@ -2587,10 +2826,535 @@ function renderAdminPanel() {
   }).join('');
 }
 
+async function inheritPermissions(targetRowId, sourceUserId) {
+  if (!sourceUserId) return;
+  const source = allUserRoles.find(u => u.id === sourceUserId);
+  const target = allUserRoles.find(u => u.id === targetRowId);
+  if (!source || !target) return;
+
+  const sourceName = source.email.split('@')[0];
+  if (!confirm(`Copy all permissions from ${sourceName} to ${target.email.split('@')[0]}? This will overwrite their current permissions.`)) return;
+
+  target.permissions = { ...source.permissions };
+
+  try {
+    await sbClient.from('user_roles').update({ permissions: target.permissions }).eq('id', targetRowId);
+    showToastMsg(`✓ Permissions copied from ${sourceName}`);
+    renderAdminPanel();
+  } catch (e) {
+    alert('Failed to save: ' + e.message);
+  }
+}
+
 
 
 // ---------- Tabs ----------
-// ====================== VM POD MANAGEMENT ======================
+// ====================== DASHBOARD ======================
+function renderDashboard() {
+  const el = document.getElementById('dashboardContent');
+  if (!el) return;
+
+  const today = toDateKey(new Date());
+  const todayDisplay = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  // 1. Team availability today
+  const dpPeople = state.people.filter(p => p.showInDailyPlan !== false);
+  const availToday = dpPeople.filter(p => isPersonFreeOn(p.id, today));
+  const busyToday  = dpPeople.filter(p => !isPersonFreeOn(p.id, today));
+
+  // 2. At-risk releases
+  const atRisk = state.projects.filter(proj => {
+    if (proj.status === 'Completed') return false;
+    const plan = state.testPlans?.[proj.id];
+    const effectiveBuild = plan?.milestones?.buildPickup || proj.buildDate || '';
+    const effectiveGoAhead = plan?.milestones?.mergedBuildGoAhead || proj.goAheadDate || '';
+    const effectiveQADone = plan?.milestones?.execWithBuffer || proj.completionDate || '';
+    return (effectiveBuild && effectiveBuild < today) ||
+           (effectiveGoAhead && effectiveGoAhead < today) ||
+           (effectiveQADone && effectiveQADone < today) ||
+           (effectiveQADone && proj.releaseDate && effectiveQADone > proj.releaseDate);
+  });
+
+  // 3. Expiring VMs (next 14 days)
+  const expiringVMs = (state.vms || []).filter(vm => {
+    if (!vm.expiry) return false;
+    const d = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+    return d >= 0 && d <= 14;
+  }).sort((a,b) => a.expiry.localeCompare(b.expiry));
+
+  // 4. Today's daily plan
+  const todayEntries = state.dailyPlan.filter(e => e.date === today);
+  const todayByPerson = {};
+  todayEntries.forEach(e => {
+    const p = state.people.find(x => x.id === e.personId);
+    if (!p) return;
+    if (!todayByPerson[p.name]) todayByPerson[p.name] = [];
+    todayByPerson[p.name].push(e.project);
+  });
+
+  // 5. Recently auto-freed VMs
+  const freedVMs = (state.vms || []).filter(vm => {
+    if (!vm.inUse || !vm.endDate) return false;
+    const d = Math.round((new Date(today+'T00:00:00') - new Date(vm.endDate+'T00:00:00')) / 86400000);
+    return d >= 0 && d <= 3;
+  });
+
+  const POD_COLORS_VM = {'Akash':'#dbeafe:#1d4ed8','Dikshit':'#dcfce7:#15803d','Regression VMs':'#fee2e2:#b91c1c','Automation VMs':'#f3e8ff:#7e22ce','Insider Testing':'#fef3c7:#b45309','KLA Machines':'#fce7f3:#9d174d'};
+
+  el.innerHTML = `
+    <!-- Header -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px;">Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} 👋</div>
+      <div style="font-family:'Inter Tight',sans-serif; font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.02em;">${todayDisplay}</div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid-4" style="margin-bottom:18px;">
+      <div class="stat-card">
+        <div class="label">Available today</div>
+        <div class="value green">${availToday.length}</div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${availToday.slice(0,3).map(p=>escapeHtml(p.name)).join(', ')}${availToday.length>3?' +more':''}</div>
+      </div>
+      <div class="stat-card" onclick="switchTabTo('summary')" style="cursor:pointer;" title="Click to view Release Health in Summary tab">
+        <div class="label">Releases at risk</div>
+        <div class="value ${atRisk.length > 0 ? 'red' : 'green'}">${atRisk.length}</div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${atRisk.length === 0 ? 'All on track 🟢' : 'View details in Summary →'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">VMs expiring ≤14d</div>
+        <div class="value ${expiringVMs.length > 0 ? 'amber' : ''}">${expiringVMs.length}</div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${expiringVMs.length === 0 ? 'All good' : expiringVMs.slice(0,1).map(v=>`${v.details.split('-')[0].trim()} (${formatDateDisplay(v.expiry)})`).join(', ')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Assigned today</div>
+        <div class="value">${todayEntries.length}</div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${todayEntries.length === 0 ? 'No assignments' : Object.keys(todayByPerson).slice(0,3).join(', ')}</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+
+      <!-- Today's plan -->
+      <div class="panel" style="margin:0;">
+        <div style="font-weight:700; font-size:14px; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">📅</span> Today's assignments
+        </div>
+        ${Object.keys(todayByPerson).length === 0
+          ? `<div style="color:var(--text-faint); font-size:12.5px; font-style:italic; padding:8px 0;">No one assigned today</div>`
+          : Object.entries(todayByPerson).map(([name, projects]) => `
+            <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border-soft);">
+              <div style="width:28px; height:28px; border-radius:7px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white; flex-shrink:0;">${escapeHtml(name.slice(0,2).toUpperCase())}</div>
+              <div>
+                <div style="font-size:12.5px; font-weight:600; color:var(--text);">${escapeHtml(name)}</div>
+                <div style="font-size:11px; color:var(--text-faint);">${projects.map(p=>escapeHtml(p)).join(', ')}</div>
+              </div>
+            </div>`).join('')
+        }
+      </div>
+
+      <!-- Team availability -->
+      <div class="panel" style="margin:0;">
+        <div style="font-weight:700; font-size:14px; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">👥</span> Team availability today
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${dpPeople.slice(0,8).map(p => {
+            const free = isPersonFreeOn(p.id, today);
+            return `<div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0;">
+              <div style="font-size:12.5px; color:var(--text); font-weight:500;">${escapeHtml(p.name)}</div>
+              <span style="background:${free?'#dcfce7':'#fee2e2'}; color:${free?'#15803d':'#dc2626'}; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">${free ? '🟢 Free' : '🔴 Busy'}</span>
+            </div>`;
+          }).join('')}
+          ${dpPeople.length > 8 ? `<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">+${dpPeople.length-8} more in Daily Plan tab</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts section -->
+    ${renderAlertsHtml()}
+  `;
+}
+
+function renderAlertsHtml() {
+  const today = toDateKey(new Date());
+  const alerts = [];
+
+  // VM expiry alerts
+  (state.vms || []).forEach(vm => {
+    if (!vm.expiry) return;
+    const daysLeft = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+    if (daysLeft < 0) {
+      alerts.push({ icon:'🖥️', level:'red', title:`VM expired ${Math.abs(daysLeft)}d ago`, detail:`${vm.details.split('-')[0].trim()} · used by ${vm.usedBy||'—'}`, action:'vmrepo' });
+    } else if (daysLeft <= 7) {
+      alerts.push({ icon:'🖥️', level:'amber', title:`VM expiring in ${daysLeft}d`, detail:`${vm.details.split('-')[0].trim()} · expires ${formatDateDisplay(vm.expiry)}`, action:'vmrepo' });
+    }
+  });
+
+  // VM end date passed but still marked in-use
+  (state.vms || []).forEach(vm => {
+    if (!vm.inUse || !vm.endDate) return;
+    const daysOver = Math.round((new Date(today+'T00:00:00') - new Date(vm.endDate+'T00:00:00')) / 86400000);
+    if (daysOver > 0) {
+      alerts.push({ icon:'🔓', level:'amber', title:`VM usage ended ${daysOver}d ago — still marked in use`, detail:`${vm.details.split('-')[0].trim()} · used by ${vm.usedBy||'—'}`, action:'vmrepo' });
+    }
+  });
+
+  // At-risk releases
+  state.projects.forEach(proj => {
+    if (proj.status === 'Completed') return;
+    const plan = state.testPlans?.[proj.id];
+    const effectiveBuild = plan?.milestones?.buildPickup || proj.buildDate || '';
+    if (effectiveBuild && effectiveBuild < today) {
+      const d = Math.round((new Date(today+'T00:00:00') - new Date(effectiveBuild+'T00:00:00')) / 86400000);
+      alerts.push({ icon:'📁', level:'red', title:`Build delay: ${escapeHtml(proj.name)}`, detail:`Dev to QA was ${formatDateDisplay(effectiveBuild)} (${d}d ago)`, action:'summary' });
+    }
+  });
+
+  if (alerts.length === 0) return '';
+
+  const COLORS = { red:'#fee2e2:#dc2626:#fca5a5', amber:'#fef9c3:#a16207:#fde047' };
+  return `
+    <div class="panel" style="margin-bottom:18px; border-color:#fca5a5;">
+      <div style="font-weight:700; font-size:14px; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:18px;">🚨</span> Alerts
+        <span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:700;">${alerts.length}</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        ${alerts.slice(0,8).map(a => {
+          const [bg,fg,border] = COLORS[a.level].split(':');
+          return `<div style="display:flex; align-items:center; gap:10px; background:${bg}; border:1px solid ${border}; border-radius:9px; padding:9px 14px;">
+            <span style="font-size:16px; flex-shrink:0;">${a.icon}</span>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:12.5px; font-weight:600; color:${fg};">${a.title}</div>
+              <div style="font-size:11px; color:${fg}; opacity:0.8; margin-top:1px;">${a.detail}</div>
+            </div>
+            <button onclick="switchTabTo('${a.action}')" style="background:${fg}; color:white; border:none; border-radius:7px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; flex-shrink:0;">→</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function switchTabTo(tabName) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+  if (btn) btn.click();
+}
+
+// ====================== GLOBAL SEARCH ======================
+function renderGlobalSearch(query) {
+  const resultsEl = document.getElementById('searchResults');
+  if (!resultsEl) return;
+  const q = (query || '').trim().toLowerCase();
+  if (!q) { resultsEl.style.display = 'none'; return; }
+  resultsEl.style.display = 'block';
+
+  const results = [];
+
+  // People
+  state.people.filter(p => p.name.toLowerCase().includes(q) || (p.title||'').toLowerCase().includes(q))
+    .slice(0,4).forEach(p => results.push({
+      icon:'👤', label: p.name, sub: p.title || p.devPod || 'Team member',
+      action: () => switchTabTo('people')
+    }));
+
+  // Release items
+  state.projects.filter(p => p.name.toLowerCase().includes(q) || (p.jiraUrl||'').toLowerCase().includes(q))
+    .slice(0,4).forEach(p => results.push({
+      icon:'📁', label: p.name, sub: `${p.devPod||''} · ${p.status||''}`,
+      action: () => switchTabTo('projects')
+    }));
+
+  // VMs
+  (state.vms||[]).filter(v => v.details.toLowerCase().includes(q) || (v.usedBy||'').toLowerCase().includes(q) || (v.pod||'').toLowerCase().includes(q))
+    .slice(0,4).forEach(v => results.push({
+      icon:'🖥️', label: v.details.split('-')[0].trim(), sub: `${v.pod||''} · ${v.inUse ? 'In use by '+v.usedBy : 'Free'}`,
+      action: () => switchTabTo('vmrepo')
+    }));
+
+  if (results.length === 0) {
+    resultsEl.innerHTML = '<div style="padding:12px 14px; color:#64748b; font-size:12.5px;">No results found</div>';
+    return;
+  }
+
+  resultsEl.innerHTML = results.map((r,i) => `
+    <div onclick="searchResultClick(${i})" style="display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer; border-bottom:1px solid #1e293b; transition:background 0.1s;"
+      onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background=''">
+      <span style="font-size:16px;">${r.icon}</span>
+      <div>
+        <div style="font-size:12.5px; font-weight:600; color:#e2e8f0;">${escapeHtml(r.label)}</div>
+        <div style="font-size:11px; color:#64748b;">${escapeHtml(r.sub)}</div>
+      </div>
+    </div>`).join('');
+
+  // Store results for click handler
+  window._searchResults = results;
+}
+
+function searchResultClick(index) {
+  const r = (window._searchResults || [])[index];
+  if (r) {
+    r.action();
+    document.getElementById('globalSearch').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+  }
+}
+
+// Close search on click outside
+document.addEventListener('click', e => {
+  const sr = document.getElementById('searchResults');
+  const gi = document.getElementById('globalSearch');
+  if (sr && gi && !sr.contains(e.target) && e.target !== gi) {
+    sr.style.display = 'none';
+  }
+});
+
+// ====================== VM AUTO-FREE ======================
+function checkVMAutoFree() {
+  if (!state.vms) return;
+  const today = toDateKey(new Date());
+  let changed = false;
+  state.vms.forEach(vm => {
+    if (vm.inUse && vm.endDate && vm.endDate < today) {
+      vm.inUse = false;
+      vm.usedBy = '';
+      changed = true;
+    }
+  });
+  if (changed) {
+    saveState();
+    if (document.querySelector('.tab-btn[data-tab="vmrepo"]')?.classList.contains('active')) {
+      renderVMRepo();
+    }
+  }
+}
+
+// ====================== COPY TEST PLAN ======================
+function openCopyTestPlanModal() {
+  if (state.projects.length < 2) {
+    alert('You need at least 2 release items to copy a test plan.');
+    return;
+  }
+  const fromSel = document.getElementById('copyTPFrom');
+  const toSel   = document.getElementById('copyTPTo');
+  const options = state.projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  fromSel.innerHTML = options;
+  toSel.innerHTML   = options;
+  // Default: from = current selected, to = next
+  if (selectedTestPlanProjectId) fromSel.value = selectedTestPlanProjectId;
+  if (toSel.options.length > 1) {
+    toSel.selectedIndex = fromSel.selectedIndex === 0 ? 1 : 0;
+  }
+  updateCopyTPPreview();
+  fromSel.addEventListener('change', updateCopyTPPreview);
+  toSel.addEventListener('change', updateCopyTPPreview);
+  document.getElementById('copyTestPlanModal').classList.add('show');
+}
+
+function updateCopyTPPreview() {
+  const fromId = document.getElementById('copyTPFrom').value;
+  const toId   = document.getElementById('copyTPTo').value;
+  const prev   = document.getElementById('copyTPPreview');
+  if (fromId === toId) {
+    prev.textContent = '⚠ Source and destination must be different.';
+    return;
+  }
+  const plan = getTestPlanForProject(fromId);
+  const envCount = plan.rows.length;
+  prev.innerHTML = `Will copy <strong>${envCount} environment row${envCount !== 1 ? 's' : ''}</strong> + Test prep & Env setup effort structure.<br>
+    <span style="color:var(--amber); font-size:11px;">Status will be reset to "Not yet started", effort reset to 0.</span>`;
+}
+
+function copyTestPlan() {
+  const fromId = document.getElementById('copyTPFrom').value;
+  const toId   = document.getElementById('copyTPTo').value;
+  if (!fromId || !toId || fromId === toId) {
+    alert('Please select two different release items.');
+    return;
+  }
+  const fromPlan = getTestPlanForProject(fromId);
+  const toPlan   = getTestPlanForProject(toId);
+  const toName   = state.projects.find(p => p.id === toId)?.name || toId;
+
+  if (toPlan.rows.length > 0) {
+    if (!confirm(`"${toName}" already has ${toPlan.rows.length} environment row(s). Overwrite with copied plan?`)) return;
+  }
+
+  snapshotState(`Copy test plan to: ${toName}`);
+
+  // Copy rows — reset effort and status
+  toPlan.rows = fromPlan.rows.map(r => ({
+    ...r,
+    id: uid(),
+    effort: 0,
+    status: 'Not yet started'
+  }));
+  toPlan.testPrepEffort = 0;
+  toPlan.testPrepStatus = 'Not yet started';
+  toPlan.testEnvEffort  = 0;
+  toPlan.testEnvStatus  = 'Not yet started';
+  toPlan.buffer = { effort: 0 };
+
+  closeModal('copyTestPlanModal');
+  saveState();
+  selectedTestPlanProjectId = toId;
+  renderTestPlan();
+  showToastMsg(`✓ Test plan copied to "${toName}"`);
+}
+
+// ====================== AI PLANNING ASSISTANT ======================
+const aiChatHistory = [];
+
+function buildTeamLensContext() {
+  const today = toDateKey(new Date());
+
+  const dpPeople = state.people.filter(p => p.showInDailyPlan !== false);
+  const availability = dpPeople.map(p => {
+    const free = isPersonFreeOn(p.id, today);
+    const leaveMap = getLeaveMap(p.id);
+    const leaveToday = leaveMap[today];
+    const nextFree = (() => {
+      let cursor = new Date(today + 'T00:00:00');
+      for (let i = 0; i < 60; i++) {
+        const key = toDateKey(cursor);
+        if (isWorkingDayKey(key) && !leaveMap[key] && !state.dailyPlan.some(e => e.personId === p.id && e.date === key))
+          return formatDateDisplay(key);
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return 'Busy 60+ days';
+    })();
+    const todayAssign = state.dailyPlan.filter(e => e.personId === p.id && e.date === today).map(e => e.project);
+    return `${p.name} (${p.devPod||'No POD'}): ${free ? 'FREE today' : `BUSY today${leaveToday?' ('+leaveToday+')':''}`}, next free: ${nextFree}${todayAssign.length ? ', on: '+todayAssign.join(', ') : ''}`;
+  }).join('\n');
+
+  // This week
+  const ws = new Date(today + 'T00:00:00');
+  ws.setDate(ws.getDate() - ws.getDay() + 1);
+  const weekPlan = Array.from({length:5}, (_,i) => {
+    const d = new Date(ws); d.setDate(d.getDate()+i);
+    const dk = toDateKey(d);
+    const entries = state.dailyPlan.filter(e => e.date === dk);
+    if (!entries.length) return null;
+    const dayStr = d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    return `${dayStr}: ${entries.map(e => `${state.people.find(x=>x.id===e.personId)?.name||'?'} → ${e.project}`).join(', ')}`;
+  }).filter(Boolean).join('\n');
+
+  const releases = state.projects.map(p => {
+    const plan = state.testPlans?.[p.id];
+    const build = plan?.milestones?.buildPickup || p.buildDate || '';
+    const goAhead = plan?.milestones?.mergedBuildGoAhead || p.goAheadDate || '';
+    const risk = p.status !== 'Completed' && ((build && build < today) || (goAhead && goAhead < today));
+    return `${p.name} (${p.devPod||'?'}) | ${p.status||'Not started'} | Release: ${p.releaseDate ? formatDateDisplay(p.releaseDate):'TBD'} | ${risk?'⚠ AT RISK':'OK'}`;
+  }).join('\n');
+
+  const expiringVMs = (state.vms||[]).filter(vm => {
+    if (!vm.expiry) return false;
+    const d = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00'))/86400000);
+    return d >= 0 && d <= 14;
+  }).map(vm => `${vm.details.split('-')[0].trim()} (${vm.pod}) — expires ${formatDateDisplay(vm.expiry)}, used by ${vm.usedBy||'—'}`).join('\n');
+
+  return `You are an AI assistant embedded in TeamLens, a QA resource planning tool. Today is ${formatDateDisplay(today)}.
+
+TEAM AVAILABILITY TODAY:
+${availability || 'No team members added yet'}
+
+THIS WEEK DAILY PLAN:
+${weekPlan || 'No assignments this week'}
+
+RELEASE ITEMS:
+${releases || 'No releases yet'}
+
+VMs EXPIRING IN 14 DAYS:
+${expiringVMs || 'None'}
+
+Answer questions concisely and helpfully using the data above. If asked to suggest someone for a task, check their availability. Use bullet points for lists.`;
+}
+
+async function sendAIMessage() {
+  const input = document.getElementById('aiChatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  await askAI(msg);
+}
+
+async function askAI(question) {
+  const messagesEl = document.getElementById('aiChatMessages');
+  const sendBtn    = document.getElementById('aiSendBtn');
+  if (!messagesEl) return;
+  if (document.getElementById('aiChatInput')) document.getElementById('aiChatInput').value = '';
+
+  appendAIChatMessage('user', question);
+  aiChatHistory.push({ role: 'user', content: question });
+
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '…'; }
+
+  const loadingId = 'ai-loading-' + Date.now();
+  messagesEl.insertAdjacentHTML('beforeend', `
+    <div id="${loadingId}" style="display:flex; gap:10px; align-items:flex-start;">
+      <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#2563eb,#7c3aed); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0;">✨</div>
+      <div style="background:var(--panel-2); border:1px solid var(--border-soft); border-radius:12px 12px 12px 3px; padding:10px 14px; font-size:13px; color:var(--text-faint); font-style:italic;">Thinking…</div>
+    </div>`);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  try {
+    const systemPrompt = buildTeamLensContext();
+    const messages = aiChatHistory.slice(-10);
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages
+      })
+    });
+
+    const data = await response.json();
+    const reply = data.content?.[0]?.text || 'Sorry, no response received. Please try again.';
+    document.getElementById(loadingId)?.remove();
+    appendAIChatMessage('assistant', reply);
+    aiChatHistory.push({ role: 'assistant', content: reply });
+
+  } catch (e) {
+    document.getElementById(loadingId)?.remove();
+    appendAIChatMessage('assistant', '⚠ Could not connect to AI. Please check your internet and try again.');
+    console.error('AI error:', e);
+  } finally {
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send ↑'; }
+  }
+}
+
+function appendAIChatMessage(role, text) {
+  const el = document.getElementById('aiChatMessages');
+  if (!el) return;
+  const isUser = role === 'user';
+  const html = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/`(.*?)`/g,'<code style="background:rgba(0,0,0,0.1); padding:1px 5px; border-radius:4px; font-family:var(--mono); font-size:11px;">$1</code>')
+    .replace(/\n/g,'<br>');
+
+  el.insertAdjacentHTML('beforeend', `
+    <div style="display:flex; gap:10px; align-items:flex-start; ${isUser?'flex-direction:row-reverse;':''}">
+      <div style="width:28px; height:28px; border-radius:8px; background:${isUser?'linear-gradient(135deg,#7c3aed,#a855f7)':'linear-gradient(135deg,#2563eb,#7c3aed)'}; display:flex; align-items:center; justify-content:center; font-size:${isUser?'11':'13'}px; font-weight:700; color:white; flex-shrink:0;">
+        ${isUser ? escapeHtml((currentUserEmail||'U').slice(0,2).toUpperCase()) : '✨'}
+      </div>
+      <div style="max-width:82%; background:${isUser?'linear-gradient(135deg,#7c3aed,#2563eb)':'var(--panel-2)'}; color:${isUser?'white':'var(--text)'}; border:1px solid ${isUser?'transparent':'var(--border-soft)'}; border-radius:${isUser?'12px 12px 3px 12px':'12px 12px 12px 3px'}; padding:10px 14px; font-size:13px; line-height:1.65;">
+        ${html}
+      </div>
+    </div>`);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearAIChat() {
+  aiChatHistory.length = 0;
+  const el = document.getElementById('aiChatMessages');
+  if (el) el.innerHTML = '';
+}
+
 function getVMPods() {
   if (!state.vmPods || state.vmPods.length === 0) {
     state.vmPods = ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
@@ -3297,7 +4061,7 @@ function markDirty(...tabs) {
 }
 
 function markAllDirty() {
-  ['people','projects','summary','leave','dailyplan','holidays','testplan','admin','help','vmrepo'].forEach(t => _dirtyTabs.add(t));
+  ['people','projects','summary','leave','dailyplan','holidays','testplan','admin','help','vmrepo','dashboard'].forEach(t => _dirtyTabs.add(t));
 }
 
 // Map tab name → render function
@@ -3310,6 +4074,7 @@ function renderTab(tab) {
     case 'dailyplan':  renderDailyPlan(); break;
     case 'holidays':   renderHolidays(); break;
     case 'testplan':   renderTestPlan(); break;
+    case 'dashboard':  renderDashboard(); break;
     case 'help':       renderHelp(); break;
     case 'vmrepo':     renderVMRepo(); break;
     case 'admin':      if (currentUserRole === 'admin') renderAdminPanel(); break;
@@ -3320,11 +4085,10 @@ function renderTab(tab) {
 // marks others dirty so they re-render when user switches to them
 function renderAll() {
   syncTestPlanToProjects();
+  checkVMAutoFree(); // auto-free VMs past end date
   markAllDirty();
-  // Always render active tab immediately
   _dirtyTabs.delete(_activeTab);
   renderTab(_activeTab);
-  // For summary, always keep health + gantt fresh
   if (_activeTab !== 'summary') {
     _dirtyTabs.add('summary');
   }
@@ -4450,16 +5214,28 @@ function downloadReportHtml(filename, title, bodyHtml) {
 
 async function shareReportAsLink(title, bodyHtml) {
   document.getElementById('shareLinkTitle').textContent = `📎 ${title}`;
-  document.getElementById('shareLinkInput').value = 'Generating link…';
+  document.getElementById('shareLinkInput').value = 'Generating…';
   document.getElementById('shareLinkStatus').textContent = '';
   document.getElementById('copyLinkBtn').disabled = true;
   document.getElementById('shareLinkModal').classList.add('show');
 
-  try {
-    const fullHtml = buildFullReportHtml(title, bodyHtml);
-    const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  const fullHtml = buildFullReportHtml(title, bodyHtml);
+  const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
 
-    const { data, error } = await sbClient
+  // Always store in localStorage first (instant, always works)
+  try {
+    const reports = JSON.parse(localStorage.getItem('tl-shared-reports') || '{}');
+    reports[reportId] = { title, html: fullHtml, created_at: new Date().toISOString() };
+    // Keep last 20 reports only
+    const keys = Object.keys(reports);
+    if (keys.length > 20) delete reports[keys[0]];
+    localStorage.setItem('tl-shared-reports', JSON.stringify(reports));
+  } catch (e) { console.warn('localStorage report save failed:', e); }
+
+  // Also try Supabase for cross-device sharing
+  let supabaseSuccess = false;
+  try {
+    const { error } = await sbClient
       .from('shared_reports')
       .insert({
         id: reportId,
@@ -4467,33 +5243,36 @@ async function shareReportAsLink(title, bodyHtml) {
         html: fullHtml,
         created_by: currentUserEmail || 'unknown',
         created_at: new Date().toISOString()
-      })
-      .select();
+      });
+    if (!error) supabaseSuccess = true;
+  } catch (e) { /* silent — localStorage fallback handles it */ }
 
-    if (error) {
-      console.error('Share report error:', error);
-      // Fallback: open report in new tab directly
-      const blob = new Blob([fullHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      document.getElementById('shareLinkInput').value = 'Opened in new tab (Supabase save failed)';
-      document.getElementById('shareLinkStatus').textContent = `⚠ Supabase error: ${error.message}. Report opened in new tab instead.`;
-      document.getElementById('copyLinkBtn').disabled = true;
-      return;
-    }
+  const baseUrl = window.location.origin + window.location.pathname;
+  const shareUrl = `${baseUrl}?report=${reportId}`;
 
-    const baseUrl = window.location.origin + window.location.pathname;
-    const shareUrl = `${baseUrl}?report=${reportId}`;
+  document.getElementById('shareLinkInput').value = shareUrl;
+  document.getElementById('copyLinkBtn').disabled = false;
 
-    document.getElementById('shareLinkInput').value = shareUrl;
-    document.getElementById('copyLinkBtn').disabled = false;
-    document.getElementById('shareLinkStatus').textContent = '✓ Link ready — copy and share via Teams, WhatsApp, or email.';
-
-  } catch (e) {
-    console.error('Share report exception:', e);
-    document.getElementById('shareLinkInput').value = '';
-    document.getElementById('shareLinkStatus').textContent = '✗ Failed: ' + (e.message || e);
-    document.getElementById('copyLinkBtn').disabled = true;
+  if (supabaseSuccess) {
+    document.getElementById('shareLinkStatus').textContent = '✓ Link ready — anyone can open this link (no login needed).';
+  } else {
+    document.getElementById('shareLinkStatus').textContent = '✓ Link ready — works on this browser. For cross-device sharing, run the Supabase SQL below.';
+    // Add SQL hint
+    const statusEl = document.getElementById('shareLinkStatus');
+    statusEl.innerHTML = `✓ Link generated and saved locally.
+      <details style="margin-top:6px; font-size:11px;">
+        <summary style="cursor:pointer; color:var(--accent);">Enable cross-device sharing (Supabase setup)</summary>
+        <pre style="background:var(--panel-2); padding:8px; border-radius:6px; margin-top:6px; font-size:10px; overflow-x:auto;">CREATE TABLE IF NOT EXISTS shared_reports (
+  id text PRIMARY KEY,
+  title text,
+  html text,
+  created_by text,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE shared_reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_read" ON shared_reports FOR SELECT USING (true);
+CREATE POLICY "auth_insert" ON shared_reports FOR INSERT TO authenticated WITH CHECK (true);</pre>
+      </details>`;
   }
 }
 
@@ -4514,49 +5293,59 @@ function copyShareLink() {
 }
 
 // ---- Report viewer — runs on page load if ?report= is in the URL ----
-// If URL has ?report=ID, fetch the report from DB and show it fullscreen (no login needed)
 (async () => {
   const params = new URLSearchParams(window.location.search);
   const reportId = params.get('report');
   if (!reportId) return;
 
-  // Show a loading screen while we fetch the report
   document.body.innerHTML = `
     <div style="font-family:-apple-system,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f6f7f9; color:#1a1d24;">
       <div style="text-align:center;">
         <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Loading report…</div>
-        <div style="font-size:13px; color:#8b91a0;" id="reportLoadStatus">Fetching from database</div>
+        <div style="font-size:13px; color:#8b91a0;" id="reportLoadStatus">Fetching…</div>
       </div>
     </div>`;
 
+  let reportHtml = null;
+
+  // 1. Check localStorage first (works even without Supabase table)
   try {
-    const { data, error } = await sbClient
-      .from('shared_reports')
-      .select('title, html')
-      .eq('id', reportId)
-      .single();
-
-    if (error || !data) {
-      document.body.innerHTML = `
-        <div style="font-family:-apple-system,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f6f7f9; color:#1a1d24;">
-          <div style="text-align:center; max-width:400px;">
-            <div style="font-size:40px; margin-bottom:16px;">🔗</div>
-            <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Report not found</div>
-            <div style="font-size:13px; color:#8b91a0; margin-bottom:20px;">This link may have expired or been removed.</div>
-            <a href="${window.location.origin + window.location.pathname}" style="color:#4f7cff; font-size:13px;">← Go to TeamLens</a>
-          </div>
-        </div>`;
-      return;
+    const local = JSON.parse(localStorage.getItem('tl-shared-reports') || '{}');
+    if (local[reportId]) {
+      reportHtml = local[reportId].html;
     }
+  } catch (e) { /* ignore */ }
 
-    // Replace entire page with report HTML
-    document.open();
-    document.write(data.html);
-    document.close();
-
-  } catch (e) {
-    document.body.innerHTML = `<div style="font-family:sans-serif;padding:40px;color:red;">Error loading report: ${e.message}</div>`;
+  // 2. Try Supabase if not in localStorage
+  if (!reportHtml) {
+    try {
+      const { data, error } = await sbClient
+        .from('shared_reports')
+        .select('title, html')
+        .eq('id', reportId)
+        .single();
+      if (!error && data) reportHtml = data.html;
+    } catch (e) { /* ignore */ }
   }
+
+  if (!reportHtml) {
+    document.body.innerHTML = `
+      <div style="font-family:-apple-system,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f6f7f9; color:#1a1d24;">
+        <div style="text-align:center; max-width:400px;">
+          <div style="font-size:40px; margin-bottom:16px;">🔗</div>
+          <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Report not found</div>
+          <div style="font-size:13px; color:#8b91a0; margin-bottom:20px;">This report link only works on the same browser/device it was created on, unless Supabase shared_reports table is set up.</div>
+          <a href="${window.location.origin + window.location.pathname}" style="color:#4f7cff; font-size:13px;">← Go to TeamLens</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Replace entire page with report HTML
+  document.open();
+  document.write(reportHtml);
+  document.close();
+
 })();
 
 // ====================== DAILY PLAN REPORT ======================
