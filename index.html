@@ -520,20 +520,28 @@
           <div id="lastSaved" style="font-size:10px; color:#475569; margin-top:2px; font-family:var(--mono);"></div>
         </div>
       </div>
-      <!-- Dark mode toggle -->
-      <button onclick="toggleDarkMode()" id="darkModeBtn"
+      <!-- Dark mode toggle switch -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; margin-bottom:2px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="darkModeIcon" style="font-size:14px;">🌙</span>
+          <span style="font-size:12px; color:#64748b;" id="darkModeLabel">Dark mode</span>
+        </div>
+        <div onclick="toggleDarkMode()" id="darkToggle" style="width:38px; height:20px; border-radius:10px; background:#334155; cursor:pointer; position:relative; transition:background 0.2s; flex-shrink:0;">
+          <div id="darkToggleThumb" style="position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:white; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+        </div>
+      </div>
+      <!-- Activity Log -->
+      <button onclick="openActivityLog()"
         onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.color='#e2e8f0';"
         onmouseout="this.style.background='transparent'; this.style.color='#64748b';"
         style="display:flex; align-items:center; gap:8px; width:100%; background:transparent; border:none; border-radius:8px; color:#64748b; padding:7px 10px; font-size:12px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:2px; transition:all 0.12s;">
-        <span id="darkModeIcon">🌙</span>
-        <span id="darkModeLabel">Dark mode</span>
+        <span>📋</span><span>Activity log</span>
       </button>
       <button onclick="showKeyboardHelp()"
         onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.color='#e2e8f0';"
         onmouseout="this.style.background='transparent'; this.style.color='#64748b';"
         style="display:flex; align-items:center; gap:8px; width:100%; background:transparent; border:none; border-radius:8px; color:#64748b; padding:7px 10px; font-size:12px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:6px; transition:all 0.12s;">
-        <span>⌨️</span>
-        <span>Shortcuts <span style="font-size:10px; opacity:0.6;">(?)</span></span>
+        <span>⌨️</span><span>Shortcuts <span style="font-size:10px; opacity:0.6;">(?)</span></span>
       </button>
       <button onclick="openChangePasswordModal()"
         onmouseover="this.style.background='rgba(124,58,237,0.18)'; this.style.borderColor='rgba(124,58,237,0.4)'; this.style.color='#c4b5fd';"
@@ -591,12 +599,30 @@
           <h3>Release</h3>
           <div class="desc">Release items, QA effort, dates and go ahead details</div>
         </div>
-        <button class="action" onclick="openProjectModal()">+ Add release item</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <!-- Bulk action bar (hidden until selection) -->
+          <div id="bulkActionBar" style="display:none; align-items:center; gap:8px; background:var(--accent-dim); border:1px solid var(--accent); border-radius:9px; padding:6px 12px;">
+            <span id="bulkCount" style="font-size:12px; font-weight:600; color:var(--accent);">0 selected</span>
+            <select id="bulkStatusSelect" style="font-size:12px; padding:4px 8px; border-radius:6px; width:140px;">
+              <option value="">Set status…</option>
+              <option>Not started</option>
+              <option>In progress</option>
+              <option>Completed</option>
+              <option>Blocked</option>
+            </select>
+            <button class="action" style="padding:5px 12px; font-size:12px;" onclick="applyBulkStatus()">Apply</button>
+            <button class="ghost" style="padding:5px 10px; font-size:12px;" onclick="clearBulkSelection()">✕</button>
+          </div>
+          <button class="action" onclick="openProjectModal()">+ Add release item</button>
+        </div>
       </div>
       <div style="overflow-x:auto;">
         <table id="releaseTable">
           <thead>
             <tr>
+              <th style="width:32px; padding:8px;">
+                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" style="width:15px; height:15px; cursor:pointer; accent-color:#7c3aed;">
+              </th>
               <th style="white-space:nowrap; min-width:140px;">
                 Release/GA date
                 <select onchange="setReleaseDateFilter(this.value || null)" id="releaseDateSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
@@ -1224,6 +1250,33 @@
 </div>
 
 <!-- Share link modal -->
+<!-- Notes Modal -->
+<div class="modal-overlay" id="notesModal">
+  <div class="modal" style="width:480px;">
+    <h3>📝 Notes — <span id="notesModalTitle" style="color:var(--accent);"></span></h3>
+    <div id="notesList" style="max-height:260px; overflow-y:auto; margin-bottom:14px; display:flex; flex-direction:column; gap:8px;"></div>
+    <div class="field">
+      <label>Add a note</label>
+      <textarea id="noteInput" rows="3" placeholder="Write a note, update, or context..." style="width:100%; resize:vertical; border-radius:9px; padding:9px 12px; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text); font-family:inherit; font-size:13px;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('notesModal')">Close</button>
+      <button class="action" onclick="saveNote()">Add note</button>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Log Modal -->
+<div class="modal-overlay" id="activityLogModal">
+  <div class="modal" style="width:560px;">
+    <h3>📋 Activity log</h3>
+    <div id="activityLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('activityLogModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="shareLinkModal">
   <div class="modal">
     <h3 id="shareLinkTitle">📎 Share report link</h3>
@@ -1470,13 +1523,20 @@ async function signOut() {
 // ====================== DARK MODE ======================
 function toggleDarkMode() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  const newTheme = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
   document.getElementById('darkModeIcon').textContent = isDark ? '🌙' : '☀️';
   document.getElementById('darkModeLabel').textContent = isDark ? 'Dark mode' : 'Light mode';
-  localStorage.setItem('tl-theme', isDark ? 'light' : 'dark');
+  const toggle = document.getElementById('darkToggle');
+  const thumb  = document.getElementById('darkToggleThumb');
+  if (toggle && thumb) {
+    toggle.style.background = isDark ? '#334155' : '#7c3aed';
+    thumb.style.transform = isDark ? 'translateX(0)' : 'translateX(18px)';
+  }
+  localStorage.setItem('tl-theme', newTheme);
 }
 
-// Restore theme on load
+// Restore toggle state on load
 (function() {
   const saved = localStorage.getItem('tl-theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
@@ -1484,11 +1544,186 @@ function toggleDarkMode() {
     setTimeout(() => {
       const icon = document.getElementById('darkModeIcon');
       const label = document.getElementById('darkModeLabel');
+      const toggle = document.getElementById('darkToggle');
+      const thumb  = document.getElementById('darkToggleThumb');
       if (icon) icon.textContent = '☀️';
       if (label) label.textContent = 'Light mode';
-    }, 100);
+      if (toggle) toggle.style.background = '#7c3aed';
+      if (thumb)  thumb.style.transform = 'translateX(18px)';
+    }, 50);
   }
 })();
+
+// ====================== BULK STATUS UPDATE ======================
+let selectedProjectIds = new Set();
+
+function onRowCheckboxChange() {
+  selectedProjectIds = new Set(
+    [...document.querySelectorAll('.row-checkbox:checked')].map(cb => cb.value)
+  );
+  const bar = document.getElementById('bulkActionBar');
+  const count = document.getElementById('bulkCount');
+  const selectAll = document.getElementById('selectAllCheckbox');
+  if (selectedProjectIds.size > 0) {
+    bar.style.display = 'flex';
+    count.textContent = `${selectedProjectIds.size} selected`;
+  } else {
+    bar.style.display = 'none';
+  }
+  const total = document.querySelectorAll('.row-checkbox').length;
+  if (selectAll) selectAll.checked = selectedProjectIds.size === total && total > 0;
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.row-checkbox').forEach(cb => { cb.checked = checked; });
+  onRowCheckboxChange();
+}
+
+function clearBulkSelection() {
+  document.querySelectorAll('.row-checkbox').forEach(cb => { cb.checked = false; });
+  selectedProjectIds.clear();
+  document.getElementById('bulkActionBar').style.display = 'none';
+  const sa = document.getElementById('selectAllCheckbox');
+  if (sa) sa.checked = false;
+}
+
+async function applyBulkStatus() {
+  const newStatus = document.getElementById('bulkStatusSelect').value;
+  if (!newStatus) { alert('Please select a status first.'); return; }
+  if (selectedProjectIds.size === 0) return;
+
+  const names = [];
+  state.projects.forEach(p => {
+    if (selectedProjectIds.has(p.id)) {
+      p.status = newStatus;
+      names.push(p.name);
+    }
+  });
+
+  await logActivity('Bulk status update', {
+    items: names, newStatus,
+    count: names.length
+  });
+
+  clearBulkSelection();
+  saveState();
+  renderAll();
+}
+
+// ====================== NOTES ======================
+let currentNotesProjectId = null;
+
+async function openNotesModal(projectId, projectName) {
+  currentNotesProjectId = projectId;
+  document.getElementById('notesModalTitle').textContent = projectName;
+  document.getElementById('noteInput').value = '';
+  document.getElementById('notesList').innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:8px;">Loading notes…</div>';
+  document.getElementById('notesModal').classList.add('show');
+  await loadNotes(projectId);
+}
+
+async function loadNotes(projectId) {
+  const listEl = document.getElementById('notesList');
+  try {
+    const { data, error } = await sbClient
+      .from('release_notes')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:8px; font-style:italic;">No notes yet. Add the first one!</div>';
+      return;
+    }
+    listEl.innerHTML = data.map(n => `
+      <div style="background:var(--panel-2); border:1px solid var(--border-soft); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:13px; color:var(--text); line-height:1.5;">${escapeHtml(n.note)}</div>
+        <div style="font-size:10.5px; color:var(--text-faint); margin-top:6px; display:flex; justify-content:space-between;">
+          <span>by ${escapeHtml(n.created_by || 'Unknown')}</span>
+          <span>${new Date(n.created_at).toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    listEl.innerHTML = `<div style="color:var(--red); font-size:12px;">Error loading notes: ${e.message}</div>`;
+  }
+}
+
+async function saveNote() {
+  const note = document.getElementById('noteInput').value.trim();
+  if (!note || !currentNotesProjectId) return;
+
+  try {
+    const { error } = await sbClient.from('release_notes').insert({
+      project_id: currentNotesProjectId,
+      note,
+      created_by: currentUserEmail
+    });
+    if (error) throw error;
+    document.getElementById('noteInput').value = '';
+    await loadNotes(currentNotesProjectId);
+    await logActivity('Note added', { project_id: currentNotesProjectId, note: note.slice(0, 80) });
+  } catch (e) {
+    alert('Error saving note: ' + e.message);
+  }
+}
+
+// ====================== ACTIVITY LOG ======================
+async function logActivity(action, details = {}) {
+  try {
+    await sbClient.from('activity_log').insert({
+      user_email: currentUserEmail,
+      action,
+      details
+    });
+  } catch (e) { console.warn('Activity log failed:', e.message); }
+}
+
+async function openActivityLog() {
+  const listEl = document.getElementById('activityLogList');
+  listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:8px;">Loading…</div>';
+  document.getElementById('activityLogModal').classList.add('show');
+
+  try {
+    const { data, error } = await sbClient
+      .from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(80);
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:8px; font-style:italic;">No activity recorded yet.</div>';
+      return;
+    }
+
+    const ACTION_ICONS = {
+      'Bulk status update': '🔄', 'Note added': '📝', 'State saved': '💾',
+      'Login': '🔐', 'User created': '👤', 'Password changed': '🔒'
+    };
+
+    listEl.innerHTML = data.map(entry => {
+      const icon = ACTION_ICONS[entry.action] || '📌';
+      const time = new Date(entry.created_at).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+      });
+      const detailStr = entry.details
+        ? Object.entries(entry.details).map(([k,v]) => `<span style="color:var(--text-faint);">${k}:</span> ${typeof v === 'object' ? JSON.stringify(v) : escapeHtml(String(v))}`).join(' · ')
+        : '';
+      return `
+        <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft);">
+          <span style="font-size:18px; flex-shrink:0; margin-top:1px;">${icon}</span>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:var(--text);">${escapeHtml(entry.action)}</div>
+            ${detailStr ? `<div style="font-size:11.5px; color:var(--text-dim); margin-top:2px; white-space:normal;">${detailStr}</div>` : ''}
+            <div style="font-size:10.5px; color:var(--text-faint); margin-top:3px;">${escapeHtml(entry.user_email || '')} · ${time}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    listEl.innerHTML = `<div style="color:var(--red); font-size:12px; padding:8px;">Error: ${e.message}</div>`;
+  }
+}
 
 // ====================== KEYBOARD SHORTCUTS ======================
 document.addEventListener('keydown', e => {
@@ -3364,7 +3599,10 @@ function renderProjects() {
       : '<span style="color:var(--text-faint);">—</span>';
 
     return `
-    <tr>
+    <tr id="row-${p.id}">
+      <td style="padding:8px; text-align:center;">
+        <input type="checkbox" class="row-checkbox" value="${p.id}" onchange="onRowCheckboxChange()" style="width:15px; height:15px; cursor:pointer; accent-color:#7c3aed;">
+      </td>
       <td style="white-space:nowrap;">
         ${p.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 10px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(p.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
       </td>
@@ -3378,8 +3616,9 @@ function renderProjects() {
       <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(p.goAheadBy || '—')}</td>
       <td>${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${escapeHtml(p.status)}</span>` : '—'}</td>
       <td style="text-align:right; white-space:nowrap;">
-        <button class="icon-btn edit" onclick="openProjectModal('${p.id}')" aria-label="Edit release item">✎</button>
-        <button class="icon-btn" onclick="deleteProject('${p.id}')" aria-label="Remove release item">✕</button>
+        <button class="icon-btn" onclick="openNotesModal('${p.id}','${escapeHtml(p.name).replace(/'/g,"\\'")}');" title="Notes">📝</button>
+        <button class="icon-btn edit" onclick="openProjectModal('${p.id}')">✎</button>
+        <button class="icon-btn" onclick="deleteProject('${p.id}')">✕</button>
       </td>
     </tr>`;
   }).join('');
