@@ -1029,6 +1029,36 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Review by Lead panel -->
+      <div class="panel" id="reviewPanel" style="border:1.5px solid var(--border-soft);">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div id="reviewIconBox" style="width:44px; height:44px; border-radius:12px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; transition:all 0.2s;">📋</div>
+            <div>
+              <div style="font-weight:700; font-size:14px; color:var(--text);">Review by Lead</div>
+              <div style="font-size:12px; color:var(--text-faint); margin-top:2px;" id="reviewDesc">
+                Lead must review and approve this test plan before data syncs to the Release tab.
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+            <div id="reviewStatus" style="font-size:12px; font-weight:600; color:var(--text-faint);"></div>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 18px; border-radius:10px; border:1.5px solid var(--border); background:var(--panel-2); transition:all 0.15s;" id="reviewCheckLabel">
+              <input type="checkbox" id="reviewCheckbox" onchange="toggleReviewApproval()" style="width:18px; height:18px; accent-color:#7c3aed; cursor:pointer; flex-shrink:0;">
+              <span id="reviewCheckText" style="font-size:13px; font-weight:600; white-space:nowrap;">Mark as reviewed</span>
+            </label>
+          </div>
+        </div>
+        <!-- Reviewer info (shown after approval) -->
+        <div id="reviewerInfo" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft); font-size:12px; color:var(--text-faint); display:flex; align-items:center; gap:8px;">
+          <span>✅ Reviewed by</span>
+          <span id="reviewerName" style="font-weight:600; color:var(--text);"></span>
+          <span>on</span>
+          <span id="reviewerDate" style="font-weight:600; color:var(--text);"></span>
+          <button onclick="clearReviewApproval()" style="margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; padding:2px 10px; font-size:11px; color:var(--text-faint); cursor:pointer; font-family:inherit;" title="Undo review approval">↩ Undo review</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1042,40 +1072,53 @@
     <!-- Stats row -->
     <div class="grid-4" id="vmStats"></div>
 
-    <!-- Filters + Add button -->
     <div class="panel" style="margin-bottom:18px;">
       <div class="panel-head">
         <div>
           <h3>🖥️ QA VM Repository</h3>
-          <div class="desc">Track VM allocations, current usage, and availability across all PODs</div>
+          <div class="desc">Track VM allocations, current usage, and availability across all groups</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <!-- POD filter — dynamically populated -->
-          <select id="vmPodFilter" onchange="renderVMRepo()" style="font-size:12px; padding:7px 12px; border-radius:9px; width:160px;">
-            <option value="">All groups</option>
-          </select>
-          <!-- Status filter -->
-          <select id="vmStatusFilter" onchange="renderVMRepo()" style="font-size:12px; padding:7px 12px; border-radius:9px; width:140px;">
-            <option value="">All status</option>
-            <option value="in-use">In use</option>
-            <option value="free">Free</option>
-            <option value="expiring">Expiring soon</option>
-          </select>
-          <button class="ghost" onclick="openVMPodsModal()" style="display:flex;align-items:center;gap:6px;">
+          <button class="ghost" onclick="openVMPodsModal()" style="display:flex;align-items:center;gap:6px; font-size:12px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Manage groups
           </button>
           <button class="action" onclick="openVMModal()">+ Add VM</button>
         </div>
       </div>
+
+      <!-- Search + Filters row -->
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px; padding:12px 14px; background:var(--panel-2); border-radius:10px; border:1px solid var(--border-soft);">
+        <div style="position:relative; flex:1; min-width:200px;">
+          <svg style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-faint);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input id="vmSearch" type="text" placeholder="Search Win11, IP address, owner, VM name…"
+            oninput="renderVMRepo()"
+            style="width:100%; padding:8px 10px 8px 32px; font-size:12.5px; border-radius:8px; box-sizing:border-box;">
+        </div>
+        <select id="vmPodFilter" onchange="renderVMRepo()" style="font-size:12px; padding:7px 12px; border-radius:8px; min-width:150px;">
+          <option value="">All groups</option>
+        </select>
+        <select id="vmStatusFilter" onchange="renderVMRepo()" style="font-size:12px; padding:7px 12px; border-radius:8px; min-width:130px;">
+          <option value="">All status</option>
+          <option value="in-use">In use</option>
+          <option value="free">Free</option>
+          <option value="expiring">Expiring soon</option>
+        </select>
+        <button onclick="document.getElementById('vmSearch').value=''; document.getElementById('vmPodFilter').value=''; document.getElementById('vmStatusFilter').value=''; renderVMRepo();"
+          class="ghost" style="font-size:12px; white-space:nowrap; padding:7px 12px;">✕ Clear</button>
+      </div>
+
+      <!-- Result count -->
+      <div id="vmResultCount" style="font-size:11.5px; color:var(--text-faint); margin-bottom:10px;"></div>
+
       <!-- Table -->
       <div style="overflow-x:auto;">
         <table style="table-layout:auto; width:100%;">
           <thead>
             <tr>
-              <th style="white-space:nowrap; min-width:120px;">POD / Group</th>
-              <th style="white-space:nowrap; min-width:100px;">Member</th>
-              <th style="white-space:nowrap; min-width:220px;">VM Details</th>
+              <th style="white-space:nowrap; min-width:110px;">POD / Group</th>
+              <th style="white-space:nowrap; min-width:90px;">VM Owner</th>
+              <th style="min-width:260px;">VM Details</th>
               <th style="white-space:nowrap;">VM Expiry</th>
               <th style="white-space:nowrap; text-align:center;">In Use</th>
               <th style="white-space:nowrap;">Used By</th>
@@ -1143,7 +1186,7 @@
         <datalist id="vmPodList"></datalist>
       </div>
       <div class="field">
-        <label>Member (owner)</label>
+        <label>VM Owner</label>
         <input id="vmMember" placeholder="e.g. Yashna, Mayuri, Harish">
       </div>
       <div class="field">
@@ -1176,7 +1219,9 @@
       </div>
       <div class="field">
         <label>Used by (person currently using)</label>
-        <input id="vmUsedBy" placeholder="e.g. Mayuri, Harish">
+        <select id="vmUsedBy" style="width:100%;">
+          <option value="">— Select person —</option>
+        </select>
       </div>
       <div class="field">
         <label>Notes (optional)</label>
@@ -1843,6 +1888,14 @@ function applyAccessUI() {
       });
     }
   });
+
+  // + Add VM is always visible to everyone (all users can add VMs)
+  const vmTabContent = document.getElementById('tab-vmrepo');
+  if (vmTabContent) {
+    vmTabContent.querySelectorAll('.action').forEach(btn => {
+      if (btn.textContent.includes('Add VM')) btn.style.display = '';
+    });
+  }
 }
 
 // Real-time permission sync — listens for changes to current user's role row
@@ -2965,7 +3018,7 @@ function renderDashboard() {
               <span style="background:${free?'#dcfce7':'#fee2e2'}; color:${free?'#15803d':'#dc2626'}; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">${free ? '🟢 Free' : '🔴 Busy'}</span>
             </div>`;
           }).join('')}
-          ${dpPeople.length > 8 ? `<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">+${dpPeople.length-8} more in Daily Plan tab</div>` : ''}
+          ${dpPeople.length > 8 ? `<div style="font-size:11px; color:var(--accent); margin-top:4px; cursor:pointer; font-weight:600;" onclick="switchTabTo('dailyplan')">+${dpPeople.length-8} more → view Daily Plan</div>` : ''}
         </div>
       </div>
     </div>
@@ -3358,6 +3411,93 @@ function clearAIChat() {
   if (el) el.innerHTML = '';
 }
 
+// ====================== REVIEW BY LEAD ======================
+function toggleReviewApproval() {
+  const plan = getTestPlanForProject(selectedTestPlanProjectId);
+  const checkbox = document.getElementById('reviewCheckbox');
+  if (!checkbox) return;
+
+  if (checkbox.checked) {
+    plan.reviewed = true;
+    plan.reviewedBy = currentUserEmail || 'Unknown';
+    plan.reviewedAt = new Date().toISOString();
+    saveState();
+    syncTestPlanToProjects();
+    renderTestPlan();
+    markDirty('projects','summary');
+    renderTab('projects');
+    showToastMsg('✅ Test plan reviewed — Release tab data updated');
+  } else {
+    clearReviewApproval();
+  }
+}
+
+function clearReviewApproval() {
+  const plan = getTestPlanForProject(selectedTestPlanProjectId);
+  if (!confirm('Remove review approval? Release tab data (effort, dates) will be cleared until re-approved.')) {
+    const cb = document.getElementById('reviewCheckbox');
+    if (cb) cb.checked = true;
+    return;
+  }
+  plan.reviewed = false;
+  plan.reviewedBy = '';
+  plan.reviewedAt = '';
+  saveState();
+  syncTestPlanToProjects();
+  renderTestPlan();
+  markDirty('projects','summary');
+  renderTab('projects');
+  showToastMsg('↩ Review removed — Release tab data cleared');
+}
+
+function renderReviewPanel(plan) {
+  const panel      = document.getElementById('reviewPanel');
+  const iconBox    = document.getElementById('reviewIconBox');
+  const desc       = document.getElementById('reviewDesc');
+  const checkbox   = document.getElementById('reviewCheckbox');
+  const checkText  = document.getElementById('reviewCheckText');
+  const checkLabel = document.getElementById('reviewCheckLabel');
+  const reviewerInfoEl = document.getElementById('reviewerInfo');
+  const reviewerNameEl = document.getElementById('reviewerName');
+  const reviewerDateEl = document.getElementById('reviewerDate');
+  const statusEl   = document.getElementById('reviewStatus');
+  if (!panel) return;
+
+  const reviewed = plan?.reviewed === true;
+
+  if (reviewed) {
+    panel.style.border = '1.5px solid #86efac';
+    panel.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+    iconBox.textContent = '✅';
+    iconBox.style.background = '#dcfce7';
+    desc.textContent = 'Approved — test plan reviewed by lead. Release tab data is now synced.';
+    checkbox.checked = true;
+    checkText.textContent = 'Reviewed ✓';
+    checkLabel.style.background = '#dcfce7';
+    checkLabel.style.borderColor = '#86efac';
+    statusEl.innerHTML = '<span style="background:#dcfce7;color:#15803d;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">✅ Approved</span>';
+    if (plan.reviewedBy) {
+      reviewerInfoEl.style.display = 'flex';
+      reviewerNameEl.textContent = plan.reviewedBy.split('@')[0];
+      reviewerDateEl.textContent = plan.reviewedAt
+        ? new Date(plan.reviewedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+        : '';
+    }
+  } else {
+    panel.style.border = '1.5px solid #fde047';
+    panel.style.background = 'linear-gradient(135deg,#fefce8,#fef9c3)';
+    iconBox.textContent = '📋';
+    iconBox.style.background = '#fef9c3';
+    desc.textContent = 'Lead review pending — Release tab data (effort, dates, status) will remain blank until approved.';
+    checkbox.checked = false;
+    checkText.textContent = 'Mark as reviewed';
+    checkLabel.style.background = 'var(--panel-2)';
+    checkLabel.style.borderColor = 'var(--border)';
+    statusEl.innerHTML = '<span style="background:#fef9c3;color:#a16207;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">⏳ Pending review</span>';
+    reviewerInfoEl.style.display = 'none';
+  }
+}
+
 function getVMPods() {
   if (!state.vmPods || state.vmPods.length === 0) {
     state.vmPods = ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
@@ -3478,7 +3618,20 @@ function setVMInUseToggle(val) {
 
 function openVMModal(id) {
   editingVMId = id || null;
-  populateVMPodDropdowns(); // refresh datalist
+  populateVMPodDropdowns();
+
+  // Populate Used By dropdown from people list
+  const usedBySel = document.getElementById('vmUsedBy');
+  if (usedBySel) {
+    const allNames = [...new Set([
+      ...state.people.map(p => p.name),
+      // also include any existing usedBy values not in people list
+      ...(state.vms||[]).map(v => v.usedBy).filter(Boolean)
+    ])].sort();
+    usedBySel.innerHTML = '<option value="">— Select person —</option>' +
+      allNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  }
+
   const titleEl = document.getElementById('vmModalTitle');
   const btnEl   = document.getElementById('vmSaveBtn');
   if (id) {
@@ -3492,15 +3645,16 @@ function openVMModal(id) {
     document.getElementById('vmExpiry').value  = vm.expiry || '';
     document.getElementById('vmStart').value   = vm.startDate || '';
     document.getElementById('vmEnd').value     = vm.endDate || '';
-    document.getElementById('vmUsedBy').value  = vm.usedBy || '';
+    if (usedBySel) usedBySel.value = vm.usedBy || '';
     document.getElementById('vmNotes').value   = vm.notes || '';
     setVMInUseToggle(vm.inUse === true);
   } else {
     titleEl.textContent = 'Add VM';
     btnEl.textContent   = 'Add VM';
-    ['vmPod','vmMember','vmDetails','vmExpiry','vmStart','vmEnd','vmUsedBy','vmNotes'].forEach(id => {
+    ['vmPod','vmMember','vmDetails','vmExpiry','vmStart','vmEnd','vmNotes'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    if (usedBySel) usedBySel.value = '';
     setVMInUseToggle(false);
   }
   document.getElementById('vmModal').classList.add('show');
@@ -3560,18 +3714,39 @@ function renderVMRepo() {
 
   const podFilter    = document.getElementById('vmPodFilter')?.value || '';
   const statusFilter = document.getElementById('vmStatusFilter')?.value || '';
+  const searchQ      = (document.getElementById('vmSearch')?.value || '').toLowerCase().trim();
   const today = toDateKey(new Date());
 
   // Filter
   let filtered = state.vms;
-  if (podFilter) filtered = filtered.filter(v => v.pod === podFilter);
-  if (statusFilter === 'in-use') filtered = filtered.filter(v => v.inUse);
-  if (statusFilter === 'free')   filtered = filtered.filter(v => !v.inUse);
+  if (podFilter)    filtered = filtered.filter(v => v.pod === podFilter);
+  if (statusFilter === 'in-use')   filtered = filtered.filter(v => v.inUse);
+  if (statusFilter === 'free')     filtered = filtered.filter(v => !v.inUse);
   if (statusFilter === 'expiring') filtered = filtered.filter(v => {
     if (!v.expiry) return false;
-    const daysLeft = Math.round((new Date(v.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
-    return daysLeft >= 0 && daysLeft <= 14;
+    const d = Math.round((new Date(v.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+    return d >= 0 && d <= 14;
   });
+  if (searchQ) {
+    filtered = filtered.filter(v =>
+      (v.details||'').toLowerCase().includes(searchQ) ||
+      (v.pod||'').toLowerCase().includes(searchQ) ||
+      (v.member||'').toLowerCase().includes(searchQ) ||
+      (v.usedBy||'').toLowerCase().includes(searchQ) ||
+      (v.notes||'').toLowerCase().includes(searchQ)
+    );
+  }
+
+  // Result count
+  const countEl = document.getElementById('vmResultCount');
+  if (countEl) {
+    const total = state.vms.length;
+    if (searchQ || podFilter || statusFilter) {
+      countEl.textContent = `${filtered.length} of ${total} VMs match${searchQ ? ` "${document.getElementById('vmSearch').value}"` : ''}`;
+    } else {
+      countEl.textContent = `${total} VMs across ${[...new Set(state.vms.map(v=>v.pod).filter(Boolean))].length} groups`;
+    }
+  }
 
   // Stats
   const total     = state.vms.length;
@@ -3665,39 +3840,50 @@ function renderVMRepo() {
             ${i === 0 ? `<span style="background:${pbg};color:${pfg};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;">${escapeHtml(pod)}</span>` : ''}
           </td>
           <td style="white-space:nowrap;">
-            ${vm.member ? `<div style="display:flex;align-items:center;gap:6px;">
-              <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0;">${escapeHtml(vm.member.slice(0,2).toUpperCase())}</div>
-              <span style="font-size:12.5px;color:var(--text-dim);font-weight:500;">${escapeHtml(vm.member)}</span>
-            </div>` : '<span style="color:var(--text-faint);">—</span>'}
+            ${vm.member
+              ? `<span style="font-size:12.5px;color:var(--text-dim);font-weight:500;">${escapeHtml(vm.member)}</span>`
+              : '<span style="color:var(--text-faint);">—</span>'}
           </td>
-          <td style="min-width:220px;">
+          <td style="min-width:260px; padding:10px 12px;">
             ${(() => {
-              // Parse VM details: "Win11x64O365x64-Yashna - 172.30.34.108"
               const raw = vm.details;
               const ipMatch = raw.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
               const ip = ipMatch ? ipMatch[1] : null;
-              const namepart = raw.replace(/[-–]\s*\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}.*$/, '').replace(/-\s*$/, '').trim();
-              // Parse OS/version from name: Win11, Win10, S19, WS22, etc.
-              const osMatch = namepart.match(/^(Win11|Win10|Win7|WS\d+|S\d+|W\d+|QAW\d+|UAP|BJW\d+|2\d{3}W?)/i);
-              const osTag = osMatch ? osMatch[1].toUpperCase() : '';
-              // Parse Office version: O365, O24, O21, O19, O16
-              const officeMatch = namepart.match(/O(\d+)(x\d+)?/i);
+              // Clean name = remove IP and surrounding dash/space
+              const cleanName = raw.replace(/\s*[-–]\s*\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}.*$/, '').trim();
+              // OS detection
+              const osMap = [['WIN11','Win11'],['WIN10','Win10'],['WIN7','Win7'],['WS22','WS22'],['WS19','WS19'],['WIN8','Win8']];
+              const osHit = osMap.find(([,k]) => raw.toUpperCase().includes(k.toUpperCase()));
+              const osTag = osHit ? osHit[0] : (raw.match(/^(S\d+|W\d+|QAW\d+|UAP|BJW)/i) ? raw.match(/^([A-Z0-9]+)/i)?.[1].toUpperCase() : '');
+              // Office version
+              const officeMatch = raw.match(/O(365|24|21|19|16|15)/i);
               const office = officeMatch ? 'O'+officeMatch[1] : '';
-              // Arch: x64, x32
-              const archMatch = namepart.match(/(x64|x32)/i);
-              const arch = archMatch ? archMatch[1].toLowerCase() : '';
-              const personPart = namepart.replace(/^[^-]+-?/, '').replace(/[-_]/g,' ').trim();
-
-              return `<div style="display:flex;flex-direction:column;gap:3px;">
-                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-                  ${osTag ? `<span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:700;font-family:var(--mono);">${osTag}</span>` : ''}
-                  ${office ? `<span style="background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:700;">${office}</span>` : ''}
-                  ${arch ? `<span style="background:#f1f5f9;color:#475569;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:600;">${arch}</span>` : ''}
-                  ${ip ? `<span style="font-family:var(--mono);font-size:11px;color:var(--text-faint);background:var(--panel-2);padding:2px 7px;border-radius:5px;border:1px solid var(--border-soft);">📡 ${ip}</span>` : ''}
-                </div>
-                <div style="font-size:11.5px;color:var(--text-dim);font-weight:500;">${escapeHtml(namepart)}</div>
-                ${vm.notes ? `<div style="font-size:10.5px;color:var(--text-faint);display:flex;align-items:center;gap:4px;"><span>📝</span>${escapeHtml(vm.notes)}</div>` : ''}
-              </div>`;
+              // Arch
+              const arch = raw.match(/x64/i) ? 'x64' : raw.match(/x32/i) ? 'x32' : '';
+              // Highlight search term in name
+              const highlight = (text) => {
+                if (!searchQ) return escapeHtml(text);
+                const re = new RegExp('(' + searchQ.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+                return escapeHtml(text).replace(re, '<mark style="background:#fef08a;color:#713f12;border-radius:2px;padding:0 1px;">$1</mark>');
+              };
+              return `
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <!-- Badges row -->
+                  <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                    ${osTag ? `<span style="background:#0f172a;color:#94a3b8;padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:700;font-family:var(--mono);letter-spacing:0.03em;">${osTag}</span>` : ''}
+                    ${office ? `<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:700;">${office}</span>` : ''}
+                    ${arch ? `<span style="background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:600;">${arch}</span>` : ''}
+                  </div>
+                  <!-- Name -->
+                  <div style="font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4;">${highlight(cleanName)}</div>
+                  <!-- IP -->
+                  ${ip ? `<div style="display:flex;align-items:center;gap:5px;">
+                    <span style="font-size:10px;color:var(--text-faint);">📡</span>
+                    <code style="font-family:var(--mono);font-size:11px;color:var(--text-faint);background:var(--panel-2);padding:1px 7px;border-radius:4px;border:1px solid var(--border-soft);">${highlight(ip)}</code>
+                  </div>` : ''}
+                  <!-- Notes -->
+                  ${vm.notes ? `<div style="font-size:11px;color:var(--text-faint);display:flex;align-items:center;gap:4px;font-style:italic;">📝 ${highlight(vm.notes)}</div>` : ''}
+                </div>`;
             })()}
           </td>
           <td style="white-space:nowrap;">${expiryBadge}</td>
@@ -3707,10 +3893,9 @@ function renderVMRepo() {
             </div>
           </td>
           <td style="white-space:nowrap;">
-            ${vm.usedBy ? `<div style="display:flex;align-items:center;gap:5px;">
-              <div style="width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#0ea5e9,#2563eb);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:white;">${escapeHtml(vm.usedBy.slice(0,2).toUpperCase())}</div>
-              <span style="font-size:12px;color:var(--text-dim);font-weight:500;">${escapeHtml(vm.usedBy)}</span>
-            </div>` : '<span style="color:var(--text-faint);">—</span>'}
+            ${vm.usedBy
+              ? `<span style="font-size:12.5px;color:var(--text-dim);font-weight:500;">${escapeHtml(vm.usedBy)}</span>`
+              : '<span style="color:var(--text-faint);">—</span>'}
           </td>
           <td style="font-size:12px;color:var(--text-dim);white-space:nowrap;">${vm.startDate ? formatDateDisplay(vm.startDate) : '—'}</td>
           <td style="white-space:nowrap;">${endDateDisplay}</td>
@@ -3733,362 +3918,321 @@ function renderHelp() {
 
   el.innerHTML = `
 
-  <!-- ── Hero banner ── -->
-  <div style="
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
-    border-radius: 20px; padding: 36px 40px; margin-bottom: 24px;
-    color: white; position: relative; overflow: hidden;
-  ">
+  <!-- Hero -->
+  <div style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 60%,#a855f7 100%);border-radius:20px;padding:36px 40px;margin-bottom:24px;color:white;position:relative;overflow:hidden;">
     <div style="position:absolute;right:-20px;top:-20px;font-size:140px;opacity:0.08;line-height:1;">🔍</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <span style="background:rgba(255,255,255,0.2);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">User Guide</span>
-      <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v1.0</span>
+      <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v2.0</span>
     </div>
-    <h1 style="font-family:'Inter Tight',sans-serif;font-size:30px;font-weight:800;margin:0 0 10px;letter-spacing:-0.03em;">TeamLens Help Center</h1>
-    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:540px;line-height:1.7;">Everything you need to plan QA resources, track releases, and share reports — all in one place.</p>
+    <h1 style="font-family:'Inter Tight',sans-serif;font-size:28px;font-weight:800;margin:0 0 10px;letter-spacing:-0.03em;">TeamLens Help Center</h1>
+    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide to all features — planning, tracking, VM management, AI assistant, and more.</p>
     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
-      <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;backdrop-filter:blur(4px);">
-        <div style="font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Total Tabs</div>
-        <div style="font-size:20px;font-weight:800;">10</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;backdrop-filter:blur(4px);">
-        <div style="font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Keyboard Shortcuts</div>
-        <div style="font-size:20px;font-weight:800;">10+</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;backdrop-filter:blur(4px);">
-        <div style="font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Auto-sync</div>
-        <div style="font-size:20px;font-weight:800;">Real-time</div>
-      </div>
+      ${[['13','Tabs'],['10+','Shortcuts'],['Real-time','Sync'],['AI','Assistant']].map(([v,l])=>`
+        <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;backdrop-filter:blur(4px);">
+          <div style="font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${l}</div>
+          <div style="font-size:18px;font-weight:800;">${v}</div>
+        </div>`).join('')}
     </div>
   </div>
 
-  <!-- ── Quick Start ── -->
+  <!-- Quick Start -->
   <div class="panel" style="margin-bottom:18px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-      <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🚀</div>
-      <div>
-        <h2 style="font-family:'Inter Tight',sans-serif;font-size:17px;font-weight:700;margin:0;color:var(--text);">Quick Start — 5 Steps</h2>
-        <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Get up and running in minutes</div>
-      </div>
+      <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#f59e0b22,#f59e0b44);border:1px solid #f59e0b33;display:flex;align-items:center;justify-content:center;font-size:20px;">🚀</div>
+      <div><h2 style="font-family:'Inter Tight',sans-serif;font-size:17px;font-weight:700;margin:0;color:var(--text);">Quick Start — 5 Steps</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Get up and running in minutes</div></div>
     </div>
-    <!-- Flow -->
-    <div style="display:flex;align-items:center;gap:0;margin-bottom:24px;overflow-x:auto;padding-bottom:4px;">
-      ${['👥 People','📁 Release','✅ Test Plan','🏖️ Leave','📅 Daily Plan'].map((s,i,arr) => `
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;padding-bottom:4px;">
+      ${['👥 People','📁 Release','✅ Test Plan','🏖️ Leave','📅 Daily Plan'].map((s,i,arr)=>`
         <div style="display:flex;align-items:center;flex-shrink:0;">
-          <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;border-radius:10px;padding:8px 16px;font-size:12.5px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
+          <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
             <span style="opacity:0.7;font-size:10px;display:block;margin-bottom:1px;">Step ${i+1}</span>${s}
           </div>
-          ${i < arr.length-1 ? '<div style="width:28px;height:2px;background:linear-gradient(90deg,#7c3aed,#a855f7);flex-shrink:0;"></div>' : ''}
-        </div>
-      `).join('')}
+          ${i<arr.length-1?'<div style="width:24px;height:2px;background:linear-gradient(90deg,#7c3aed,#a855f7);flex-shrink:0;"></div>':''}
+        </div>`).join('')}
     </div>
-    <!-- Steps -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      ${[
-        ['1','👥','Add your team','People tab → <b>+ Add person</b> → enter name, title, email, and assign Dev POD. Repeat for all members.','#4f46e5'],
-        ['2','📁','Add release items','Release tab → <b>+ Add release item</b> → fill 4 fields: name, JIRA URL, release date, Dev POD.','#0ea5e9'],
-        ['3','✅','Build test plan','Test Plan tab → select release item → add environments → set effort, coverage, assignee, status.','#10b981'],
-        ['4','🏖️','Mark leaves','Leave Calendar → click any working day → cycles PL (amber) → UPL (red) → empty.','#f59e0b'],
-        ['5','📅','Plan daily work','Daily Plan → filter by POD → click <b>+ Assign</b> → pick person, project, date range.','#8b5cf6'],
-      ].map(([n,icon,title,desc,color]) => `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${[['1','👥','Add your team','People tab → + Add person → name, title, email, Dev POD, Daily Plan toggle.','#4f46e5'],
+         ['2','📁','Add release items','Release tab → + Add release item → name, JIRA, release date, Dev POD. Just 4 fields!','#0ea5e9'],
+         ['3','✅','Build test plan','Test Plan → select release item → add environments → set effort, coverage, assignee, status.','#10b981'],
+         ['4','🏖️','Mark leaves','Leave Calendar → click day → PL (amber) → UPL (red) → empty (click again).','#f59e0b'],
+         ['5','📅','Plan daily work','Daily Plan → POD filter → + Assign → pick person, project, date range.','#8b5cf6']].map(([n,icon,title,desc,color])=>`
         <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;">
-          <div style="width:30px;height:30px;border-radius:50%;background:${color};color:white;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${n}</div>
+          <div style="width:28px;height:28px;border-radius:50%;background:${color};color:white;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${n}</div>
           <div>
-            <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px;">${icon} ${title}</div>
+            <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:3px;">${icon} ${title}</div>
             <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">${desc}</div>
           </div>
-        </div>
-      `).join('')}
+        </div>`).join('')}
     </div>
-    <div style="background:linear-gradient(135deg,#dbeafe,#ede9fe);border:1px solid #a5b4fc;border-radius:10px;padding:12px 16px;margin-top:16px;display:flex;gap:10px;align-items:center;">
+    <div style="background:linear-gradient(135deg,#dbeafe,#ede9fe);border:1px solid #a5b4fc;border-radius:10px;padding:12px 16px;margin-top:14px;display:flex;gap:10px;align-items:center;">
       <span style="font-size:18px;">💡</span>
-      <span style="font-size:12.5px;color:#3730a3;font-weight:500;line-height:1.6;">Start in order: People → Release → Test Plan → Leave → Daily Plan. Summary and Release Health update automatically.</span>
+      <span style="font-size:12.5px;color:#3730a3;font-weight:500;line-height:1.6;">Start in order: People → Release → Test Plan → Leave → Daily Plan. Dashboard and Summary update automatically.</span>
     </div>
   </div>
 
-  <!-- ── Tab Guide Grid ── -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+  <!-- Tab Guide Grid — 3 cols -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
+
+    <!-- Dashboard -->
+    <div class="panel" style="margin:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(37,99,235,0.2));border:1px solid #7c3aed33;display:flex;align-items:center;justify-content:center;font-size:17px;">🏠</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Dashboard</div>
+        <div style="font-size:11px;color:var(--text-faint);">Login landing page</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        ${[['📊','4 stat cards — free today, at-risk, VMs expiring, assigned'],['📅','Today\'s assignments snapshot'],['👥','Team availability (free/busy)'],['🚨','Urgent alerts — VM expiry, build delays'],['→','At-risk count links to Summary tab']].map(([i,t])=>`
+          <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text-dim);padding:3px 0;">
+            <span style="flex-shrink:0;">${i}</span><span>${t}</span>
+          </div>`).join('')}
+      </div>
+    </div>
 
     <!-- People -->
     <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed22,#a855f722);border:1px solid #7c3aed44;display:flex;align-items:center;justify-content:center;font-size:18px;">👥</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">People</div>
-          <div style="font-size:11px;color:var(--text-faint);">Team roster</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(139,92,246,0.15);border:1px solid #7c3aed33;display:flex;align-items:center;justify-content:center;font-size:17px;">👥</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">People</div>
+        <div style="font-size:11px;color:var(--text-faint);">Team roster</div></div>
       </div>
-      <div style="font-size:12.5px;color:var(--text-dim);line-height:1.9;">
-        📛 Name · 💼 Title · 📧 Email · 🏷️ <b>Dev POD</b>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        Name · Title · Email · Dev POD<br>
+        <strong>Daily Plan toggle</strong> — OFF for PM/Managers (hides from Daily Plan calendar)<br>
+        POD badge dikhega in People table
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;">
-        ${[['WinGuardians','#dbeafe','#1d4ed8'],['Heisenbug','#dcfce7','#15803d'],['Hydra','#fce7f3','#9d174d'],['Sentinels','#fef3c7','#b45309'],['DareDevils','#fee2e2','#b91c1c'],['Evil Inc.','#f3e8ff','#7e22ce']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:600;">${n}</span>`).join('')}
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
+        ${[['WinGuardians','#dbeafe','#1d4ed8'],['Heisenbug','#dcfce7','#15803d'],['Hydra','#fce7f3','#9d174d'],['Sentinels','#fef3c7','#b45309'],['DareDevils','#fee2e2','#b91c1c'],['Evil Inc.','#f3e8ff','#7e22ce']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
       </div>
-      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11.5px;color:#15803d;">✓ Dev POD enables filtering in Daily Plan, Release, Test Plan, and Summary</div>
     </div>
 
     <!-- Release -->
     <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#0ea5e922;border:1px solid #0ea5e944;display:flex;align-items:center;justify-content:center;font-size:18px;">📁</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Release Tab</div>
-          <div style="font-size:11px;color:var(--text-faint);">Track all releases</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:#0ea5e920;border:1px solid #0ea5e933;display:flex;align-items:center;justify-content:center;font-size:17px;">📁</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release Tab</div>
+        <div style="font-size:11px;color:var(--text-faint);">Track all releases</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
         🎫 JIRA auto-extracts ticket ID<br>
-        📥 Dev to QA date ← Test Plan auto-sync<br>
-        ⏱️ Total QA efforts ← Test Plan auto-sync<br>
-        🔵 Status ← Test Plan completion auto-sync
+        📥 Dev to QA / Efforts / Status ← auto-sync from Test Plan<br>
+        ☑️ Bulk select → Set status or 🗑 Delete<br>
+        📝 Notes per release item<br>
+        Column header dropdowns filter inline
       </div>
-      <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11.5px;color:#a16207;">⚠️ Bulk select rows → Apply status or 🗑 Delete → Ctrl+Z to undo</div>
     </div>
 
     <!-- Test Plan -->
     <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#10b98122;border:1px solid #10b98144;display:flex;align-items:center;justify-content:center;font-size:18px;">✅</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Test Plan</div>
-          <div style="font-size:11px;color:var(--text-faint);">Environment matrix + effort</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:#10b98120;border:1px solid #10b98133;display:flex;align-items:center;justify-content:center;font-size:17px;">✅</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Test Plan</div>
+        <div style="font-size:11px;color:var(--text-faint);">Environment matrix + effort</div></div>
       </div>
-      <div style="display:flex;gap:6px;flex-direction:column;">
-        ${[['📋','Test prep','Scenarios, cases, review'],['🔧','Test env & Data prep','Environment setup effort'],['🌍','Environments','Coverage, cases, effort, assignee'],['🔄','Buffer','Extra time padding']].map(([i,t,d])=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel-2);border-radius:7px;">
-            <span style="font-size:14px;">${i}</span>
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);">${t}</div>
-              <div style="font-size:11px;color:var(--text-faint);">${d}</div>
-            </div>
-          </div>
-        `).join('')}
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        📋 Test prep + 🔧 Test env rows (effort + status)<br>
+        Environments: coverage%, cases, effort, assignee, status<br>
+        Milestones: build pickup, BVT, exec dates<br>
+        <strong>📋 Copy plan</strong> — clone envs to another release item<br>
+        Share report: item / release / POD / all
+      </div>
+      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+        ${[['Not yet started','#f1f5f9','#64748b'],['In progress','#fef3c7','#b45309'],['Done','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
       </div>
     </div>
 
-    <!-- Leave Calendar -->
+    <!-- Leave -->
     <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#f59e0b22;border:1px solid #f59e0b44;display:flex;align-items:center;justify-content:center;font-size:18px;">🏖️</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Leave Calendar</div>
-          <div style="font-size:11px;color:var(--text-faint);">Mark PL and UPL</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:#f59e0b20;border:1px solid #f59e0b33;display:flex;align-items:center;justify-content:center;font-size:17px;">🏖️</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Leave Calendar</div>
+        <div style="font-size:11px;color:var(--text-faint);">PL and UPL tracking</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-        <div style="text-align:center;background:var(--panel-2);border-radius:10px;padding:12px 6px;">
-          <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">1st click</div>
-          <div style="background:#fef3c7;color:#b45309;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block;">PL</div>
-          <div style="font-size:10px;color:var(--text-faint);margin-top:4px;">Planned</div>
-        </div>
-        <div style="text-align:center;background:var(--panel-2);border-radius:10px;padding:12px 6px;">
-          <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">2nd click</div>
-          <div style="background:#fee2e2;color:#dc2626;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block;">UPL</div>
-          <div style="font-size:10px;color:var(--text-faint);margin-top:4px;">Unplanned</div>
-        </div>
-        <div style="text-align:center;background:var(--panel-2);border-radius:10px;padding:12px 6px;">
-          <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">3rd click</div>
-          <div style="background:#f1f5f9;color:#64748b;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block;">Clear</div>
-          <div style="font-size:10px;color:var(--text-faint);margin-top:4px;">Remove</div>
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        ${[['1st click','PL','#fef3c7','#b45309'],['2nd click','UPL','#fee2e2','#dc2626'],['3rd click','Clear','#f1f5f9','#64748b']].map(([l,t,bg,fg])=>`
+          <div style="text-align:center;background:var(--panel-2);border-radius:8px;padding:8px 4px;">
+            <div style="font-size:10px;color:var(--text-faint);margin-bottom:4px;">${l}</div>
+            <div style="background:${bg};color:${fg};padding:2px 6px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;">${t}</div>
+          </div>`).join('')}
       </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;">H = Holiday &nbsp;·&nbsp; · = Weekend &nbsp;·&nbsp; Summary table below shows counts</div>
+      <div style="font-size:11.5px;color:var(--text-dim);">H = Holiday &nbsp;·&nbsp; · = Weekend<br>Summary table shows PL/UPL count per person</div>
     </div>
 
     <!-- Daily Plan -->
     <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#6366f122;border:1px solid #6366f144;display:flex;align-items:center;justify-content:center;font-size:18px;">📅</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Daily Plan</div>
-          <div style="font-size:11px;color:var(--text-faint);">Day-wise assignment</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:#6366f120;border:1px solid #6366f133;display:flex;align-items:center;justify-content:center;font-size:17px;">📅</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Daily Plan</div>
+        <div style="font-size:11px;color:var(--text-faint);">Day-wise assignment + AI</div></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${[['🏷️','Filter by Dev POD','Shows only that POD\'s members — much easier with 10+ people'],['🟢🔴','Smart person suggest','Free people shown 🟢 first, busy shown 🔴 below in assign modal'],['📊','Resource availability','Cards show next free date per person — considers leave + assignments'],['🗑️','Remove assignment','Click any colored cell in calendar to remove it (Ctrl+Z to undo)']].map(([i,t,d])=>`
-          <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:var(--panel-2);border-radius:8px;">
-            <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${i}</span>
-            <div>
-              <div style="font-size:12.5px;font-weight:600;color:var(--text);">${t}</div>
-              <div style="font-size:11.5px;color:var(--text-faint);margin-top:1px;">${d}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Release Summary -->
-    <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#22d3ee22;border:1px solid #22d3ee44;display:flex;align-items:center;justify-content:center;font-size:18px;">📊</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Release Summary</div>
-          <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Reports</div>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
-        ${[['🏥','Release Health','Auto risk: At risk / Needs attention / On track'],['📅','Gantt Timeline','Visual bars — today line, release markers 📅 go-ahead 🚀'],['📄','Share Report','Public link, no login needed to view']].map(([i,t,d])=>`
-          <div style="display:flex;gap:10px;align-items:center;padding:8px 10px;background:var(--panel-2);border-radius:8px;">
-            <span style="font-size:16px;">${i}</span>
-            <div>
-              <div style="font-size:12px;font-weight:600;color:var(--text);">${t}</div>
-              <div style="font-size:11px;color:var(--text-faint);">${d}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <span style="background:#fee2e2;color:#dc2626;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;">🔴 At risk</span>
-        <span style="background:#fef9c3;color:#a16207;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;">🟡 Needs attention</span>
-        <span style="background:#dcfce7;color:#15803d;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;">🟢 On track</span>
-        <span style="background:#dcfce7;color:#15803d;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;">✅ Completed</span>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        POD filter → shows only that team's members<br>
+        🟢 Free people sorted first in assign modal<br>
+        Resource Availability cards show next free date<br>
+        Click cell to remove assignment (Ctrl+Z to undo)<br>
+        <strong>✨ AI Assistant</strong> — ask anything about your team
       </div>
     </div>
 
   </div>
 
-  <!-- ── Keyboard Shortcuts ── -->
-  <div class="panel" style="margin-bottom:18px;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-      <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#f43f5e22,#f43f5e44);border:1px solid #f43f5e33;display:flex;align-items:center;justify-content:center;font-size:20px;">⌨️</div>
-      <div>
-        <h2 style="font-family:'Inter Tight',sans-serif;font-size:17px;font-weight:700;margin:0;color:var(--text);">Keyboard Shortcuts</h2>
-        <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Work faster without the mouse</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:10px;">Navigation</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          ${[['Alt+P','People'],['Alt+R','Release'],['Alt+T','Test Plan'],['Alt+D','Daily Plan'],['Alt+S','Summary'],['Alt+L','Leave Calendar'],['Alt+H','Holidays']].map(([k,t])=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--panel-2);border-radius:8px;">
-              <kbd style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.08);">${k}</kbd>
-              <span style="font-size:12.5px;color:var(--text-dim);font-weight:500;">${t}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:10px;">Actions</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          ${[['N','New item on current tab'],['Esc','Close modal'],['Ctrl+Z','Undo last action'],['Shift+D','Toggle dark mode'],['?','Show shortcuts help']].map(([k,t])=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--panel-2);border-radius:8px;">
-              <kbd style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:6px;padding:3px 10px;font-family:var(--mono);font-size:11px;font-weight:700;box-shadow:0 2px 4px rgba(124,58,237,0.3);">${k}</kbd>
-              <span style="font-size:12.5px;color:var(--text-dim);font-weight:500;">${t}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Undo + Activity + Dark mode row ── -->
+  <!-- Second row of tabs -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
 
-    <!-- Undo -->
+    <!-- Summary -->
     <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#8b5cf622;border:1px solid #8b5cf644;display:flex;align-items:center;justify-content:center;font-size:18px;">↩️</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Undo System</div>
-          <div style="font-size:11px;color:var(--text-faint);">Last 20 actions</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:#22d3ee20;border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">📊</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release Summary</div>
+        <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Reports</div></div>
       </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;margin-bottom:10px;">
-        After any action → toast appears at bottom<br>
-        Click <b>↩ Undo</b> or press <kbd style="background:var(--panel-2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px;">Ctrl+Z</kbd><br>
-        Data restored in Supabase automatically
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        🏥 Release Health — per-item risk cards (8 checks)<br>
+        📅 Gantt timeline — today line, release markers<br>
+        📋 Summary table — filterable + shareable<br>
+        Working on it ← from Daily Plan (±30 days)
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        ${['Release add/edit/delete','Bulk status / delete','Test row add/edit/delete','Daily plan assign/clear'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:4px 8px;background:var(--panel-2);border-radius:6px;">✓ ${t}</div>`).join('')}
+      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+        ${[['🔴 At risk','#fee2e2','#dc2626'],['🟡 Needs attention','#fef9c3','#a16207'],['🟢 On track','#dcfce7','#15803d'],['✅ Completed','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
       </div>
     </div>
 
-    <!-- Activity Log -->
+    <!-- VM Repository -->
     <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#0ea5e922;border:1px solid #0ea5e944;display:flex;align-items:center;justify-content:center;font-size:18px;">📋</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Activity Log</div>
-          <div style="font-size:11px;color:var(--text-faint);">Full audit trail</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(6,182,212,0.2),rgba(99,102,241,0.2));border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">🖥️</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">VM Repository</div>
+        <div style="font-size:11px;color:var(--text-faint);">Track all QA VMs</div></div>
       </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;margin-bottom:10px;">Open from sidebar → 📋 Activity log</div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        ${['➕ Release added','✏️ Edited','🗑️ Deleted','📅 Daily plan','🏖️ Leave marked','📝 Notes added','👤 People changes'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:4px 8px;background:var(--panel-2);border-radius:6px;">${t}</div>`).join('')}
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        Group/filter by POD · status filter (in use/free/expiring)<br>
+        <strong>In-use toggle</strong> — click in table to flip instantly<br>
+        <strong>Auto-free</strong> — VM auto-marks free when End Date passes<br>
+        VM details parsed: OS badge, Office version, IP<br>
+        <strong>✎ Manage groups</strong> — add, rename, delete POD groups
+      </div>
+      <div style="display:flex;gap:5px;margin-top:8px;">
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🟢 Free</span>
+        <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🔴 In use</span>
+        <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">Expired</span>
+        <span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">⚠ Expiring</span>
       </div>
     </div>
 
-    <!-- Settings -->
-    <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:36px;height:36px;border-radius:10px;background:#33415522;border:1px solid #33415544;display:flex;align-items:center;justify-content:center;font-size:18px;">⚙️</div>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--text);">Settings & Sync</div>
-          <div style="font-size:11px;color:var(--text-faint);">Sidebar controls</div>
-        </div>
+    <!-- AI Assistant -->
+    <div class="panel" style="margin:0; border:1.5px solid #7c3aed44; background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(37,99,235,0.03));">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:17px;">✨</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">AI Planning Assistant</div>
+        <div style="font-size:11px;color:var(--text-faint);">Powered by Claude · Daily Plan tab</div></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="padding:10px;background:var(--panel-2);border-radius:8px;">
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;">🌙 Dark Mode</div>
-          <div style="font-size:11.5px;color:var(--text-faint);">Toggle switch in sidebar. Saved permanently. Shortcut: Shift+D</div>
-        </div>
-        <div style="padding:10px;background:var(--panel-2);border-radius:8px;">
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;">🟢 Real-time Sync</div>
-          <div style="font-size:11.5px;color:var(--text-faint);">Green dot = live. Another user saves → your screen updates in &lt;1 sec.</div>
-        </div>
-        <div style="padding:10px;background:var(--panel-2);border-radius:8px;">
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;">🔒 Change Password</div>
-          <div style="font-size:11.5px;color:var(--text-faint);">Sidebar footer → Change password button.</div>
-        </div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        Knows your team, releases, daily plan, VMs<br>
+        Ask in natural language — get smart answers<br>
+        <strong>Suggested prompts:</strong> "Who is free today?", "Which releases are at risk?"<br>
+        Multi-turn conversation (last 10 messages)
+      </div>
+      <div style="background:var(--panel-2);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--text-faint);">
+        ℹ️ Needs internet · Context refreshes every message · Clear button resets chat
       </div>
     </div>
 
   </div>
 
-  <!-- ── FAQ ── -->
+  <!-- Keyboard Shortcuts -->
   <div class="panel" style="margin-bottom:18px;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-      <div style="width:42px;height:42px;border-radius:12px;background:#64748b22;border:1px solid #64748b33;display:flex;align-items:center;justify-content:center;font-size:20px;">❓</div>
-      <div>
-        <h2 style="font-family:'Inter Tight',sans-serif;font-size:17px;font-weight:700;margin:0;color:var(--text);">Common Questions</h2>
-        <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Quick answers to frequent issues</div>
-      </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:#f43f5e22;border:1px solid #f43f5e33;display:flex;align-items:center;justify-content:center;font-size:20px;">⌨️</div>
+      <h2 style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;margin:0;color:var(--text);">Keyboard Shortcuts</h2>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${[
-        ['Release tab status not updating?','Status auto-syncs only when Test Plan has environment rows. Bulk updates work when no rows exist.'],
-        ['Dev to QA date not showing?','Set "Build pickup" milestone in Test Plan → Milestones section. This auto-populates the field.'],
-        ['"Working on it" column empty?','Shows people from Daily Plan (±30 days). Assign people in Daily Plan tab first.'],
-        ['Release Health shows At risk?','Dates compared to today. If a milestone date passed and status ≠ Completed → shows At risk.'],
-        ['Data not saving?','Check sidebar "lastSaved" text. If "save failed" → ask admin to check Supabase permissions.'],
-        ['Share report without login?','Test Plan / Summary → Share report → generates public link. No login needed to view.'],
-      ].map(([q,a])=>`
-        <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;">
-          <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;gap:6px;align-items:flex-start;">
-            <span style="color:#7c3aed;font-size:14px;flex-shrink:0;">Q</span>${q}
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:8px;">Navigation</div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          ${[['Alt+P','People'],['Alt+R','Release'],['Alt+T','Test Plan'],['Alt+D','Daily Plan (+ AI)'],['Alt+S','Summary'],['Alt+L','Leave Calendar'],['Alt+H','Holidays']].map(([k,t])=>`
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--panel-2);border-radius:7px;">
+              <kbd style="background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--text);">${k}</kbd>
+              <span style="font-size:12px;color:var(--text-dim);">${t}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:8px;">Actions</div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          ${[['N','New item on current tab'],['Esc','Close modal'],['Ctrl+Z','Undo last action'],['Shift+D','Toggle dark mode'],['?','Show shortcuts help'],['🔍','Search bar (sidebar)']].map(([k,t])=>`
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--panel-2);border-radius:7px;">
+              <kbd style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:5px;padding:2px 8px;font-family:var(--mono);font-size:10.5px;font-weight:700;box-shadow:0 2px 4px rgba(124,58,237,0.3);">${k}</kbd>
+              <span style="font-size:12px;color:var(--text-dim);">${t}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Undo + Activity + Settings -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
+    <div class="panel" style="margin:0;">
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">↩️ Undo System</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Last <strong>20 actions</strong> remembered.<br>Toast appears → click ↩ Undo or Ctrl+Z<br>Data restored in Supabase automatically</div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        ${['Release add/edit/delete','Bulk status / delete','Test row add/edit/delete','Daily plan assign/clear','VM add/edit/delete'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">✓ ${t}</div>`).join('')}
+      </div>
+    </div>
+    <div class="panel" style="margin:0;">
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">📋 Activity Log</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Open from sidebar → 📋 Activity log<br>All users' actions visible to everyone<br>Saved in Supabase + localStorage backup</div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        ${['➕ Release added/edited/deleted','📅 Daily plan assigned/cleared','🏖️ Leave marked (PL/UPL)','📝 Notes added','👤 People changes','🔄 Bulk status update'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">${t}</div>`).join('')}
+      </div>
+    </div>
+    <div class="panel" style="margin:0;">
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">⚙️ Settings & Sync</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${[['🌙','Dark Mode','Toggle switch in sidebar · Shift+D · Saved permanently'],['🟢','Real-time Sync','Green dot = live · Changes appear in <1 sec across all users'],['🔍','Search','Sidebar search bar · People, releases, VMs'],['🔒','Change Password','Sidebar footer → Change password'],['👤','Permissions','Admin tab → per-user tab access · Copy from another user']].map(([i,t,d])=>`
+          <div style="padding:8px 10px;background:var(--panel-2);border-radius:8px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);">${i} ${t}</div>
+            <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${d}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:#64748b22;border:1px solid #64748b33;display:flex;align-items:center;justify-content:center;font-size:20px;">❓</div>
+      <h2 style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;margin:0;color:var(--text);">Common Questions</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${[['Release tab status not updating?','Status auto-syncs only when Test Plan has environment rows added. Bulk updates work when no rows exist.'],
+         ['Dev to QA date not showing?','Set "Build pickup" milestone in Test Plan → Milestones section. This auto-populates Dev to QA date.'],
+         ['"Working on it" column empty?','Shows people from Daily Plan (±30 days window). Assign people in Daily Plan tab first.'],
+         ['Share report link not working?','Link works on same browser (localStorage). Run Supabase SQL in Help for cross-device sharing.'],
+         ['AI Assistant not responding?','Check internet connection. The AI uses Anthropic API — needs active internet.'],
+         ['VM still shows "In use" after end date?','Auto-free runs when data loads. Refresh or make any change to trigger it.'],
+         ['Data not saving?','Check sidebar "lastSaved". If "save failed" → run the RLS fix SQL in Supabase SQL Editor.'],
+         ['Permission changes not reflecting?','Run: alter publication supabase_realtime add table user_roles; in Supabase SQL Editor.']].map(([q,a])=>`
+        <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:10px;padding:12px 14px;">
+          <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:5px;display:flex;gap:6px;">
+            <span style="color:#7c3aed;flex-shrink:0;">Q</span>${q}
           </div>
-          <div style="font-size:12px;color:var(--text-dim);line-height:1.6;padding-left:20px;">
+          <div style="font-size:12px;color:var(--text-dim);line-height:1.6;padding-left:18px;">
             <span style="color:#10b981;font-weight:700;margin-right:4px;">A</span>${a}
           </div>
-        </div>
-      `).join('')}
+        </div>`).join('')}
     </div>
   </div>
 
   <!-- Footer -->
   <div style="text-align:center;padding:28px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:16px;border:1px solid var(--border-soft);">
     <div style="font-size:28px;margin-bottom:8px;">🔍</div>
-    <div style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">TeamLens v1.0</div>
+    <div style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">TeamLens v2.0</div>
     <div style="font-size:12px;color:var(--text-faint);">Built for QA teams · <span style="color:#7c3aed;font-weight:600;">One lens. Full picture.</span></div>
   </div>
 
   `;
 }
-
-
-
 
 // Track which tabs need re-render
 const _dirtyTabs = new Set();
@@ -4343,24 +4487,42 @@ function syncTestPlanToProjects() {
     const plan = state.testPlans && state.testPlans[proj.id];
     if (!plan) return;
 
+    // *** REVIEW GATE — only sync if lead has reviewed ***
+    const reviewed = plan.reviewed === true;
+
     const metrics = computeTestPlanMetrics(plan);
 
-    // Sync Total QA efforts
-    if (metrics.totalEffort > 0 && String(proj.effort) !== String(metrics.totalEffort)) {
-      proj.effort = metrics.totalEffort;
-      changed = true;
+    // Sync Total QA efforts — only if reviewed
+    if (reviewed) {
+      if (metrics.totalEffort > 0 && String(proj.effort) !== String(metrics.totalEffort)) {
+        proj.effort = metrics.totalEffort;
+        changed = true;
+      }
+      // Sync Dev to QA date from build pickup milestone
+      if (plan.milestones && plan.milestones.buildPickup && proj.buildDate !== plan.milestones.buildPickup) {
+        proj.buildDate = plan.milestones.buildPickup;
+        changed = true;
+      }
+      // Sync go ahead / completion dates
+      if (plan.milestones && plan.milestones.mergedBuildGoAhead && proj.goAheadDate !== plan.milestones.mergedBuildGoAhead) {
+        proj.goAheadDate = plan.milestones.mergedBuildGoAhead;
+        changed = true;
+      }
+      if (plan.milestones && plan.milestones.execWithBuffer && proj.completionDate !== plan.milestones.execWithBuffer) {
+        proj.completionDate = plan.milestones.execWithBuffer;
+        changed = true;
+      }
+    } else {
+      // Not reviewed — clear synced fields so Release tab shows blank
+      if (proj.effort) { proj.effort = ''; changed = true; }
+      if (proj.buildDate) { proj.buildDate = ''; changed = true; }
+      if (proj.goAheadDate) { proj.goAheadDate = ''; changed = true; }
+      if (proj.completionDate) { proj.completionDate = ''; changed = true; }
     }
 
-    // Sync Dev to QA date from build pickup milestone
-    if (plan.milestones && plan.milestones.buildPickup && proj.buildDate !== plan.milestones.buildPickup) {
-      proj.buildDate = plan.milestones.buildPickup;
-      changed = true;
-    }
-
-    // Sync status ONLY if test plan has environment rows with actual progress
-    // Don't override manually set status (e.g. from bulk update)
+    // Sync status ONLY if reviewed and test plan has environment rows
     const hasRows = plan.rows && plan.rows.length > 0;
-    if (hasRows) {
+    if (reviewed && hasRows) {
       const autoStatus = computeAutoStatus(plan);
       if (autoStatus && proj.status !== autoStatus) {
         proj.status = autoStatus;
@@ -4829,6 +4991,9 @@ function renderTestPlan() {
   document.getElementById('msExecNoBuffer').value = plan.milestones.execNoBuffer || '';
   document.getElementById('msExecWithBuffer').value = plan.milestones.execWithBuffer || '';
   document.getElementById('msMergedBuildGoAhead').value = plan.milestones.mergedBuildGoAhead || '';
+
+  // Review panel
+  renderReviewPanel(plan);
 }
 
 // ====================== TEST PLAN REPORT ======================
