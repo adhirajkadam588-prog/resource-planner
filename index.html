@@ -517,7 +517,10 @@
         <div id="userAvatar" style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:white; flex-shrink:0; box-shadow:0 2px 8px rgba(124,58,237,0.4);"></div>
         <div style="min-width:0; flex:1;">
           <div id="userEmail" style="font-size:11.5px; color:#f1f5f9; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:inherit;"></div>
-          <div id="lastSaved" style="font-size:10px; color:#475569; margin-top:2px; font-family:var(--mono);"></div>
+          <div style="display:flex; align-items:center; gap:5px; margin-top:2px;">
+            <div id="realtimeIndicator" style="width:7px; height:7px; border-radius:50%; background:#94a3b8; flex-shrink:0; transition:background 0.3s;" title="Connecting…"></div>
+            <div id="lastSaved" style="font-size:10px; color:#475569; font-family:var(--mono);"></div>
+          </div>
         </div>
       </div>
       <!-- Dark mode toggle switch -->
@@ -611,6 +614,7 @@
               <option>Blocked</option>
             </select>
             <button class="action" style="padding:5px 12px; font-size:12px;" onclick="applyBulkStatus()">Apply</button>
+            <button class="action" style="padding:5px 12px; font-size:12px; background:linear-gradient(135deg,#dc2626,#b91c1c); box-shadow:0 2px 6px rgba(220,38,38,0.35);" onclick="bulkDelete()">🗑 Delete</button>
             <button class="ghost" style="padding:5px 10px; font-size:12px;" onclick="clearBulkSelection()">✕</button>
           </div>
           <button class="action" onclick="openProjectModal()">+ Add release item</button>
@@ -1342,11 +1346,67 @@ const SUPABASE_URL = 'https://ilsgdzphjrtfotxtgaqg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlsc2dkenBoanJ0Zm90eHRnYXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4ODgxMjIsImV4cCI6MjA5ODQ2NDEyMn0.d4686tuEKRTOg10PjZcblR_ckKJazFuthTb14t1rLTI';
 
 const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, storageKey: 'teamlens-auth', storage: window.localStorage }
+  auth: { persistSession: true, storageKey: 'teamlens-auth', storage: window.localStorage },
+  realtime: { params: { eventsPerSecond: 2 } }
 });
 // Show connection status on login page
 const _dbgEl = document.getElementById('loginDebug');
 if (_dbgEl) _dbgEl.textContent = sbClient ? '✓ Connected to Supabase' : '✗ Connection failed';
+
+// ====================== REALTIME SYNC ======================
+let realtimeChannel = null;
+let _realtimeDebounce = null;
+let _lastSavedAt = null; // timestamp of our own last save — to skip self-updates
+
+function initRealtime() {
+  if (realtimeChannel) {
+    sbClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  realtimeChannel = sbClient
+    .channel('resource-planner-changes')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'resource_planner',
+      filter: 'id=eq.shared'
+    }, (payload) => {
+      // Skip if this update was triggered by our own save (within 3 seconds)
+      if (_lastSavedAt && Date.now() - _lastSavedAt < 3000) return;
+
+      // Debounce rapid updates — wait 800ms then reload
+      clearTimeout(_realtimeDebounce);
+      _realtimeDebounce = setTimeout(async () => {
+        await loadState();
+        renderAll();
+        showSyncToast();
+      }, 800);
+    })
+    .subscribe((status) => {
+      const indicator = document.getElementById('realtimeIndicator');
+      if (!indicator) return;
+      if (status === 'SUBSCRIBED') {
+        indicator.style.background = '#22c55e';
+        indicator.title = 'Live sync active';
+      } else {
+        indicator.style.background = '#94a3b8';
+        indicator.title = 'Connecting…';
+      }
+    });
+}
+
+function showSyncToast() {
+  const toast = document.getElementById('saveToast');
+  if (!toast) return;
+  const prev = toast.textContent;
+  toast.textContent = '🔄 Synced from another user';
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.textContent = prev;
+  }, 2500);
+}
 
 // ---------- Role & Permissions ----------
 let currentUserRole = null;
@@ -1470,6 +1530,7 @@ async function initApp(user) {
   if (currentUserRole === 'admin') await fetchAllUserRoles();
   renderAll();
   applyAccessUI();
+  initRealtime(); // start listening for changes from other users
 }
 
 function resetApp() {
@@ -1516,6 +1577,7 @@ async function signIn() {
 }
 
 async function signOut() {
+  if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
   try { await sbClient.auth.signOut(); } catch (e) { console.warn('signOut error:', e); }
   resetApp();
 }
@@ -1669,14 +1731,32 @@ async function saveNote() {
 }
 
 // ====================== ACTIVITY LOG ======================
+const LOCAL_LOG_KEY = 'tl-activity-log';
+
 async function logActivity(action, details = {}) {
+  const entry = {
+    id: uid(),
+    user_email: currentUserEmail || 'unknown',
+    action,
+    details,
+    created_at: new Date().toISOString()
+  };
+
+  // Always save to localStorage as primary store
+  try {
+    const existing = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
+    existing.unshift(entry);
+    if (existing.length > 200) existing.splice(200); // keep last 200
+    localStorage.setItem(LOCAL_LOG_KEY, JSON.stringify(existing));
+  } catch (e) { console.warn('Local log failed', e); }
+
+  // Also try Supabase (optional — won't fail if table missing)
   try {
     await sbClient.from('activity_log').insert({
-      user_email: currentUserEmail,
-      action,
-      details
+      user_email: entry.user_email, action, details,
+      created_at: entry.created_at
     });
-  } catch (e) { console.warn('Activity log failed:', e.message); }
+  } catch (e) { /* silently ignore — table may not exist */ }
 }
 
 async function openActivityLog() {
@@ -1684,45 +1764,80 @@ async function openActivityLog() {
   listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:8px;">Loading…</div>';
   document.getElementById('activityLogModal').classList.add('show');
 
+  // Load from localStorage first (always available)
+  let logs = [];
   try {
-    const { data, error } = await sbClient
+    logs = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
+  } catch(e) {}
+
+  // Also try Supabase
+  try {
+    const { data } = await sbClient
       .from('activity_log')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(80);
-
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:8px; font-style:italic;">No activity recorded yet.</div>';
-      return;
+      .limit(100);
+    if (data && data.length > 0) {
+      // Merge — Supabase has shared logs, localStorage has local
+      const supaIds = new Set(data.map(d => d.created_at));
+      const localOnly = logs.filter(l => !supaIds.has(l.created_at));
+      logs = [...localOnly, ...data].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
     }
+  } catch(e) { /* use localStorage only */ }
 
-    const ACTION_ICONS = {
-      'Bulk status update': '🔄', 'Note added': '📝', 'State saved': '💾',
-      'Login': '🔐', 'User created': '👤', 'Password changed': '🔒'
-    };
-
-    listEl.innerHTML = data.map(entry => {
-      const icon = ACTION_ICONS[entry.action] || '📌';
-      const time = new Date(entry.created_at).toLocaleString('en-IN', {
-        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-      });
-      const detailStr = entry.details
-        ? Object.entries(entry.details).map(([k,v]) => `<span style="color:var(--text-faint);">${k}:</span> ${typeof v === 'object' ? JSON.stringify(v) : escapeHtml(String(v))}`).join(' · ')
-        : '';
-      return `
-        <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft);">
-          <span style="font-size:18px; flex-shrink:0; margin-top:1px;">${icon}</span>
-          <div style="flex:1; min-width:0;">
-            <div style="font-size:13px; font-weight:600; color:var(--text);">${escapeHtml(entry.action)}</div>
-            ${detailStr ? `<div style="font-size:11.5px; color:var(--text-dim); margin-top:2px; white-space:normal;">${detailStr}</div>` : ''}
-            <div style="font-size:10.5px; color:var(--text-faint); margin-top:3px;">${escapeHtml(entry.user_email || '')} · ${time}</div>
-          </div>
-        </div>`;
-    }).join('');
-  } catch (e) {
-    listEl.innerHTML = `<div style="color:var(--red); font-size:12px; padding:8px;">Error: ${e.message}</div>`;
+  if (logs.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--text-faint); font-size:12px; padding:16px; text-align:center; font-style:italic;">No activity recorded yet.<br><span style="font-size:11px;">Activity will appear here as you use the app.</span></div>';
+    return;
   }
+
+  const ACTION_ICONS = {
+    'Bulk status update': '🔄', 'Bulk delete': '🗑️', 'Note added': '📝',
+    'Release item added': '➕', 'Release item edited': '✏️', 'Release item deleted': '🗑️',
+    'Person added': '👤', 'Person deleted': '👤', 'Login': '🔐', 'Password changed': '🔒'
+  };
+
+  listEl.innerHTML = logs.slice(0, 100).map(entry => {
+    const icon = ACTION_ICONS[entry.action] || '📌';
+    const time = new Date(entry.created_at).toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+    const details = entry.details || {};
+    const detailParts = [];
+    if (details.items) detailParts.push(`Items: ${Array.isArray(details.items) ? details.items.join(', ') : details.items}`);
+    if (details.newStatus) detailParts.push(`→ ${details.newStatus}`);
+    if (details.count) detailParts.push(`${details.count} items`);
+    if (details.note) detailParts.push(`"${String(details.note).slice(0,60)}"`);
+    if (details.name) detailParts.push(details.name);
+    const detailStr = detailParts.join(' · ');
+
+    return `
+      <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft);">
+        <span style="font-size:18px; flex-shrink:0;">${icon}</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; font-weight:600; color:var(--text);">${escapeHtml(entry.action)}</div>
+          ${detailStr ? `<div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">${escapeHtml(detailStr)}</div>` : ''}
+          <div style="font-size:10.5px; color:var(--text-faint); margin-top:3px;">${escapeHtml(entry.user_email || '')} · ${time}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ====================== BULK DELETE ======================
+async function bulkDelete() {
+  if (selectedProjectIds.size === 0) return;
+  const names = state.projects.filter(p => selectedProjectIds.has(p.id)).map(p => p.name);
+  if (!confirm(`Delete ${selectedProjectIds.size} release item${selectedProjectIds.size > 1 ? 's' : ''}?\n\n${names.join('\n')}\n\nThis cannot be undone.`)) return;
+
+  await logActivity('Bulk delete', { items: names, count: names.length });
+
+  state.projects = state.projects.filter(p => !selectedProjectIds.has(p.id));
+  // Clean up related data
+  state.allocations = state.allocations.filter(a => state.projects.some(p => p.name === a.project));
+  selectedProjectIds.forEach(id => { delete state.testPlans[id]; });
+
+  clearBulkSelection();
+  saveState();
+  renderAll();
 }
 
 // ====================== KEYBOARD SHORTCUTS ======================
@@ -1928,7 +2043,6 @@ async function loadState() {
 }
 
 async function saveState() {
-  // Allow save if: admin, OR user has at least one section with 'edit' permission
   const hasAnyEdit = Object.values(currentUserPermissions).some(v => v === 'edit');
   if (currentUserRole !== 'admin' && !hasAnyEdit) {
     console.warn('Read-only user attempted save — blocked.');
@@ -1939,11 +2053,15 @@ async function saveState() {
     const { error } = await sbClient
       .from('resource_planner')
       .upsert({ id: 'shared', data: state, updated_at: new Date().toISOString() });
-    if (error) throw error;
+    if (error) {
+      console.error('Save error:', error);
+      el.textContent = 'save failed: ' + error.message;
+      return;
+    }
+    _lastSavedAt = Date.now(); // mark our own save
     el.textContent = 'saved ' + new Date().toLocaleTimeString();
     const toast = document.getElementById('saveToast');
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 1200);
+    if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1200); }
   } catch (e) {
     console.error('Save failed', e);
     el.textContent = 'save failed: ' + (e.message || e);
@@ -2221,8 +2339,10 @@ function savePerson() {
   if (editingPersonId) {
     const p = state.people.find(x => x.id === editingPersonId);
     if (p) { p.name = name; p.title = title; p.email = email; }
+    logActivity('Person edited', { name });
   } else {
     state.people.push({ id: uid(), name, title, email });
+    logActivity('Person added', { name });
   }
   editingPersonId = null;
   closeModal('personModal');
@@ -2231,11 +2351,13 @@ function savePerson() {
 }
 
 function deletePerson(id) {
+  const person = state.people.find(p => p.id === id);
   if (!confirm('Remove this person? Their allocations and daily plan entries will also be removed.')) return;
   state.people = state.people.filter(p => p.id !== id);
   state.allocations = state.allocations.filter(a => a.personId !== id);
   state.dailyPlan = state.dailyPlan.filter(d => d.personId !== id);
   delete state.leaves[id];
+  logActivity('Person deleted', { name: person?.name || id });
   saveState();
   renderAll();
 }
@@ -3426,11 +3548,11 @@ function exportSummaryReport() {
     : selectedSummaryDevPod ? `Release Summary — ${selectedSummaryDevPod}` : 'Release Summary — All Releases';
 
   const rowsHtml = projects.map(proj => {
-    const allocs = state.allocations.filter(a => a.project === proj.name);
-    const members = allocs.map(a => {
-      const p = state.people.find(pp => pp.id === a.personId);
-      return p ? `<span style="display:inline-block; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px; font-size:11px; margin:1px; color:#334155;">${escapeHtml(p.name)}</span>` : '';
-    }).join('') || '<span style="color:#94a3b8; font-style:italic;">Unassigned</span>';
+    // Working on it — from Daily Plan
+    const workerNames = getWorkingOnIt(proj.name);
+    const members = workerNames.length > 0
+      ? workerNames.map(n => `<span style="display:inline-block; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px; font-size:11px; margin:1px; color:#334155;">${escapeHtml(n)}</span>`).join('')
+      : '<span style="color:#94a3b8; font-style:italic;">—</span>';
 
     const statusColors = {
       'not started': '#dbeafe:#1d4ed8',
@@ -3627,6 +3749,36 @@ function renderProjects() {
 function setReleaseDateFilter(date) {
   selectedReleaseDate = date || null;
   renderProjects();
+}
+
+// Returns unique person names currently working on a project
+// from Daily Plan entries — checks last 30 days + next 30 days window
+function getWorkingOnIt(projectName) {
+  const today = new Date();
+  const window30Before = new Date(today); window30Before.setDate(today.getDate() - 30);
+  const window30After  = new Date(today); window30After.setDate(today.getDate() + 30);
+
+  const from = toDateKey(window30Before);
+  const to   = toDateKey(window30After);
+
+  const personIds = new Set();
+
+  state.dailyPlan.forEach(entry => {
+    if (entry.project !== projectName) return;
+    // entry has startDate/endDate or single date
+    const entryStart = entry.startDate || entry.date || '';
+    const entryEnd   = entry.endDate   || entry.date || '';
+    if (!entryStart) return;
+    // Check overlap with our window
+    if (entryEnd >= from && entryStart <= to) {
+      personIds.add(entry.personId);
+    }
+  });
+
+  return [...personIds]
+    .map(id => state.people.find(p => p.id === id))
+    .filter(Boolean)
+    .map(p => p.name);
 }
 
 function setDevPodFilter(pod) {
@@ -4253,11 +4405,11 @@ function renderSummary() {
   };
 
   tbody.innerHTML = projects.map(proj => {
-    const allocs = state.allocations.filter(a => a.project === proj.name);
-    const members = allocs.map(a => {
-      const p = state.people.find(pp => pp.id === a.personId);
-      return p ? `${escapeHtml(p.name)}` : '';
-    }).filter(Boolean).join(', ') || '<span style="color:var(--text-faint)">—</span>';
+    // Working on it — from Daily Plan (last 30 days + next 30 days)
+    const workerNames = getWorkingOnIt(proj.name);
+    const members = workerNames.length > 0
+      ? workerNames.map(n => `<span style="display:inline-block; background:var(--accent-dim); color:var(--accent); border-radius:5px; padding:2px 8px; font-size:11px; font-weight:600; margin:1px;">${escapeHtml(n)}</span>`).join('')
+      : '<span style="color:var(--text-faint); font-size:12px;">—</span>';
 
     const jiraId = extractJiraId(proj.jiraUrl);
     const jiraCell = jiraId
