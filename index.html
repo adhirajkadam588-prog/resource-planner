@@ -407,7 +407,7 @@
         </svg>
       </div>
       <h1>TeamLens</h1>
-      <div class="tagline">QA Team Planning</div>
+      <div class="tagline">One lens. Full picture.</div>
     </div>
 
     <nav class="tabs">
@@ -725,9 +725,10 @@
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleTestPlanReportMenu()"><span class="ico">📄</span> Share report</button>
             <div class="export-menu" id="testPlanReportMenu">
-              <button onclick="exportTestPlanReport('selected')">This project's report</button>
+              <button onclick="exportTestPlanReport('selected')">This release item's report</button>
               <button onclick="exportTestPlanReport('release')">This release's report</button>
-              <button onclick="exportTestPlanReport('all')">All projects — combined</button>
+              <button onclick="exportTestPlanReport('pod')">This Dev POD's report</button>
+              <button onclick="exportTestPlanReport('all')">All release items — combined</button>
             </div>
           </div>
         </div>
@@ -780,6 +781,13 @@
                   <input id="testPrepEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
                 </td>
                 <td colspan="2"></td>
+              </tr>
+              <tr style="background:var(--panel-2);">
+                <td colspan="2" style="color:var(--text-dim);">Test environment / Test data</td>
+                <td style="text-align:center; color:var(--text-faint);">—</td>
+                <td colspan="3">
+                  <input id="testEnvData" type="text" placeholder="e.g. Staging env, production DB snapshot, test users required..." style="width:100%; font-size:12px;" onchange="saveBufferValues()">
+                </td>
               </tr>
             </tbody>
             <tbody id="testRowTableBody"></tbody>
@@ -908,35 +916,53 @@
       <div class="panel-head">
         <div>
           <h3>Release Summary</h3>
-          <div class="desc">Filter by Release/GA date — share the report with your manager</div>
+          <div class="desc">Filter by release, POD or status — share with your manager</div>
         </div>
         <button class="export-btn" onclick="exportSummaryReport()"><span class="ico">📄</span> Share report</button>
       </div>
-      <!-- Release date filter pills -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Release:</div>
-        <div id="summaryReleasePills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="white-space:nowrap; min-width:140px;">
+                Release/GA date
+                <select onchange="setSummaryReleaseDateFilter(this.value || null)" id="summaryDateSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All dates</option>
+                </select>
+              </th>
+              <th style="white-space:nowrap; min-width:160px;">Release Items</th>
+              <th style="white-space:nowrap; min-width:120px;">
+                Dev POD
+                <select onchange="setSummaryPodFilter(this.value || null)" id="summaryPodSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All PODs</option>
+                  <option>WinGuardians</option>
+                  <option>Heisenbug</option>
+                  <option>Hydra</option>
+                  <option>Sentinels</option>
+                  <option>DareDevils</option>
+                  <option>Evil Inc.</option>
+                </select>
+              </th>
+              <th style="white-space:nowrap;">JIRA</th>
+              <th style="white-space:nowrap;">Total QA efforts</th>
+              <th style="white-space:nowrap;">QA Go ahead date</th>
+              <th style="white-space:nowrap;">QA completion date</th>
+              <th style="white-space:nowrap;">Working on it</th>
+              <th style="white-space:nowrap; min-width:110px;">
+                Status
+                <select onchange="setSummaryStatusFilter(this.value || null)" id="summaryStatusSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All statuses</option>
+                  <option>Not started</option>
+                  <option>In progress</option>
+                  <option>Completed</option>
+                  <option>Blocked</option>
+                </select>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBody"></tbody>
+        </table>
       </div>
-      <!-- Dev POD filter pills -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; min-width:100px;">Dev POD:</div>
-        <div id="summaryPodPills" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Release/GA date</th>
-            <th>Release Items</th>
-            <th>JIRA</th>
-            <th>Working on it</th>
-            <th>Status</th>
-            <th>QA Go ahead date</th>
-            <th>QA completion date</th>
-            <th>Total QA efforts</th>
-          </tr>
-        </thead>
-        <tbody id="summaryTableBody"></tbody>
-      </table>
       <div class="empty-state" id="summaryEmpty" style="display:none;">No projects added yet. Add a release item to see its summary here.</div>
     </div>
   </div>
@@ -2000,6 +2026,7 @@ let selectedDevPod = null;
 let selectedTestPlanDevPod = null;
 let selectedSummaryDevPod = null;
 let selectedReleaseStatus = null;
+let selectedSummaryStatus = null;
 let editingTestRowId = null;
 
 function getTestPlanForProject(projectId) {
@@ -2016,6 +2043,7 @@ function getTestPlanForProject(projectId) {
   if (plan.testPrepEffort === undefined) plan.testPrepEffort = null;
   if (!plan.buffer) plan.buffer = { effort: null };
   if (!plan.milestones) plan.milestones = { buildPickup: '', bvtCompletion: '', execNoBuffer: '', execWithBuffer: '', mergedBuildGoAhead: '' };
+  if (plan.testEnvData === undefined) plan.testEnvData = '';
   if (plan.milestones.mergedBuildGoAhead === undefined) plan.milestones.mergedBuildGoAhead = '';
   return plan;
 }
@@ -2160,6 +2188,7 @@ function saveBufferValues() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   plan.testPrepEffort = parseFloat(document.getElementById('testPrepEffort').value) || 0;
   plan.buffer.effort = parseFloat(document.getElementById('testBufferEffort').value) || 0;
+  plan.testEnvData = document.getElementById('testEnvData').value.trim();
   saveState();
   renderTestPlan();
 }
@@ -2219,6 +2248,7 @@ function renderTestPlan() {
   // Test prep and buffer inputs reflect saved state (effort only)
   document.getElementById('testPrepEffort').value = plan.testPrepEffort || '';
   document.getElementById('testBufferEffort').value = plan.buffer.effort || '';
+  document.getElementById('testEnvData').value = plan.testEnvData || '';
 
   // Totals: cases come only from environment rows; effort sums test prep + rows + buffer.
   const rowsCases = plan.rows.reduce((s, r) => s + (r.cases || 0), 0);
@@ -2315,20 +2345,27 @@ function exportTestPlanReport(scope) {
 
   if (scope === 'all') {
     projectsToInclude = state.projects;
-    reportTitle = 'Test Plan Report — All Projects';
+    reportTitle = 'Test Plan Report — All Release Items';
+
   } else if (scope === 'release') {
     if (!selectedTestPlanReleaseDate) {
-      // No release filter active — use all projects in dropdown
-      projectsToInclude = selectedTestPlanReleaseDate
-        ? state.projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate)
-        : state.projects;
-      reportTitle = 'Test Plan Report — All Projects';
+      projectsToInclude = state.projects;
+      reportTitle = 'Test Plan Report — All Release Items';
     } else {
       projectsToInclude = state.projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
       reportTitle = `Test Plan Report — Release ${formatDateDisplay(selectedTestPlanReleaseDate)}`;
     }
+
+  } else if (scope === 'pod') {
+    if (!selectedTestPlanDevPod) {
+      alert('Please select a Dev POD filter first to generate a POD-wise report.');
+      return;
+    }
+    projectsToInclude = state.projects.filter(p => p.devPod === selectedTestPlanDevPod);
+    reportTitle = `Test Plan Report — ${selectedTestPlanDevPod}`;
+
   } else {
-    // 'selected' — current project in dropdown
+    // 'selected' — current release item in dropdown
     projectsToInclude = state.projects.filter(p => p.id === selectedTestPlanProjectId);
     reportTitle = projectsToInclude.length > 0
       ? `Test Plan Report — ${projectsToInclude[0].name}`
@@ -2336,7 +2373,7 @@ function exportTestPlanReport(scope) {
   }
 
   if (projectsToInclude.length === 0) {
-    alert('No release items found. Please select a Release/GA date filter first.');
+    alert('No release items found for the selected filter.');
     return;
   }
 
@@ -2527,7 +2564,6 @@ function buildTestPlanProjectSectionHtml(proj) {
           <tr class="row-env">
             <td>${escapeHtml(r.name)}</td>
             <td class="r">${r.coverage ? r.coverage + '%' : '—'}</td>
-            <td class="r">${r.baseCases || '—'}</td>
             <td class="r">${r.cases || 0}</td>
             <td class="r">${r.effort || 0}</td>
             <td>${person ? escapeHtml(person.name) : '—'}</td>
@@ -2565,38 +2601,39 @@ function buildTestPlanProjectSectionHtml(proj) {
         </div>` : ''}
 
         <div class="section-label">Test matrix</div>
+        ${plan.testEnvData ? `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:#334155;"><span style="font-weight:600; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:0.05em;">Test Environment / Test Data</span><div style="margin-top:4px;">${escapeHtml(plan.testEnvData)}</div></div>` : ''}
         <div class="matrix-wrap">
           <table class="matrix-table">
             <thead>
               <tr>
                 <th>Environment</th>
                 <th class="r">Coverage</th>
-                <th class="r">Base cases</th>
                 <th class="r">Total cases</th>
                 <th class="r">Effort (PD)</th>
                 <th>Assigned to</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               <tr class="row-prep">
                 <td>📋 Test prep — scenarios, test cases, review</td>
-                <td class="r">—</td><td class="r">—</td><td class="r">—</td>
+                <td class="r">—</td><td class="r">—</td>
                 <td class="r">${metrics.testPrepEffort || 0}</td>
-                <td>—</td>
+                <td>—</td><td>—</td>
               </tr>
               ${envRowsHtml}
               <tr class="row-buffer">
                 <td>🔄 Buffer</td>
-                <td class="r">—</td><td class="r">—</td><td class="r">—</td>
+                <td class="r">—</td><td class="r">—</td>
                 <td class="r">${metrics.bufferEffort || 0}</td>
-                <td>—</td>
+                <td>—</td><td>—</td>
               </tr>
               <tr class="row-total">
                 <td>Total</td>
-                <td class="r">—</td><td class="r">—</td>
+                <td class="r">—</td>
                 <td class="r">${metrics.rowsCases}</td>
                 <td class="r">${metrics.totalEffort}</td>
-                <td>—</td>
+                <td>—</td><td>—</td>
               </tr>
             </tbody>
           </table>
@@ -2906,6 +2943,7 @@ function exportSummaryReport() {
   let projects = state.projects;
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
+  if (selectedSummaryStatus) projects = projects.filter(p => p.status === selectedSummaryStatus);
 
   if (projects.length === 0) {
     alert('No items to include in this report for the selected filter.');
@@ -2920,7 +2958,7 @@ function exportSummaryReport() {
     const allocs = state.allocations.filter(a => a.project === proj.name);
     const members = allocs.map(a => {
       const p = state.people.find(pp => pp.id === a.personId);
-      return p ? `<span style="display:inline-block; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px; font-size:11px; margin:1px; color:#334155;">${escapeHtml(p.name)} <span style="color:#94a3b8;">${a.pct}%</span></span>` : '';
+      return p ? `<span style="display:inline-block; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px; font-size:11px; margin:1px; color:#334155;">${escapeHtml(p.name)}</span>` : '';
     }).join('') || '<span style="color:#94a3b8; font-style:italic;">Unassigned</span>';
 
     const statusColors = {
@@ -3392,24 +3430,26 @@ function renderCapacity() {
 function renderSummary() {
   const tbody = document.getElementById('summaryTableBody');
   const empty = document.getElementById('summaryEmpty');
-  const pillsEl = document.getElementById('summaryReleasePills');
 
-  // Release date pills
-  const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
-  if (pillsEl) {
-    pillsEl.innerHTML = allDates.length === 0
-      ? '<span style="font-size:11px; color:var(--text-faint); font-style:italic;">No Release/GA dates set yet</span>'
-      : `<button onclick="setSummaryReleaseFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedSummaryReleaseDate === null ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
-        allDates.map(d => `<button onclick="setSummaryReleaseFilter('${d}')" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${selectedSummaryReleaseDate === d ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">${formatDateDisplay(d)}</button>`).join('');
+  // Populate date dropdown
+  const dateSelect = document.getElementById('summaryDateSelect');
+  if (dateSelect) {
+    const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
+    dateSelect.innerHTML = '<option value="">All dates</option>' +
+      allDates.map(d => `<option value="${d}" ${selectedSummaryReleaseDate === d ? 'selected' : ''}>${formatDateDisplay(d)}</option>`).join('');
   }
+  // Sync POD dropdown
+  const podSel = document.getElementById('summaryPodSelect');
+  if (podSel) podSel.value = selectedSummaryDevPod || '';
+  // Sync Status dropdown
+  const stSel = document.getElementById('summaryStatusSelect');
+  if (stSel) stSel.value = selectedSummaryStatus || '';
 
-  // Dev POD pills
-  renderPodPills('summaryPodPills', selectedSummaryDevPod, 'setSummaryDevPodFilter');
-
-  // Filter by both release + POD
+  // Apply 3 filters
   let projects = state.projects;
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
+  if (selectedSummaryStatus) projects = projects.filter(p => p.status === selectedSummaryStatus);
 
   if (state.projects.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
@@ -3419,11 +3459,17 @@ function renderSummary() {
     return;
   }
 
+  const POD_COLORS = {
+    'WinGuardians': ['#dbeafe','#1d4ed8'], 'Heisenbug': ['#dcfce7','#15803d'],
+    'Hydra': ['#fce7f3','#9d174d'], 'Sentinels': ['#fef3c7','#b45309'],
+    'DareDevils': ['#fee2e2','#b91c1c'], 'Evil Inc.': ['#f3e8ff','#7e22ce'],
+  };
+
   tbody.innerHTML = projects.map(proj => {
     const allocs = state.allocations.filter(a => a.project === proj.name);
     const members = allocs.map(a => {
       const p = state.people.find(pp => pp.id === a.personId);
-      return p ? `${escapeHtml(p.name)} (${a.pct}%)` : '';
+      return p ? `${escapeHtml(p.name)}` : '';
     }).filter(Boolean).join(', ') || '<span style="color:var(--text-faint)">—</span>';
 
     const jiraId = extractJiraId(proj.jiraUrl);
@@ -3433,22 +3479,41 @@ function renderSummary() {
           : `<span style="background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600;">🎫 ${jiraId}</span>`)
       : '<span style="color:var(--text-faint);">—</span>';
 
+    const podC = POD_COLORS[proj.devPod] || ['#f1f5f9','#475569'];
+    const podCell = proj.devPod
+      ? `<span style="background:${podC[0]}; color:${podC[1]}; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(proj.devPod)}</span>`
+      : '<span style="color:var(--text-faint);">—</span>';
+
     return `
       <tr>
         <td style="white-space:nowrap;">
-          ${proj.releaseDate
-            ? `<span style="background:#ede9fe; color:#7c3aed; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>`
-            : '<span style="color:var(--text-faint);">—</span>'}
+          ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
         </td>
         <td style="font-weight:500;">${escapeHtml(proj.name)}</td>
+        <td>${podCell}</td>
         <td>${jiraCell}</td>
-        <td style="color:var(--text-dim); font-size:12px;">${members}</td>
-        <td>${proj.status ? `<span class="badge ${statusBadgeClass(proj.status)}">${escapeHtml(proj.status)}</span>` : '—'}</td>
+        <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' PDs' : '—'}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.goAheadDate)}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.completionDate)}</td>
-        <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' PDs' : '—'}</td>
+        <td style="color:var(--text-dim); font-size:12px;">${members}</td>
+        <td>${proj.status ? `<span class="badge ${statusBadgeClass(proj.status)}">${escapeHtml(proj.status)}</span>` : '—'}</td>
       </tr>`;
   }).join('');
+}
+
+function setSummaryReleaseDateFilter(date) {
+  selectedSummaryReleaseDate = date || null;
+  renderSummary();
+}
+
+function setSummaryPodFilter(pod) {
+  selectedSummaryDevPod = pod || null;
+  renderSummary();
+}
+
+function setSummaryStatusFilter(status) {
+  selectedSummaryStatus = status || null;
+  renderSummary();
 }
 
 function setSummaryReleaseFilter(date) {
