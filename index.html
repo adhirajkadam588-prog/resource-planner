@@ -1426,33 +1426,28 @@
   <!-- SUMMARY TAB -->
   <!-- ARCHIVE TAB -->
   <div class="tab-content" id="tab-archive" style="display:none;">
-    <div class="panel">
+    <div class="panel" style="margin-bottom:14px;">
       <div class="panel-head">
         <div>
           <h3>🗃 Archive</h3>
-          <div class="desc">Completed release items — read only view of finished releases</div>
+          <div class="desc">Completed release items with test plans — read only</div>
         </div>
+        <button class="ghost" onclick="downloadArchiveReport()" style="font-size:12.5px; display:flex; align-items:center; gap:6px;">⬇ Download Report</button>
+        <button class="ghost" onclick="openArchiveReportInTab()" style="font-size:12.5px; display:flex; align-items:center; gap:6px;">🔗 Open in new tab</button>
       </div>
-      <div id="archiveTableWrap" style="overflow-x:auto;">
-        <table id="archiveTable">
-          <thead>
-            <tr>
-              <th style="min-width:160px;">Release item</th>
-              <th style="white-space:nowrap;">Release/GA date</th>
-              <th>Dev POD</th>
-              <th style="white-space:nowrap;">Dev to QA</th>
-              <th style="white-space:nowrap; text-align:center;">Total effort</th>
-              <th style="white-space:nowrap;">Go ahead date</th>
-              <th style="white-space:nowrap;">QA completion</th>
-              <th>Owner</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="archiveTableBody"></tbody>
-        </table>
+      <!-- Release filter -->
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:0.07em; white-space:nowrap; min-width:70px;">Release:</div>
+        <div id="archiveReleasePills" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
       </div>
-      <div class="empty-state" id="archiveEmpty" style="display:none;">No completed releases yet. Items marked as "Completed" in the Release tab will appear here.</div>
+      <!-- POD filter -->
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <div style="font-size:11px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:0.07em; white-space:nowrap; min-width:70px;">Dev POD:</div>
+        <div id="archivePodPills" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+      </div>
     </div>
+    <div id="archiveContent"></div>
+    <div class="empty-state" id="archiveEmpty" style="display:none;">No completed releases yet. Items marked as "Completed" in the Release tab will appear here.</div>
   </div>
 
   <div class="tab-content" id="tab-summary" style="display:none;">
@@ -7143,51 +7138,206 @@ function setHealthReleaseFilter(date) {
 }
 
 // ====================== ARCHIVE TAB ======================
+let archiveReleaseFilter = null;
+let archivePodFilter     = null;
+
+function setArchiveReleaseFilter(date) {
+  archiveReleaseFilter = date;
+  renderArchive();
+}
+function setArchivePodFilter(pod) {
+  archivePodFilter = pod || null;
+  renderArchive();
+}
+
 function renderArchive() {
-  const tbody = document.getElementById('archiveTableBody');
-  const empty = document.getElementById('archiveEmpty');
-  const table = document.getElementById('archiveTable');
-  if (!tbody) return;
+  const content  = document.getElementById('archiveContent');
+  const empty    = document.getElementById('archiveEmpty');
+  const relPills = document.getElementById('archiveReleasePills');
+  const podPills = document.getElementById('archivePodPills');
+  if (!content) return;
 
   const completed = state.projects.filter(p => p.status === 'Completed');
 
   if (completed.length === 0) {
-    tbody.innerHTML = '';
+    content.innerHTML = '';
     empty.style.display = 'block';
-    table.style.display = 'none';
+    if (relPills) relPills.innerHTML = '';
+    if (podPills) podPills.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Release date pills
+  const allDates = [...new Set(completed.map(p => p.releaseDate).filter(Boolean))].sort();
+  if (relPills) {
+    relPills.innerHTML =
+      pill('All', null, archiveReleaseFilter, "setArchiveReleaseFilter(null)") +
+      allDates.map(d => pill(formatDateDisplay(d), d, archiveReleaseFilter, "setArchiveReleaseFilter('" + d + "')")).join('');
+  }
+
+  // POD pills
+  const allPods = [...new Set(completed.map(p => p.devPod).filter(Boolean))].sort();
+  if (podPills) {
+    podPills.innerHTML =
+      pill('All', null, archivePodFilter, "setArchivePodFilter(null)") +
+      allPods.map(pod => pill(pod, pod, archivePodFilter, "setArchivePodFilter('" + pod + "')")).join('');
+  }
+
+  // Apply filters
+  let items = completed;
+  if (archiveReleaseFilter) items = items.filter(p => p.releaseDate === archiveReleaseFilter);
+  if (archivePodFilter)     items = items.filter(p => p.devPod === archivePodFilter);
+
+  if (items.length === 0) {
+    content.innerHTML = '<div class="empty-state">No completed items match the selected filters.</div>';
     return;
   }
 
-  empty.style.display = 'none';
-  table.style.display = '';
+  const sorted = [...items].sort((a,b) => (b.completionDate||'').localeCompare(a.completionDate||''));
 
   const POD_COLORS = {
     'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
     'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
     'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
   };
+  const ec = {'Not yet started':'#f1f5f9:#64748b','In progress':'#fef3c7:#b45309','Done':'#dcfce7:#15803d'};
 
-  // Sort by completion date desc
-  const sorted = [...completed].sort((a,b) => (b.completionDate||'').localeCompare(a.completionDate||''));
+  content.innerHTML = sorted.map((proj, idx) => {
+    const plan = getTestPlanForProject(proj.id);
+    const podC = POD_COLORS[proj.devPod] || ['#f1f5f9','#64748b'];
 
-  tbody.innerHTML = sorted.map(p => {
-    const podC = POD_COLORS[p.devPod] || null;
-    const podCell = podC
-      ? `<span style="background:${podC[0]};color:${podC[1]};padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">${escapeHtml(p.devPod)}</span>`
-      : '<span style="color:var(--text-faint);">—</span>';
+    // Progress
+    const allStatuses = [
+      plan.testPrepStatus || 'Not yet started',
+      plan.testEnvStatus  || 'Not yet started',
+      ...plan.rows.map(r => r.status || 'Not yet started')
+    ];
+    const total   = allStatuses.length;
+    const done    = allStatuses.filter(s => s === 'Done').length;
+    const donePct = total > 0 ? Math.round(done/total*100) : 0;
 
-    return `<tr>
-      <td style="font-weight:600; color:var(--text);">${escapeHtml(p.name)}</td>
-      <td style="white-space:nowrap;">${p.releaseDate ? formatDateDisplay(p.releaseDate) : '—'}</td>
-      <td>${podCell}</td>
-      <td style="white-space:nowrap;">${p.buildDate ? formatDateDisplay(p.buildDate) : '—'}</td>
-      <td style="text-align:center; font-family:var(--mono); font-weight:600;">${p.effort || '—'}</td>
-      <td style="white-space:nowrap;">${p.goAheadDate ? formatDateDisplay(p.goAheadDate) : '—'}</td>
-      <td style="white-space:nowrap;">${p.completionDate ? formatDateDisplay(p.completionDate) : '—'}</td>
-      <td>${escapeHtml(p.owner || '—')}</td>
-      <td><span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">✅ Completed</span></td>
-    </tr>`;
+    // Env rows
+    const envRows = [
+      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started', effort:plan.testPrepEffort||0, assignee:'—', cases:'—'},
+      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started',  effort:plan.testEnvEffort||0,  assignee:'—', cases:'—'},
+      ...plan.rows.map(r => {
+        const person = state.people.find(p => p.id === r.assigneeId);
+        return {name:r.name, status:r.status||'Not yet started', effort:r.effort||0, assignee:person?person.name:'—', cases:r.cases||0};
+      })
+    ];
+
+    const rowsHtml = envRows.length > 2 || plan.rows.length > 0
+      ? envRows.map(r => {
+          const [bg,fg] = (ec[r.status]||'#f1f5f9:#64748b').split(':');
+          return '<tr>' +
+            '<td style="padding:7px 10px;font-size:12.5px;color:var(--text);">' + escapeHtml(r.name) + '</td>' +
+            '<td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--text-faint);">' + r.cases + '</td>' +
+            '<td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--text-faint);">' + r.effort + ' PD</td>' +
+            '<td style="padding:7px 10px;font-size:12px;color:var(--text-dim);">' + escapeHtml(r.assignee) + '</td>' +
+            '<td style="padding:7px 10px;text-align:center;"><span style="background:' + bg + ';color:' + fg + ';padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">' + escapeHtml(r.status) + '</span></td>' +
+          '</tr>';
+        }).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:14px;font-style:italic;font-size:12.5px;">No environments in test plan</td></tr>';
+
+    const ms = plan.milestones || {};
+    const msHtml = (ms.buildPickup||ms.bvtCompletion||ms.execWithBuffer||ms.mergedBuildGoAhead)
+      ? '<div style="padding:10px 16px;border-top:1px solid var(--border-soft);display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-faint);">' +
+          (ms.buildPickup    ?'<span>📥 Build pickup: <strong style="color:var(--text);">'+formatDateDisplay(ms.buildPickup)+'</strong></span>':'') +
+          (ms.bvtCompletion  ?'<span>🔬 BVT: <strong style="color:var(--text);">'+formatDateDisplay(ms.bvtCompletion)+'</strong></span>':'') +
+          (ms.execWithBuffer ?'<span>🏁 Exec w/ buffer: <strong style="color:var(--text);">'+formatDateDisplay(ms.execWithBuffer)+'</strong></span>':'') +
+          (ms.mergedBuildGoAhead?'<span>🚀 Go ahead: <strong style="color:var(--text);">'+formatDateDisplay(ms.mergedBuildGoAhead)+'</strong></span>':'') +
+        '</div>' : '';
+
+    const accId = 'arch-' + proj.id;
+
+    return '<div class="panel" style="margin-bottom:10px;padding:0;overflow:hidden;">' +
+      // Header
+      '<div onclick="toggleAccPanel(\'' + accId + '\')" style="display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;transition:background 0.1s;user-select:none;" ' +
+        'onmouseover="this.style.background=\'var(--panel-2)\'" onmouseout="this.style.background=\'\'">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+            '<span style="font-size:14px;font-weight:700;color:var(--text);">' + escapeHtml(proj.name) + '</span>' +
+            (proj.devPod ? '<span style="background:'+podC[0]+';color:'+podC[1]+';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + escapeHtml(proj.devPod) + '</span>' : '') +
+            '<span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">✅ Completed</span>' +
+          '</div>' +
+          '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text-faint);">' +
+            (proj.releaseDate    ?'<span>📅 Release: <strong style="color:var(--text-dim);">'+formatDateDisplay(proj.releaseDate)+'</strong></span>':'') +
+            (proj.completionDate ?'<span>🏁 Completed: <strong style="color:var(--text-dim);">'+formatDateDisplay(proj.completionDate)+'</strong></span>':'') +
+            (proj.effort         ?'<span>⏱ Effort: <strong style="color:var(--text-dim);">'+proj.effort+' PDs</strong></span>':'') +
+          '</div>' +
+        '</div>' +
+        // Progress
+        '<div style="min-width:140px;flex-shrink:0;">' +
+          '<div style="font-size:11px;color:var(--text-faint);margin-bottom:4px;font-weight:600;text-align:right;">' + done + '/' + total + ' done · ' + donePct + '%</div>' +
+          '<div style="height:6px;background:var(--panel-2);border-radius:99px;overflow:hidden;border:1px solid var(--border-soft);">' +
+            '<div style="height:100%;width:'+donePct+'%;background:linear-gradient(90deg,#10b981,#059669);border-radius:99px;"></div>' +
+          '</div>' +
+        '</div>' +
+        '<span id="' + accId + '-ch" style="font-size:11px;color:var(--text-faint);flex-shrink:0;">' + (idx === 0 ? '▲' : '▼') + '</span>' +
+      '</div>' +
+      // Body
+      '<div id="' + accId + '" style="display:' + (idx === 0 ? 'block' : 'none') + ';border-top:1px solid var(--border-soft);">' +
+        '<div style="overflow-x:auto;">' +
+          '<table style="width:100%;border-collapse:collapse;">' +
+            '<thead><tr style="background:var(--panel-2);">' +
+              '<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Environment</th>' +
+              '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Cases</th>' +
+              '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Effort</th>' +
+              '<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Assigned</th>' +
+              '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Status</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rowsHtml + '</tbody>' +
+          '</table>' +
+        '</div>' +
+        msHtml +
+      '</div>' +
+    '</div>';
   }).join('');
+}
+
+function pill(label, value, current, onclick) {
+  const isActive = current === value;
+  const style = isActive
+    ? 'background:#0f172a;color:white;border-color:#0f172a;'
+    : 'background:var(--panel-2);color:var(--text-faint);border-color:var(--border);';
+  return '<button onclick="' + onclick + '" style="padding:3px 12px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all 0.12s;' + style + '">' + escapeHtml(label) + '</button>';
+}
+
+function openArchiveReportInTab() {
+  let items = state.projects.filter(p => p.status === 'Completed');
+  if (archiveReleaseFilter) items = items.filter(p => p.releaseDate === archiveReleaseFilter);
+  if (archivePodFilter)     items = items.filter(p => p.devPod === archivePodFilter);
+  if (items.length === 0) { showToastMsg('No items to export'); return; }
+
+  let title = 'Archive Report';
+  if (archiveReleaseFilter) title = 'Archive — ' + formatDateDisplay(archiveReleaseFilter);
+  if (archivePodFilter)     title += ' · ' + archivePodFilter;
+
+  const cardsHtml = items.map(buildTestPlanProjectSectionHtml).join('\n');
+  const fullHtml  = buildFullReportHtml(title, cardsHtml);
+  const blob = new Blob([fullHtml], { type: 'text/html' });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+function downloadArchiveReport() {
+  let items = state.projects.filter(p => p.status === 'Completed');
+  if (archiveReleaseFilter) items = items.filter(p => p.releaseDate === archiveReleaseFilter);
+  if (archivePodFilter)     items = items.filter(p => p.devPod === archivePodFilter);
+  if (items.length === 0) { showToastMsg('No items to export'); return; }
+
+  let title = 'Archive Report';
+  if (archiveReleaseFilter) title = 'Archive — ' + formatDateDisplay(archiveReleaseFilter);
+  if (archivePodFilter)     title += ' · ' + archivePodFilter;
+
+  const cardsHtml = items.map(buildTestPlanProjectSectionHtml).join('\n');
+  const fullHtml  = buildFullReportHtml(title, cardsHtml);
+  const blob = new Blob([fullHtml], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = title.replace(/[^a-z0-9]/gi,'_').toLowerCase() + '.html';
+  a.click();
+  showToastMsg('✅ Archive report downloaded!');
 }
 
 function renderSummary() {
