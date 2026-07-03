@@ -589,7 +589,7 @@
 
 
       <div class="nav-section-label">Infrastructure</div>
-      <button class="tab-btn" data-tab="vmrepo" data-title="QA VM Repository" data-desc="Track VM allocations, usage, and availability across all QA team members">
+      <button class="tab-btn" data-tab="vmrepo" data-title="Infra Hub" data-desc="Track VM allocations, usage, and availability across all QA team members">
         <span class="nav-ico">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="2" width="20" height="8" rx="2"/>
@@ -600,7 +600,7 @@
             <line x1="10" y1="18" x2="16" y2="18"/>
           </svg>
         </span>
-        VM Repository
+        Infra Hub
       </button>
 
       <div class="nav-section-label" id="adminNavSection" style="display:none;">Admin</div>
@@ -1192,7 +1192,7 @@
     <div class="panel" style="margin-bottom:18px;">
       <div class="panel-head">
         <div>
-          <h3>🖥️ QA VM Repository</h3>
+          <h3>🖥️ Infra Hub</h3>
           <div class="desc">Track VM allocations, current usage, and availability across all groups</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -1241,7 +1241,6 @@
               <th style="white-space:nowrap;">Used By</th>
               <th style="white-space:nowrap;">Start Date</th>
               <th style="white-space:nowrap;">End Date</th>
-              <th style="white-space:nowrap;">Status</th>
               <th></th>
             </tr>
           </thead>
@@ -1410,7 +1409,7 @@
               <th>Leave</th>
               <th>Holidays</th>
               <th>Summary</th>
-              <th style="white-space:nowrap;">VM Repo</th>
+              <th style="white-space:nowrap;">Infra Hub</th>
               <th style="white-space:nowrap;">Copy from</th>
               <th></th>
             </tr>
@@ -1958,7 +1957,7 @@ function applyAccessUI() {
     const readOnlyTabs = Object.entries(currentUserPermissions).filter(([,v]) => v === 'read').map(([k]) => k);
     const tabLabels = { people:'People', projects:'Release', testplan:'Test Plan',
       dailyplan:'Daily Plan', leave:'Leave', holidays:'Holidays',
-      summary:'Summary', vmrepo:'VM Repository' };
+      summary:'Summary', vmrepo:'Infra Hub' };
 
     if (hiddenTabs.length > 0 || readOnlyTabs.length > 0) {
       let bannerMsg = '';
@@ -2958,7 +2957,7 @@ const SECTIONS_LIST = [
   { key: 'leave',     label: 'Leave calendar' },
   { key: 'holidays',  label: 'Holidays' },
   { key: 'summary',   label: 'Summary' },
-  { key: 'vmrepo',    label: 'VM Repository' },
+  { key: 'vmrepo',    label: 'Infra Hub' },
 ];
 
 function renderAdminPanel() {
@@ -4245,8 +4244,12 @@ function renderVMRepo() {
           </td>
           <td style="white-space:nowrap;">${expiryBadge}</td>
           <td style="text-align:center;">
-            <div onclick="toggleVMInUseRow('${vm.id}')" style="width:36px;height:20px;border-radius:10px;background:${vm.inUse?'#7c3aed':'#334155'};cursor:pointer;position:relative;transition:background 0.2s;margin:0 auto;" title="${vm.inUse?'Mark as free':'Mark as in use'}">
-              <div style="position:absolute;top:2px;left:${vm.inUse?'16px':'2px'};width:16px;height:16px;border-radius:50%;background:white;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+            <div onclick="toggleVMInUseRow('${vm.id}')" title="${vm.inUse ? 'Click to mark free' : 'Click to mark in use'}"
+              style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; padding:3px 10px; border-radius:20px; background:${vm.inUse ? '#fef3c7' : '#dcfce7'}; border:1.5px solid ${vm.inUse ? '#fde047' : '#86efac'}; transition:all 0.15s; white-space:nowrap;">
+              <div style="width:26px; height:14px; border-radius:8px; background:${vm.inUse ? '#7c3aed' : '#d1d5db'}; position:relative; flex-shrink:0; transition:background 0.2s;">
+                <div style="position:absolute; top:2px; left:${vm.inUse ? '13px' : '2px'}; width:10px; height:10px; border-radius:50%; background:white; transition:left 0.2s; box-shadow:0 1px 2px rgba(0,0,0,0.2);"></div>
+              </div>
+              <span style="font-size:11px; font-weight:700; color:${vm.inUse ? '#b45309' : '#15803d'};">${vm.inUse ? 'In use' : 'Free'}</span>
             </div>
           </td>
           <td style="white-space:nowrap;">
@@ -4256,7 +4259,6 @@ function renderVMRepo() {
           </td>
           <td style="font-size:12px;color:var(--text-dim);white-space:nowrap;">${vm.startDate ? formatDateDisplay(vm.startDate) : '—'}</td>
           <td style="white-space:nowrap;">${endDateDisplay}</td>
-          <td>${statusBadge}</td>
           <td style="text-align:right;white-space:nowrap;">
             <button class="icon-btn edit" onclick="openVMModal('${vm.id}')">✎</button>
             <button class="icon-btn" onclick="deleteVM('${vm.id}')">✕</button>
@@ -4455,11 +4457,11 @@ function renderHelp() {
       </div>
     </div>
 
-    <!-- VM Repository -->
+    <!-- Infra Hub -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(6,182,212,0.2),rgba(99,102,241,0.2));border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">🖥️</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">VM Repository</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Infra Hub</div>
         <div style="font-size:11px;color:var(--text-faint);">Track all QA VMs</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
