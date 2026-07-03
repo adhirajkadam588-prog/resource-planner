@@ -2548,8 +2548,14 @@ function renderActivityList() {
   // Apply day filter
   if (_activityDayFilter > 0) {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - _activityDayFilter);
-    cutoff.setHours(0, 0, 0, 0);
+    if (_activityDayFilter === 1) {
+      // Today — from midnight of today
+      cutoff.setHours(0, 0, 0, 0);
+    } else {
+      // Last N days — from midnight N days ago
+      cutoff.setDate(cutoff.getDate() - _activityDayFilter);
+      cutoff.setHours(0, 0, 0, 0);
+    }
     logs = logs.filter(l => new Date(l.created_at) >= cutoff);
   }
 
