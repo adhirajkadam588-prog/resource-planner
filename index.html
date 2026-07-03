@@ -6858,8 +6858,8 @@ function renderGantt() {
 
   const filterDate = filterSel?.value || '';
   let projects = filterDate
-    ? getActiveProjects().filter(p => p.releaseDate === filterDate)
-    : getActiveProjects();
+    ? state.projects.filter(p => p.releaseDate === filterDate)
+    : state.projects;
 
   projects = projects.filter(p => p.releaseDate || p.buildDate || p.completionDate);
 
@@ -6972,15 +6972,15 @@ function renderReleaseHealth() {
   const pillsEl = document.getElementById('healthReleasePills');
   if (!grid) return;
 
-  // Release filter pills (same as summary)
-  const allDates = [...new Set(getActiveProjects().map(p => p.releaseDate).filter(Boolean))].sort();
+  // Release filter pills — all projects including completed
+  const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
   if (pillsEl) {
     pillsEl.innerHTML =
       `<button onclick="setHealthReleaseFilter(null)" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedHealthReleaseDate === null ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
       allDates.map(d => `<button onclick="setHealthReleaseFilter('${d}')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${selectedHealthReleaseDate === d ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">${formatDateDisplay(d)}</button>`).join('');
   }
 
-  let projects = getActiveProjects();
+  let projects = state.projects;
   if (selectedHealthReleaseDate) projects = projects.filter(p => p.releaseDate === selectedHealthReleaseDate);
 
   if (projects.length === 0) {
@@ -7535,10 +7535,10 @@ function renderSummary() {
   const tbody = document.getElementById('summaryTableBody');
   const empty = document.getElementById('summaryEmpty');
 
-  // Populate date dropdown — only active projects
+  // Populate date dropdown — all projects including completed
   const dateSelect = document.getElementById('summaryDateSelect');
   if (dateSelect) {
-    const allDates = [...new Set(getActiveProjects().map(p => p.releaseDate).filter(Boolean))].sort();
+    const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
     dateSelect.innerHTML = '<option value="">All dates</option>' +
       allDates.map(d => `<option value="${d}" ${selectedSummaryReleaseDate === d ? 'selected' : ''}>${formatDateDisplay(d)}</option>`).join('');
   }
@@ -7549,8 +7549,8 @@ function renderSummary() {
   const stSel = document.getElementById('summaryStatusSelect');
   if (stSel) stSel.value = selectedSummaryStatus || '';
 
-  // Apply archive filter first, then other filters
-  let projects = getActiveProjects();
+  // All projects — active + completed
+  let projects = state.projects;
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
   if (selectedSummaryStatus) projects = projects.filter(p => p.status === selectedSummaryStatus);
