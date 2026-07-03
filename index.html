@@ -982,265 +982,6 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <h3>Test Plan</h3>
-          <div class="desc">Filter by release or Dev POD, then select a release item</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <!-- View toggle -->
-          <div style="display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:9px; padding:3px; gap:2px;">
-            <button id="tpViewSingle" onclick="setTestPlanView('single')"
-              style="padding:5px 14px; border-radius:7px; border:none; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; background:#0f172a; color:white; transition:all 0.15s;">
-              Single
-            </button>
-            <button id="tpViewAll" onclick="setTestPlanView('accordion')"
-              style="padding:5px 14px; border-radius:7px; border:none; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; background:transparent; color:var(--text-faint); transition:all 0.15s;">
-              All Plans
-            </button>
-          </div>
-          <button class="ghost" onclick="openCopyTestPlanModal()" style="display:flex;align-items:center;gap:6px;font-size:12.5px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            Copy plan
-          </button>
-          <div class="export-wrap">
-            <button class="export-btn" onclick="toggleTestPlanReportMenu()"><span class="ico">📄</span> Share report</button>
-            <div class="export-menu" id="testPlanReportMenu">
-              <button onclick="exportTestPlanReport('selected')">This release item's report</button>
-              <button onclick="exportTestPlanReport('release')">This release's report</button>
-              <button onclick="exportTestPlanReport('pod')">This Dev POD's report</button>
-              <button onclick="exportTestPlanReport('all')">All release items — combined</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Release filter pills -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:0.07em; white-space:nowrap; min-width:70px;">Release:</div>
-        <div id="testPlanReleasePills" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
-      </div>
-      <!-- Dev POD filter pills -->
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:0.07em; white-space:nowrap; min-width:70px;">Dev POD:</div>
-        <div id="testPlanPodPills" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
-      </div>
-      <!-- Release item dropdown — hidden in accordion view -->
-      <div style="display:flex; gap:10px; align-items:center;" id="testPlanProjectRow">
-        <div style="font-size:11px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:0.07em; white-space:nowrap;">Release item:</div>
-        <select id="testPlanProjectSelect" style="width:280px;" onchange="onTestPlanProjectChange()"></select>
-      </div>
-      <div class="empty-state" id="testPlanNoProjects" style="display:none;">Add a release item in the Release tab first.</div>
-    </div>
-
-    <!-- Accordion view -->
-    <div id="accordionView" style="display:none;"></div>
-
-    <div id="testPlanBody" style="display:none;">
-      <!-- Progress bar panel -->
-      <div class="panel" id="testPlanProgressPanel" style="margin-bottom:14px; padding:16px 22px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:12px; flex-wrap:wrap;">
-          <div style="font-size:12.5px; font-weight:700; color:var(--text);">Overall progress</div>
-          <div id="testPlanProgressBadges" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
-        </div>
-        <div style="position:relative; height:10px; background:var(--panel-2); border-radius:99px; overflow:hidden; margin-bottom:6px; border:1px solid var(--border-soft);">
-          <div id="testPlanProgressBarDone" style="position:absolute; left:0; top:0; height:100%; background:linear-gradient(90deg,#10b981,#059669); border-radius:99px; transition:width 0.4s ease;"></div>
-          <div id="testPlanProgressBarInProgress" style="position:absolute; top:0; height:100%; background:linear-gradient(90deg,#fbbf24,#f59e0b); border-radius:99px; transition:width 0.4s ease;"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-faint);">
-          <span id="testPlanProgressLabel">—</span>
-          <span id="testPlanProgressPct" style="font-weight:700; font-family:var(--mono); color:var(--text);"></span>
-        </div>
-      </div>
-
-      <div class="grid-4" id="testPlanSummaryStats"></div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h3>Environments / Execution plan</h3>
-            <div class="desc">Each row is one environment or test scope.</div>
-          </div>
-          <button class="action" onclick="openTestRowModal()">+ Add environment</button>
-        </div>
-        <div style="overflow-x:auto;">
-          <table style="table-layout:fixed; width:100%;">
-            <colgroup>
-              <col style="width:160px;">
-              <col style="width:80px;">
-              <col style="width:90px;">
-              <col style="width:90px;">
-              <col style="width:130px;">
-              <col style="width:140px;">
-              <col style="width:80px;">
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Environment</th>
-                <th style="text-align:center;">Coverage %</th>
-                <th style="text-align:center;">Total cases</th>
-                <th style="text-align:center;">Effort (PD)</th>
-                <th>Assigned to</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="background:var(--panel-2);">
-                <td colspan="2" style="color:var(--text-dim); font-weight:500;">
-                  <span style="display:flex; align-items:center; gap:6px;">📋 <span>Test prep</span></span>
-                </td>
-                <td style="text-align:center; color:var(--text-faint);">—</td>
-                <td style="text-align:center;">
-                  <input id="testPrepEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
-                </td>
-                <td style="text-align:center; color:var(--text-faint);">—</td>
-                <td style="text-align:center;">
-                  <select id="testPrepStatus" onchange="saveBufferValues(); updateFixedRowStatusStyle('testPrepStatus')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:none; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; text-align:center;">
-                    <option value="Not yet started">Not yet started</option>
-                    <option value="In progress">In progress</option>
-                    <option value="Done">Done</option>
-                  </select>
-                </td>
-                <td></td>
-              </tr>
-              <tr style="background:var(--panel-2);">
-                <td colspan="2" style="color:var(--text-dim); font-weight:500;">
-                  <span style="display:flex; align-items:center; gap:6px;">🔧 <span>Test env & Data prep</span></span>
-                </td>
-                <td style="text-align:center; color:var(--text-faint);">—</td>
-                <td style="text-align:center;">
-                  <input id="testEnvEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
-                </td>
-                <td style="text-align:center; color:var(--text-faint);">—</td>
-                <td style="text-align:center;">
-                  <select id="testEnvStatus" onchange="saveBufferValues(); updateFixedRowStatusStyle('testEnvStatus')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:none; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; text-align:center;">
-                    <option value="Not yet started">Not yet started</option>
-                    <option value="In progress">In progress</option>
-                    <option value="Done">Done</option>
-                  </select>
-                </td>
-                <td></td>
-              </tr>
-              <tbody id="testRowTableBody"></tbody>
-            </tbody>
-            <tfoot id="testPlanTfoot"></tfoot>
-          </table>
-        </div>
-        <div class="empty-state" id="testRowEmpty" style="display:none; padding:24px 0; margin:0; border:none; background:none;">No environments added yet. Click + Add environment.</div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <div><h3>Milestones</h3><div class="desc">Key dates for test execution</div></div>
-        </div>
-        <table>
-          <tbody>
-            <tr><td style="width:280px; color:var(--text-dim);">Build pickup / Dev to QA</td><td><input id="msBuildPickup" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">BVT completion</td><td><input id="msBvtCompletion" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">Execution completion without buffer</td><td><input id="msExecNoBuffer" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">Execution completion with buffer</td><td><input id="msExecWithBuffer" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">Merged build go ahead</td><td><input id="msMergedBuildGoAhead" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Review by Lead panel -->
-      <div class="panel" id="reviewPanel" style="border:1.5px solid var(--border-soft);">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-          <div style="display:flex; align-items:center; gap:14px;">
-            <div id="reviewIconBox" style="width:44px; height:44px; border-radius:12px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; transition:all 0.2s;">📋</div>
-            <div>
-              <div style="font-weight:700; font-size:14px; color:var(--text);">Review by Lead</div>
-              <div style="font-size:12px; color:var(--text-faint); margin-top:2px;" id="reviewDesc">Lead must review and approve before data syncs to Release tab.</div>
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
-            <div id="reviewStatus"></div>
-            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 18px; border-radius:10px; border:1.5px solid var(--border); background:var(--panel-2); transition:all 0.15s;" id="reviewCheckLabel">
-              <input type="checkbox" id="reviewCheckbox" onchange="toggleReviewApproval()" style="width:18px; height:18px; accent-color:#7c3aed; cursor:pointer; flex-shrink:0;">
-              <span id="reviewCheckText" style="font-size:13px; font-weight:600; white-space:nowrap;">Mark as reviewed</span>
-            </label>
-          </div>
-        </div>
-        <div id="reviewerInfo" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft); font-size:12px; color:var(--text-faint); align-items:center; gap:8px;">
-          <span>✅ Reviewed by</span>
-          <span id="reviewerName" style="font-weight:600; color:var(--text);"></span>
-          <span>on</span>
-          <span id="reviewerDate" style="font-weight:600; color:var(--text);"></span>
-          <button onclick="clearReviewApproval()" style="margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; padding:2px 10px; font-size:11px; color:var(--text-faint); cursor:pointer; font-family:inherit;">↩ Undo review</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- CAPACITY TAB -->
-  <!-- LEAVE TAB -->
-  <div class="tab-content" id="tab-leave" style="display:none;">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <h3>Leave &amp; availability</h3>
-          <div class="desc" id="leaveMonthLabel">Click a working day to toggle leave</div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="ghost" onclick="shiftMonth(-1)">‹ Prev</button>
-          <button class="ghost" onclick="shiftMonth(1)">Next ›</button>
-        </div>
-      </div>
-      <div style="overflow-x:auto;">
-        <div class="cal-grid" id="calGrid"></div>
-      </div>
-      <div style="display:flex; gap:14px; margin-top:10px; font-size:11px; color:var(--text-faint);">
-        <span><span style="display:inline-block; width:12px; height:12px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:2px; vertical-align:middle; margin-right:4px;"></span>Weekend / Holiday</span>
-        <span><span style="display:inline-block; width:12px; height:12px; background:#fef3c7; border:1px solid #f59e0b; border-radius:2px; vertical-align:middle; margin-right:4px;"></span>PL — Planned leave</span>
-        <span><span style="display:inline-block; width:12px; height:12px; background:#fee2e2; border:1px solid #dc2626; border-radius:2px; vertical-align:middle; margin-right:4px;"></span>UPL — Unplanned leave</span>
-        <span style="color:var(--text-faint); font-size:10.5px;">Click to cycle: empty → PL → UPL → empty</span>
-      </div>
-      <div class="empty-state" id="leaveEmpty" style="display:none;">Add people first to mark their leave days.</div>
-    </div>
-
-    <!-- Leave summary table -->
-    <div class="panel" id="leaveSummaryPanel">
-      <div class="panel-head">
-        <div>
-          <h3>Leave summary</h3>
-          <div class="desc">All leave days per person across all months</div>
-        </div>
-      </div>
-      <table id="leaveSummaryTable">
-        <thead>
-          <tr>
-            <th style="width:150px;">Person</th>
-            <th>Leave dates</th>
-            <th style="width:130px; text-align:center;">PL / UPL / Total</th>
-          </tr>
-        </thead>
-        <tbody id="leaveSummaryBody"></tbody>
-      </table>
-      <div class="empty-state" id="leaveSummaryEmpty" style="display:none;">No leave days marked yet.</div>
-    </div>
-  </div>
-
-  <!-- HOLIDAYS TAB -->
-  <div class="tab-content" id="tab-holidays" style="display:none;">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <h3>Public holidays</h3>
-          <div class="desc">These dates are excluded from working day and available PD calculations, along with Saturdays and Sundays</div>
-        </div>
-        <button class="action" onclick="openHolidayModal()">+ Add holiday</button>
-      </div>
-      <table>
-        <thead><tr><th>Date</th><th>Day</th><th>Holiday name</th><th></th></tr></thead>
-        <tbody id="holidayTableBody"></tbody>
-      </table>
-      <div class="empty-state" id="holidayEmpty" style="display:none;">No public holidays added yet.</div>
-    </div>
-  </div>
-
-  <!-- TEST PLAN TAB -->
-  <div class="tab-content" id="tab-testplan" style="display:none;">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
           <h3>Test plan</h3>
           <div class="desc">Filter by Release/GA date, then pick a release item to view or edit its test matrix</div>
         </div>
@@ -1945,35 +1686,15 @@
   <div class="modal">
     <h3 id="shareLinkTitle">📎 Share report link</h3>
     <div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">Share this link — anyone can view the report without logging in.</div>
-
-    <!-- Shareable link row -->
-    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+    <div style="display:flex; gap:8px; align-items:center;">
       <input id="shareLinkInput" type="text" readonly style="flex:1; background:var(--panel-2); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:6px; font-size:12px; font-family:var(--mono);" placeholder="Generating link…">
-      <button class="action" onclick="copyShareLink()" id="copyLinkBtn" style="white-space:nowrap;" disabled>Copy link</button>
+      <button class="action" onclick="copyShareLink()" id="copyLinkBtn" style="white-space:nowrap;">Copy link</button>
     </div>
-    <div id="shareLinkStatus" style="font-size:12px; margin-bottom:14px; color:var(--text-faint); line-height:1.6;"></div>
-
-    <!-- Always-visible action buttons -->
-    <div style="display:flex; gap:8px; padding:12px; background:var(--panel-2); border-radius:10px; border:1px solid var(--border-soft);">
-      <button id="openReportBtn" onclick="openReportInTab()"
-        style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:9px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text-dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s;"
-        onmouseover="this.style.borderColor='#7c3aed';this.style.color='#7c3aed';"
-        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)';">
-        🔗 Open in new tab
-      </button>
-      <button id="downloadReportBtn" onclick="downloadReportHtml()"
-        style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:9px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text-dim); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s;"
-        onmouseover="this.style.borderColor='#059669';this.style.color='#059669';"
-        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)';">
-        ⬇ Download HTML
-      </button>
-    </div>
-    <div style="font-size:11px; color:var(--text-faint); margin-top:8px; text-align:center;">
-      Open in new tab to preview · Download to share via email or Teams
-    </div>
-
+    <div id="shareLinkStatus" style="font-size:12px; margin-top:8px; color:var(--text-faint); line-height:1.6;"></div>
     <div class="modal-actions" style="margin-top:16px;">
       <button class="ghost" onclick="closeModal('shareLinkModal')">Close</button>
+      <button class="ghost" id="openReportBtn" onclick="openReportInTab()" style="display:none;">🔗 Open report in new tab</button>
+      <button class="ghost" id="downloadReportBtn" onclick="downloadReportHtml()" style="display:none;">⬇ Download HTML</button>
     </div>
   </div>
 </div>
@@ -4010,176 +3731,6 @@ function goToTestPlanForReview(projectId) {
 }
 
 
-// ====================== TEST PLAN VIEW TOGGLE ======================
-let testPlanView = 'single';
-
-function setTestPlanView(view) {
-  testPlanView = view;
-  const singleBtn  = document.getElementById('tpViewSingle');
-  const allBtn     = document.getElementById('tpViewAll');
-  const singleBody = document.getElementById('testPlanBody');
-  const accordion  = document.getElementById('accordionView');
-  const projectRow = document.getElementById('testPlanProjectRow');
-
-  const ON  = 'background:#0f172a; color:white;';
-  const OFF = 'background:transparent; color:var(--text-faint);';
-
-  if (singleBtn) singleBtn.style.cssText += view === 'single' ? ON : OFF;
-  if (allBtn)    allBtn.style.cssText    += view === 'accordion' ? ON : OFF;
-
-  if (view === 'single') {
-    if (accordion)   accordion.style.display   = 'none';
-    if (projectRow)  projectRow.style.display  = 'flex';
-    renderTestPlan();
-  } else {
-    if (singleBody)  singleBody.style.display  = 'none';
-    if (projectRow)  projectRow.style.display  = 'none';
-    if (accordion)   accordion.style.display   = 'block';
-    renderAccordionView();
-  }
-}
-
-function renderAccordionView() {
-  const el = document.getElementById('accordionView');
-  if (!el) return;
-
-  let projects = getActiveProjects();
-  if (selectedTestPlanReleaseDate) projects = projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
-  if (selectedTestPlanDevPod)      projects = projects.filter(p => p.devPod === selectedTestPlanDevPod);
-
-  if (projects.length === 0) {
-    el.innerHTML = '<div class="empty-state">No release items match the current filters.</div>';
-    return;
-  }
-
-  const POD_COLORS = {
-    'WinGuardians':['#dbeafe','#1d4ed8'], 'Heisenbug':['#dcfce7','#15803d'],
-    'Hydra':['#fce7f3','#9d174d'],        'Sentinels':['#fef3c7','#b45309'],
-    'DareDevils':['#fee2e2','#b91c1c'],   'Evil Inc.':['#f3e8ff','#7e22ce'],
-  };
-
-  el.innerHTML = projects.map((proj, idx) => {
-    const plan     = getTestPlanForProject(proj.id);
-    const reviewed = plan.reviewed === true;
-    const podC     = POD_COLORS[proj.devPod] || ['#f1f5f9','#64748b'];
-
-    // Progress
-    const allRows = [
-      plan.testPrepStatus || 'Not yet started',
-      plan.testEnvStatus  || 'Not yet started',
-      ...plan.rows.map(r => r.status || 'Not yet started')
-    ];
-    const total    = allRows.length;
-    const done     = allRows.filter(s => s === 'Done').length;
-    const inProg   = allRows.filter(s => s === 'In progress').length;
-    const donePct  = total > 0 ? Math.round((done/total)*100) : 0;
-    const inProgPct= total > 0 ? Math.round((inProg/total)*100) : 0;
-
-    const sc = { 'Completed':['#dcfce7','#15803d'], 'In progress':['#fef3c7','#b45309'], 'Not started':['#f1f5f9','#64748b'], 'Blocked':['#fee2e2','#dc2626'] };
-    const [sbg,sfg] = sc[proj.status] || sc['Not started'];
-
-    // Env rows
-    const envRows = [
-      { name:'📋 Test prep',          status: plan.testPrepStatus||'Not yet started', effort: plan.testPrepEffort||0, assignee:'—', cases:'—' },
-      { name:'🔧 Test env & data prep', status: plan.testEnvStatus||'Not yet started',  effort: plan.testEnvEffort||0,  assignee:'—', cases:'—' },
-      ...plan.rows.map(r => {
-        const person = state.people.find(p => p.id === r.assigneeId);
-        return { name: r.name, status: r.status||'Not yet started', effort: r.effort||0, assignee: person ? person.name : '—', cases: r.cases||0 };
-      })
-    ];
-
-    const rowsHtml = envRows.length > 2 || plan.rows.length > 0
-      ? envRows.map(r => {
-          const ec = {'Not yet started':'background:#f1f5f9;color:#64748b','In progress':'background:#fef3c7;color:#b45309','Done':'background:#dcfce7;color:#15803d'};
-          const es = ec[r.status] || ec['Not yet started'];
-          return '<tr>' +
-            '<td style="padding:7px 10px;font-size:12.5px;color:var(--text);">' + escapeHtml(r.name) + '</td>' +
-            '<td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--text-faint);">' + r.cases + '</td>' +
-            '<td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--text-faint);">' + r.effort + ' PD</td>' +
-            '<td style="padding:7px 10px;font-size:12px;color:var(--text-dim);">' + escapeHtml(r.assignee) + '</td>' +
-            '<td style="padding:7px 10px;text-align:center;"><span style="' + es + ';padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">' + escapeHtml(r.status) + '</span></td>' +
-          '</tr>';
-        }).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:14px;font-style:italic;font-size:12.5px;">No environments added yet</td></tr>';
-
-    const accId = 'acc-' + proj.id;
-    return '<div class="panel" style="margin-bottom:10px; padding:0; overflow:hidden;">' +
-
-      // Header — always visible, clickable
-      '<div onclick="toggleAccordion(\'' + accId + '\')" style="display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;transition:background 0.1s;user-select:none;" ' +
-        'onmouseover="this.style.background=\'var(--panel-2)\'" onmouseout="this.style.background=\'\'">' +
-
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
-            '<span style="font-size:14px;font-weight:700;color:var(--text);">' + escapeHtml(proj.name) + '</span>' +
-            (proj.devPod ? '<span style="background:' + podC[0] + ';color:' + podC[1] + ';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + escapeHtml(proj.devPod) + '</span>' : '') +
-            '<span style="background:' + sbg + ';color:' + sfg + ';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + (proj.status||'Not started') + '</span>' +
-            (reviewed ? '<span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">✅ Reviewed</span>'
-                      : '<span style="background:#fef9c3;color:#a16207;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">⏳ Pending review</span>') +
-          '</div>' +
-          '<div style="font-size:11.5px;color:var(--text-faint);">' +
-            (proj.releaseDate ? '📅 ' + formatDateDisplay(proj.releaseDate) : '') +
-            (proj.effort ? ' · ⏱ ' + proj.effort + ' PDs' : '') +
-            ' · ' + done + '/' + total + ' done' +
-          '</div>' +
-        '</div>' +
-
-        // Progress bar
-        '<div style="min-width:140px;flex-shrink:0;">' +
-          '<div style="height:6px;background:var(--panel-2);border-radius:99px;overflow:hidden;position:relative;border:1px solid var(--border-soft);">' +
-            '<div style="position:absolute;left:0;top:0;height:100%;width:' + donePct + '%;background:linear-gradient(90deg,#10b981,#059669);border-radius:99px;"></div>' +
-            '<div style="position:absolute;top:0;left:' + donePct + '%;height:100%;width:' + inProgPct + '%;background:#fbbf24;border-radius:99px;"></div>' +
-          '</div>' +
-          '<div style="font-size:10.5px;color:var(--text-faint);margin-top:4px;text-align:right;">' + donePct + '% complete</div>' +
-        '</div>' +
-
-        // Chevron
-        '<span id="' + accId + '-chevron" style="font-size:12px;color:var(--text-faint);transition:transform 0.2s;flex-shrink:0;">' +
-          (idx === 0 ? '▲' : '▼') +
-        '</span>' +
-      '</div>' +
-
-      // Body — expandable
-      '<div id="' + accId + '" style="display:' + (idx === 0 ? 'block' : 'none') + '; border-top:1px solid var(--border-soft);">' +
-        '<div style="overflow-x:auto;">' +
-          '<table style="width:100%;border-collapse:collapse;">' +
-            '<thead><tr style="background:var(--panel-2);">' +
-              '<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Environment</th>' +
-              '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Cases</th>' +
-              '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Effort</th>' +
-              '<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Assigned</th>' +
-              '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border-soft);">Status</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rowsHtml + '</tbody>' +
-          '</table>' +
-        '</div>' +
-        '<div style="padding:10px 18px;border-top:1px solid var(--border-soft);text-align:right;">' +
-          '<button onclick="openSinglePlan(\'' + proj.id + '\')" ' +
-            'style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:12px;color:var(--text-faint);cursor:pointer;font-family:inherit;transition:all 0.12s;" ' +
-            'onmouseover="this.style.borderColor=\'#7c3aed\';this.style.color=\'#7c3aed\';" ' +
-            'onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--text-faint)\';">' +
-            'Open & Edit →' +
-          '</button>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function toggleAccordion(id) {
-  const body    = document.getElementById(id);
-  const chevron = document.getElementById(id + '-chevron');
-  if (!body) return;
-  const isOpen = body.style.display !== 'none';
-  body.style.display    = isOpen ? 'none' : 'block';
-  if (chevron) chevron.textContent = isOpen ? '▼' : '▲';
-}
-
-function openSinglePlan(projectId) {
-  selectedTestPlanProjectId = projectId;
-  setTestPlanView('single');
-}
-
 function toggleReviewApproval() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   const checkbox = document.getElementById('reviewCheckbox');
@@ -5596,9 +5147,9 @@ function populateTestPlanProjectSelect() {
 
 function setTestPlanReleaseFilter(date) {
   selectedTestPlanReleaseDate = date;
-  selectedTestPlanProjectId = null;
-  if (testPlanView === 'accordion') { populateTestPlanProjectSelect(); renderAccordionView(); }
-  else { populateTestPlanProjectSelect(); renderTestPlan(); }
+  selectedTestPlanProjectId = null; // reset project selection
+  populateTestPlanProjectSelect();
+  renderTestPlan();
 }
 
 function onTestPlanProjectChange() {
@@ -5741,15 +5292,14 @@ function saveBufferValues() {
 }
 
 function saveMilestones() {
-  if (!selectedTestPlanProjectId) return;
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
-  plan.milestones.buildPickup        = document.getElementById('msBuildPickup').value;
-  plan.milestones.bvtCompletion      = document.getElementById('msBvtCompletion').value;
-  plan.milestones.execNoBuffer       = document.getElementById('msExecNoBuffer').value;
-  plan.milestones.execWithBuffer     = document.getElementById('msExecWithBuffer').value;
+  plan.milestones.buildPickup = document.getElementById('msBuildPickup').value;
+  plan.milestones.bvtCompletion = document.getElementById('msBvtCompletion').value;
+  plan.milestones.execNoBuffer = document.getElementById('msExecNoBuffer').value;
+  plan.milestones.execWithBuffer = document.getElementById('msExecWithBuffer').value;
   plan.milestones.mergedBuildGoAhead = document.getElementById('msMergedBuildGoAhead').value;
-  syncTestPlanToProjects();
-  saveState(); // immediate save — not debounced
+  debouncedSave(); // debounced — date picker changes won't spam Supabase
+  renderTestPlan();
 }
 
 function renderTestPlan() {
@@ -6345,13 +5895,14 @@ async function shareReportAsLink(title, bodyHtml) {
   const copyBtn  = document.getElementById('copyLinkBtn');
   const openBtn  = document.getElementById('openReportBtn');
   const dlBtn    = document.getElementById('downloadReportBtn');
+
   if (!modal) { alert('Modal not found — please refresh.'); return; }
 
-  // Reset
-  if (titleEl)  titleEl.textContent   = '📎 ' + title;
-  if (inputEl)  { inputEl.value = ''; inputEl.placeholder = 'Generating…'; }
-  if (statusEl) statusEl.innerHTML    = '<span style="color:var(--text-faint);">Building report…</span>';
-  if (copyBtn)  copyBtn.disabled      = true;
+  // Reset modal
+  if (titleEl)  titleEl.textContent  = '📎 ' + title;
+  if (inputEl)  inputEl.value        = 'Building report…';
+  if (statusEl) statusEl.innerHTML   = '';
+  if (copyBtn)  copyBtn.disabled     = true;
   if (openBtn)  openBtn.style.display = 'none';
   if (dlBtn)    dlBtn.style.display   = 'none';
   modal.classList.add('show');
@@ -6362,17 +5913,19 @@ async function shareReportAsLink(title, bodyHtml) {
     fullHtml = buildFullReportHtml(title, bodyHtml);
     _currentReportHtml = fullHtml;
   } catch (err) {
-    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626;">✗ Build failed: ' + escapeHtml(err.message) + '</span>';
+    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626;">✗ Could not build report: ' + escapeHtml(err.message) + '</span>';
+    if (inputEl)  inputEl.value = '';
     return;
   }
 
-  // Always show Open + Download — these always work
+  // Show Open + Download buttons ALWAYS (these always work)
   if (openBtn) openBtn.style.display = 'inline-flex';
   if (dlBtn)   dlBtn.style.display   = 'inline-flex';
-  if (inputEl) inputEl.placeholder   = 'Generating link…';
 
-  // Try Supabase for shareable link
+  // Try Supabase first
   const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  let linkGenerated = false;
+
   try {
     const { error } = await sbClient
       .from('shared_reports')
@@ -6380,25 +5933,23 @@ async function shareReportAsLink(title, bodyHtml) {
 
     if (!error) {
       const shareUrl = window.location.origin + window.location.pathname + '?report=' + reportId;
-      if (inputEl) { inputEl.value = shareUrl; inputEl.placeholder = ''; }
+      if (inputEl) inputEl.value = shareUrl;
       if (copyBtn) copyBtn.disabled = false;
-      if (statusEl) statusEl.innerHTML =
-        '<span style="color:#15803d;font-weight:600;">✓ Link ready!</span> ' +
-        'Anyone can open this link — no login needed.';
-      return;
+      if (statusEl) statusEl.innerHTML = '<span style="color:#15803d;font-weight:600;">✓ Shareable link ready!</span> Anyone can open this — no login needed.';
+      linkGenerated = true;
     }
-    console.warn('[ShareReport] Supabase error:', error.message);
-  } catch (e) {
-    console.warn('[ShareReport] Supabase unavailable:', e.message);
-  }
+  } catch (e) { /* Supabase unavailable */ }
 
-  // Supabase failed — show clear fallback
-  if (inputEl) { inputEl.value = ''; inputEl.placeholder = 'Link unavailable'; }
-  if (statusEl) statusEl.innerHTML =
-    '<span style="color:#b45309;font-weight:600;">⚠ Shareable link unavailable</span>' +
-    '<span style="display:block;margin-top:6px;font-size:12px;color:var(--text-faint);">' +
-    'Use <b>Open in new tab</b> to preview, or <b>Download HTML</b> and share the file via email/Teams.' +
-    '</span>';
+  if (!linkGenerated) {
+    // No Supabase — show open in tab + download as primary actions
+    if (inputEl) inputEl.value = '';
+    if (inputEl) inputEl.placeholder = 'Link not available — use buttons below';
+    if (statusEl) statusEl.innerHTML =
+      '<span style="color:#b45309;font-weight:600;">⚠ Shareable link needs Supabase setup.</span>' +
+      '<span style="color:var(--text-faint);font-size:11.5px;display:block;margin-top:4px;">' +
+      'Use <b>Open in new tab</b> to view, or <b>Download HTML</b> to share via email/Teams.' +
+      '</span>';
+  }
 }
 
 function copyShareLink() {
@@ -6865,10 +6416,10 @@ function setReleaseStatusFilter(status) {
 }
 
 function setTestPlanDevPodFilter(pod) {
-  selectedTestPlanDevPod = pod || null;
+  selectedTestPlanDevPod = pod;
   selectedTestPlanProjectId = null;
-  if (testPlanView === 'accordion') { populateTestPlanProjectSelect(); renderAccordionView(); }
-  else { populateTestPlanProjectSelect(); renderTestPlan(); }
+  populateTestPlanProjectSelect();
+  renderTestPlan();
 }
 
 function setSummaryDevPodFilter(pod) {
