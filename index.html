@@ -2158,19 +2158,21 @@ async function initApp(user) {
     console.warn('initApp load error:', e);
   }
 
-  // Set initial active tab — Dashboard
-  _activeTab = 'dashboard';
+  // Restore last active tab — or fallback to dashboard
+  const savedTab = localStorage.getItem('tl_active_tab') || 'dashboard';
+  _activeTab = savedTab;
   markAllDirty();
 
   try {
-    const dashTabBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
-    if (dashTabBtn) {
-      dashTabBtn.click();
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`) ||
+                   document.querySelector('.tab-btn[data-tab="dashboard"]');
+    if (tabBtn) {
+      tabBtn.click();
     } else {
       renderAll();
     }
   } catch(e) {
-    console.warn('Dashboard render error:', e);
+    console.warn('Tab render error:', e);
     renderAll();
   }
 
@@ -3874,6 +3876,7 @@ function buildAllPlansHtml(projects) {
         '<div style="flex:1;min-width:0;">' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
             '<span style="font-size:14px;font-weight:700;color:var(--text);">' + escapeHtml(proj.name) + '</span>' +
+            (proj.jiraUrl ? '<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;text-decoration:none;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>' : '') +
             (proj.devPod ? '<span style="background:' + podC[0] + ';color:' + podC[1] + ';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + escapeHtml(proj.devPod) + '</span>' : '') +
             '<span style="background:' + sbg + ';color:' + sfg + ';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + (proj.status||'Not started') + '</span>' +
             (reviewed ? '<span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">✅ Reviewed</span>'
@@ -4951,6 +4954,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
     _activeTab = tab;
+    localStorage.setItem('tl_active_tab', tab); // remember last tab
 
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
