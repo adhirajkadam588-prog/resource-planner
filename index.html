@@ -171,6 +171,7 @@
   [data-tab="dailyplan"] .nav-ico { background: rgba(99,102,241,0.2); color: #818cf8; }
   [data-tab="admin"] .nav-ico     { background: rgba(239,68,68,0.2);  color: #f87171; }
   [data-tab="summary"] .nav-ico   { background: rgba(52,211,153,0.2); color: #6ee7b7; }
+  [data-tab="archive"] .nav-ico   { background: rgba(148,163,184,0.2); color: #94a3b8; }
   [data-tab="help"] .nav-ico      { background: linear-gradient(135deg,rgba(251,191,36,0.25),rgba(251,113,133,0.25)); color: #fbbf24; }
   [data-tab="vmrepo"] .nav-ico    { background: linear-gradient(135deg,rgba(6,182,212,0.2),rgba(99,102,241,0.2)); color: #22d3ee; }
 
@@ -614,6 +615,14 @@
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
         Summary
       </button>
+      <button class="tab-btn" data-tab="archive" data-title="Archive" data-desc="Completed release items — all finished releases">
+        <span class="nav-ico">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+          </svg>
+        </span>
+        Archive
+      </button>
 
       <div class="nav-section-label">Help</div>
       <button class="tab-btn" data-tab="help" data-title="Help & User Guide" data-desc="How to use TeamLens — step by step guide for all features">
@@ -745,12 +754,6 @@
         <div>
           <h3>Release</h3>
           <div class="desc">Release items, QA effort, dates and go ahead details</div>
-          <!-- Archive filter pills -->
-          <div style="display:flex; gap:5px; margin-top:10px;" id="archiveFilterPills">
-            <button onclick="setArchiveFilter('active')"   id="archivePill_active"   style="padding:3px 12px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;">Active</button>
-            <button onclick="setArchiveFilter('all')"      id="archivePill_all"      style="padding:3px 12px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;">All</button>
-            <button onclick="setArchiveFilter('archived')" id="archivePill_archived" style="padding:3px 12px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;">Completed</button>
-          </div>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <!-- Bulk action bar (hidden until selection) -->
@@ -1421,6 +1424,37 @@
   </div>
 
   <!-- SUMMARY TAB -->
+  <!-- ARCHIVE TAB -->
+  <div class="tab-content" id="tab-archive" style="display:none;">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>🗃 Archive</h3>
+          <div class="desc">Completed release items — read only view of finished releases</div>
+        </div>
+      </div>
+      <div id="archiveTableWrap" style="overflow-x:auto;">
+        <table id="archiveTable">
+          <thead>
+            <tr>
+              <th style="min-width:160px;">Release item</th>
+              <th style="white-space:nowrap;">Release/GA date</th>
+              <th>Dev POD</th>
+              <th style="white-space:nowrap;">Dev to QA</th>
+              <th style="white-space:nowrap; text-align:center;">Total effort</th>
+              <th style="white-space:nowrap;">Go ahead date</th>
+              <th style="white-space:nowrap;">QA completion</th>
+              <th>Owner</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="archiveTableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="archiveEmpty" style="display:none;">No completed releases yet. Items marked as "Completed" in the Release tab will appear here.</div>
+    </div>
+  </div>
+
   <div class="tab-content" id="tab-summary" style="display:none;">
 
     <!-- Release Health Panel -->
@@ -3866,15 +3900,109 @@ function shareAllPlansReport() {
   if (selectedTestPlanReleaseDate) title = 'Test Plan — ' + formatDateDisplay(selectedTestPlanReleaseDate);
   if (selectedTestPlanDevPod)      title += ' · ' + selectedTestPlanDevPod;
 
-  const bodyHtml = projects.map(buildTestPlanProjectSectionHtml).join('\n');
-  const fullHtml = buildFullReportHtml(title, bodyHtml);
+  const POD_COLORS = {
+    'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
+    'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
+    'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
+  };
 
+  const cardsHtml = projects.map(proj => {
+    const plan = getTestPlanForProject(proj.id);
+    const reviewed = plan.reviewed === true;
+    const podC = POD_COLORS[proj.devPod] || ['#f1f5f9','#475569'];
+    const allStatuses = [
+      plan.testPrepStatus||'Not yet started',
+      plan.testEnvStatus||'Not yet started',
+      ...plan.rows.map(r => r.status||'Not yet started')
+    ];
+    const total=allStatuses.length, done=allStatuses.filter(s=>s==='Done').length, inProg=allStatuses.filter(s=>s==='In progress').length, notStart=total-done-inProg;
+    const donePct=total>0?Math.round(done/total*100):0, inProgPct=total>0?Math.round(inProg/total*100):0;
+    const sc={'Completed':['#dcfce7','#15803d'],'In progress':['#fef3c7','#b45309'],'Not started':['#f1f5f9','#64748b'],'Blocked':['#fee2e2','#dc2626']};
+    const [sbg,sfg]=sc[proj.status]||sc['Not started'];
+    const ec={'Not yet started':'#f1f5f9:#64748b','In progress':'#fef3c7:#b45309','Done':'#dcfce7:#15803d'};
+    const envRows=[
+      {name:'📋 Test prep',cls:'row-prep',status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:'—',cases:'—'},
+      {name:'🔧 Test env & data prep',cls:'row-prep',status:plan.testEnvStatus||'Not yet started',effort:plan.testEnvEffort||0,assignee:'—',cases:'—'},
+      ...plan.rows.map(r=>{const p=state.people.find(x=>x.id===r.assigneeId);return{name:r.name,cls:'row-env',status:r.status||'Not yet started',effort:r.effort||0,assignee:p?p.name:'—',cases:r.cases||0};}),
+      {name:'Buffer',cls:'row-buffer',status:'',effort:plan.buffer&&plan.buffer.effort||0,assignee:'—',cases:'—'},
+    ];
+    const totalEffort=envRows.reduce((s,r)=>s+(parseFloat(r.effort)||0),0);
+    const totalCases=plan.rows.reduce((s,r)=>s+(r.cases||0),0);
+    const ms=plan.milestones||{};
+
+    const rowsHtml = envRows.map(r=>{
+      const [bg,fg]=(ec[r.status]||'#f1f5f9:#64748b').split(':');
+      const statusCell=r.status?'<span style="background:'+bg+';color:'+fg+';padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">'+escapeHtml(r.status)+'</span>':'—';
+      return '<tr class="'+r.cls+'"><td>'+escapeHtml(r.name)+'</td><td class="r">'+r.cases+'</td><td class="r">'+r.effort+'</td><td>'+escapeHtml(r.assignee)+'</td><td>'+statusCell+'</td></tr>';
+    }).join('');
+
+    const msHtml=(ms.buildPickup||ms.bvtCompletion||ms.execNoBuffer||ms.execWithBuffer||ms.mergedBuildGoAhead)?
+      '<div class="section-label">Milestones</div><div class="milestone-wrap"><table class="milestone-table">'+
+        (ms.buildPickup?'<tr><td class="ms-icon">📥</td><td class="ms-label">Build pickup</td><td class="ms-value">'+formatDateDisplay(ms.buildPickup)+'</td></tr>':'')+
+        (ms.bvtCompletion?'<tr><td class="ms-icon">🔬</td><td class="ms-label">BVT completion</td><td class="ms-value">'+formatDateDisplay(ms.bvtCompletion)+'</td></tr>':'')+
+        (ms.execNoBuffer?'<tr><td class="ms-icon">📅</td><td class="ms-label">Exec (without buffer)</td><td class="ms-value">'+formatDateDisplay(ms.execNoBuffer)+'</td></tr>':'')+
+        (ms.execWithBuffer?'<tr><td class="ms-icon">🏁</td><td class="ms-label">Exec (with buffer)</td><td class="ms-value">'+formatDateDisplay(ms.execWithBuffer)+'</td></tr>':'')+
+        (ms.mergedBuildGoAhead?'<tr><td class="ms-icon">🚀</td><td class="ms-label">Merged build go ahead</td><td class="ms-value">'+formatDateDisplay(ms.mergedBuildGoAhead)+'</td></tr>':'')+
+      '</table></div>':'';
+
+    const metaPills=(proj.buildDate?'<span class="meta-pill"><span class="pill-icon">📥</span> Dev to QA: <strong>'+formatDateDisplay(proj.buildDate)+'</strong></span>':'')+
+      (proj.goAheadDate?'<span class="meta-pill"><span class="pill-icon">🚀</span> Go ahead: <strong>'+formatDateDisplay(proj.goAheadDate)+'</strong></span>':'')+
+      (proj.completionDate?'<span class="meta-pill"><span class="pill-icon">🏁</span> QA done: <strong>'+formatDateDisplay(proj.completionDate)+'</strong></span>':'')+
+      (proj.effort?'<span class="meta-pill"><span class="pill-icon">⏱</span> Effort: <strong>'+proj.effort+' PDs</strong></span>':'');
+
+    return '<div class="project-card">'+
+      '<div class="project-card-header">'+
+        '<div style="flex:1;">'+
+          '<h2>'+escapeHtml(proj.name)+'</h2>'+
+          '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;align-items:center;">'+
+            (proj.devPod?'<span style="background:'+podC[0]+';color:'+podC[1]+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+escapeHtml(proj.devPod)+'</span>':'')+
+            '<span style="background:'+sbg+';color:'+sfg+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+(proj.status||'Not started')+'</span>'+
+            (reviewed?'<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">✅ Reviewed</span>':
+                      '<span style="background:#fef9c3;color:#a16207;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">⏳ Pending review</span>')+
+            (proj.releaseDate?'<span style="font-size:12px;color:#64748b;margin-left:4px;">📅 '+formatDateDisplay(proj.releaseDate)+'</span>':'')+
+          '</div>'+
+        '</div>'+
+        '<div style="min-width:180px;flex-shrink:0;">'+
+          '<div style="font-size:11px;color:#94a3b8;margin-bottom:5px;font-weight:600;">'+done+'/'+total+' done · '+donePct+'%</div>'+
+          '<div style="height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden;border:1px solid #e2e8f0;display:flex;">'+
+            '<div style="width:'+donePct+'%;background:linear-gradient(90deg,#10b981,#059669);border-radius:99px;"></div>'+
+            '<div style="width:'+inProgPct+'%;background:#fbbf24;border-radius:99px;"></div>'+
+          '</div>'+
+          '<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">'+
+            (done>0?'<span style="background:#dcfce7;color:#15803d;padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:600;">✅ '+done+' Done</span>':'')+
+            (inProg>0?'<span style="background:#fef3c7;color:#b45309;padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:600;">🔄 '+inProg+' In progress</span>':'')+
+            (notStart>0?'<span style="background:#f1f5f9;color:#64748b;padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:600;">⬜ '+notStart+' Not started</span>':'')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="project-card-body">'+
+        (metaPills?'<div class="meta-pills">'+metaPills+'</div>':'')+
+        '<div class="section-label">Test matrix</div>'+
+        '<div class="matrix-wrap">'+
+          '<table class="matrix-table" style="table-layout:fixed;width:100%;">'+
+            '<thead><tr>'+
+              '<th style="width:35%;">Environment</th>'+
+              '<th class="r" style="width:13%;">Cases</th>'+
+              '<th class="r" style="width:15%;">Effort (PD)</th>'+
+              '<th style="width:20%;">Assigned</th>'+
+              '<th style="width:17%;">Status</th>'+
+            '</tr></thead>'+
+            '<tbody>'+rowsHtml+'</tbody>'+
+            '<tfoot><tr class="row-total"><td><strong>Total</strong></td><td class="r"><strong>'+totalCases+'</strong></td><td class="r"><strong>'+totalEffort.toFixed(1)+'</strong></td><td colspan="2"></td></tr></tfoot>'+
+          '</table>'+
+        '</div>'+
+        msHtml+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  const fullHtml = buildFullReportHtml(title, cardsHtml);
   const blob = new Blob([fullHtml], { type: 'text/html' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.html';
+  a.download = title.replace(/[^a-z0-9]/gi,'_').toLowerCase() + '.html';
   a.click();
-  showToastMsg('✅ Report downloaded — share via email or Teams');
+  showToastMsg('✅ Report downloaded!');
 }
 
 function toggleReviewApproval() {
@@ -4749,7 +4877,7 @@ function markDirty(...tabs) {
 }
 
 function markAllDirty() {
-  ['people','projects','summary','leave','dailyplan','holidays','testplan','admin','help','vmrepo','dashboard'].forEach(t => _dirtyTabs.add(t));
+  ['people','projects','summary','archive','leave','dailyplan','holidays','testplan','admin','help','vmrepo','dashboard'].forEach(t => _dirtyTabs.add(t));
 }
 
 // Map tab name → render function
@@ -4758,6 +4886,7 @@ function renderTab(tab) {
     case 'people':     renderPeople(); break;
     case 'projects':   renderProjects(); break;
     case 'summary':    renderSummary(); renderReleaseHealth(); renderGantt(); break;
+    case 'archive':    renderArchive(); break;
     case 'leave':      renderLeaveCalendar(); break;
     case 'dailyplan':  renderDailyPlan(); break;
     case 'holidays':   renderHolidays(); break;
@@ -5197,11 +5326,10 @@ let selectedSummaryStatus = null;
 let selectedDailyPlanPod = null;
 let archiveFilter = 'active'; // 'active' | 'all' | 'archived'
 
-// Helper — filter projects based on archiveFilter
+// Helper — active projects only (non-completed)
+// Archive tab handles completed items separately
 function getActiveProjects() {
-  if (archiveFilter === 'active')   return state.projects.filter(p => p.status !== 'Completed');
-  if (archiveFilter === 'archived') return state.projects.filter(p => p.status === 'Completed');
-  return state.projects; // 'all'
+  return state.projects.filter(p => p.status !== 'Completed');
 }
 let editingTestRowId = null;
 
@@ -7012,6 +7140,54 @@ let selectedHealthReleaseDate = null;
 function setHealthReleaseFilter(date) {
   selectedHealthReleaseDate = date;
   renderReleaseHealth();
+}
+
+// ====================== ARCHIVE TAB ======================
+function renderArchive() {
+  const tbody = document.getElementById('archiveTableBody');
+  const empty = document.getElementById('archiveEmpty');
+  const table = document.getElementById('archiveTable');
+  if (!tbody) return;
+
+  const completed = state.projects.filter(p => p.status === 'Completed');
+
+  if (completed.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  table.style.display = '';
+
+  const POD_COLORS = {
+    'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
+    'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
+    'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
+  };
+
+  // Sort by completion date desc
+  const sorted = [...completed].sort((a,b) => (b.completionDate||'').localeCompare(a.completionDate||''));
+
+  tbody.innerHTML = sorted.map(p => {
+    const podC = POD_COLORS[p.devPod] || null;
+    const podCell = podC
+      ? `<span style="background:${podC[0]};color:${podC[1]};padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">${escapeHtml(p.devPod)}</span>`
+      : '<span style="color:var(--text-faint);">—</span>';
+
+    return `<tr>
+      <td style="font-weight:600; color:var(--text);">${escapeHtml(p.name)}</td>
+      <td style="white-space:nowrap;">${p.releaseDate ? formatDateDisplay(p.releaseDate) : '—'}</td>
+      <td>${podCell}</td>
+      <td style="white-space:nowrap;">${p.buildDate ? formatDateDisplay(p.buildDate) : '—'}</td>
+      <td style="text-align:center; font-family:var(--mono); font-weight:600;">${p.effort || '—'}</td>
+      <td style="white-space:nowrap;">${p.goAheadDate ? formatDateDisplay(p.goAheadDate) : '—'}</td>
+      <td style="white-space:nowrap;">${p.completionDate ? formatDateDisplay(p.completionDate) : '—'}</td>
+      <td>${escapeHtml(p.owner || '—')}</td>
+      <td><span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">✅ Completed</span></td>
+    </tr>`;
+  }).join('');
 }
 
 function renderSummary() {
