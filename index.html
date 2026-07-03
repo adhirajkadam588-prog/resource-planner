@@ -1640,8 +1640,8 @@
     </div>
     <div class="field"><label>Effort (PD)</label><input id="trEffort" type="number" min="0" step="0.5" placeholder="e.g. 5"></div>
     <div class="field"><label>Assigned to</label><select id="trAssignee"></select></div>
-    <div class="field">
-      <label>Completion status</label>
+    <div class="field" id="trStatusField">
+      <label>Completion status <span id="trStatusLockBadge" style="display:none; background:#fef3c7; color:#b45309; font-size:10px; padding:1px 7px; border-radius:10px; font-weight:600; margin-left:4px;">🔒 Locked — needs review</span></label>
       <select id="trStatus">
         <option value="Not yet started">Not yet started</option>
         <option value="In progress">In progress</option>
@@ -4863,13 +4863,18 @@ function syncTestPlanToProjects() {
       if (proj.completionDate) { proj.completionDate = ''; changed = true; }
     }
 
-    // Status sync — always happens (no review gate needed)
-    // Status reflects actual test progress regardless of lead review
+    // Status sync — only after lead review (testing starts after review)
     const hasRows = plan.rows && plan.rows.length > 0;
-    if (hasRows) {
+    if (reviewed && hasRows) {
       const autoStatus = computeAutoStatus(plan);
       if (autoStatus && proj.status !== autoStatus) {
         proj.status = autoStatus;
+        changed = true;
+      }
+    } else if (!reviewed) {
+      // Before review — always show "Not started" in Release tab
+      if (proj.status !== 'Not started' && proj.status !== 'Completed') {
+        proj.status = 'Not started';
         changed = true;
       }
     }
@@ -5128,32 +5133,46 @@ function onTestPlanProjectChange() {
 function openTestRowModal(id) {
   editingTestRowId = id || null;
   const titleEl = document.getElementById('testRowModalTitle');
-  const btnEl = document.getElementById('testRowSaveBtn');
+  const btnEl   = document.getElementById('testRowSaveBtn');
+  const plan     = getTestPlanForProject(selectedTestPlanProjectId);
+  const reviewed = plan.reviewed === true;
 
   const assigneeSel = document.getElementById('trAssignee');
-  assigneeSel.innerHTML = '<option value="">— Unassigned —</option>' + state.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  assigneeSel.innerHTML = '<option value="">— Unassigned —</option>' +
+    state.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+
+  // Lock status select if not reviewed
+  const statusSel  = document.getElementById('trStatus');
+  const lockBadge  = document.getElementById('trStatusLockBadge');
+  if (statusSel) {
+    statusSel.disabled           = !reviewed;
+    statusSel.style.opacity      = reviewed ? '1' : '0.4';
+    statusSel.style.cursor       = reviewed ? 'default' : 'not-allowed';
+    statusSel.style.pointerEvents = reviewed ? '' : 'none';
+    statusSel.title = reviewed ? '' : '🔒 Lead review required before changing status';
+  }
+  if (lockBadge) lockBadge.style.display = reviewed ? 'none' : 'inline';
 
   if (id) {
-    const plan = getTestPlanForProject(selectedTestPlanProjectId);
     const row = plan.rows.find(r => r.id === id);
     if (!row) return;
     titleEl.textContent = 'Edit environment';
-    btnEl.textContent = 'Save changes';
-    document.getElementById('trName').value = row.name;
-    document.getElementById('trBaseCases').value = row.baseCases || '';
-    document.getElementById('trCoverage').value = row.coverage || '';
-    document.getElementById('trEffort').value = row.effort || '';
+    btnEl.textContent   = 'Save changes';
+    document.getElementById('trName').value       = row.name;
+    document.getElementById('trBaseCases').value  = row.baseCases || '';
+    document.getElementById('trCoverage').value   = row.coverage || '';
+    document.getElementById('trEffort').value     = row.effort || '';
     assigneeSel.value = row.assigneeId || '';
-    document.getElementById('trStatus').value = row.status || 'Not yet started';
+    if (statusSel) statusSel.value = row.status || 'Not yet started';
   } else {
     titleEl.textContent = 'Add environment';
-    btnEl.textContent = 'Add environment';
-    document.getElementById('trName').value = '';
+    btnEl.textContent   = 'Add environment';
+    document.getElementById('trName').value      = '';
     document.getElementById('trBaseCases').value = '';
-    document.getElementById('trCoverage').value = '';
-    document.getElementById('trEffort').value = '';
+    document.getElementById('trCoverage').value  = '';
+    document.getElementById('trEffort').value    = '';
     assigneeSel.value = '';
-    document.getElementById('trStatus').value = 'Not yet started';
+    if (statusSel) statusSel.value = 'Not yet started';
   }
   updateCalculatedCasesPreview();
   document.getElementById('testRowModal').classList.add('show');
@@ -5169,25 +5188,35 @@ function updateCalculatedCasesPreview() {
 function saveTestRow() {
   const name = document.getElementById('trName').value.trim();
   if (!name) return;
-  const baseCases = parseFloat(document.getElementById('trBaseCases').value) || 0;
-  const coverage = parseFloat(document.getElementById('trCoverage').value) || 0;
-  const cases = Math.round(baseCases * (coverage / 100));
-  const effort = parseFloat(document.getElementById('trEffort').value) || 0;
+  const baseCases  = parseFloat(document.getElementById('trBaseCases').value) || 0;
+  const coverage   = parseFloat(document.getElementById('trCoverage').value) || 0;
+  const cases      = Math.round(baseCases * (coverage / 100));
+  const effort     = parseFloat(document.getElementById('trEffort').value) || 0;
   const assigneeId = document.getElementById('trAssignee').value;
-  const status = document.getElementById('trStatus').value;
+  const plan       = getTestPlanForProject(selectedTestPlanProjectId);
+  const reviewed   = plan.reviewed === true;
 
-  const plan = getTestPlanForProject(selectedTestPlanProjectId);
+  // Status only saved if plan is reviewed
+  const statusEl = document.getElementById('trStatus');
+  const status = reviewed ? statusEl.value : (
+    plan.rows.find(r => r.id === editingTestRowId)?.status || 'Not yet started'
+  );
+
+  if (!reviewed && statusEl && statusEl.value !== 'Not yet started' &&
+      statusEl.value !== (plan.rows.find(r => r.id === editingTestRowId)?.status || 'Not yet started')) {
+    showToastMsg('🔒 Review required before changing status');
+  }
+
   if (editingTestRowId) {
-    snapshotState(`Edit test row: ${name}`);
+    snapshotState('Edit test row: ' + name);
     const row = plan.rows.find(r => r.id === editingTestRowId);
     if (row) { row.name = name; row.baseCases = baseCases; row.coverage = coverage; row.cases = cases; row.effort = effort; row.assigneeId = assigneeId; row.status = status; }
   } else {
-    snapshotState(`Add test row: ${name}`);
-    plan.rows.push({ id: uid(), name, baseCases, coverage, cases, effort, assigneeId, status });
+    snapshotState('Add test row: ' + name);
+    plan.rows.push({ id: uid(), name, baseCases, coverage, cases, effort, assigneeId, status: 'Not yet started' });
   }
   editingTestRowId = null;
   closeModal('testRowModal');
-  // Sync status to Release tab immediately
   syncTestPlanToProjects();
   saveState();
   renderTestPlan();
@@ -5216,13 +5245,19 @@ function updateFixedRowStatusStyle(id) {
 }
 
 function saveBufferValues() {
-  const plan = getTestPlanForProject(selectedTestPlanProjectId);
+  const plan     = getTestPlanForProject(selectedTestPlanProjectId);
+  const reviewed = plan.reviewed === true;
+
   plan.testPrepEffort = parseFloat(document.getElementById('testPrepEffort').value) || 0;
-  plan.testPrepStatus = document.getElementById('testPrepStatus').value;
   plan.testEnvEffort  = parseFloat(document.getElementById('testEnvEffort').value) || 0;
-  plan.testEnvStatus  = document.getElementById('testEnvStatus').value;
   plan.buffer.effort  = parseFloat(document.getElementById('testBufferEffort').value) || 0;
-  // Sync status to Release tab immediately
+
+  // Status only saved if reviewed — ignore UI value if not reviewed
+  if (reviewed) {
+    plan.testPrepStatus = document.getElementById('testPrepStatus').value;
+    plan.testEnvStatus  = document.getElementById('testEnvStatus').value;
+  }
+
   syncTestPlanToProjects();
   debouncedSave();
   renderTestPlan();
@@ -5253,6 +5288,7 @@ function renderTestPlan() {
     empty.style.display = 'block';
   } else {
     empty.style.display = 'none';
+    const reviewed = plan.reviewed === true;
     tbody.innerHTML = plan.rows.map(r => {
       const person = state.people.find(p => p.id === r.assigneeId);
       const rowStatus = r.status || 'Not yet started';
@@ -5262,16 +5298,20 @@ function renderTestPlan() {
         'Done':            'background:#dcfce7; color:#15803d;'
       };
       const statusStyle = statusStyles[rowStatus] || statusStyles['Not yet started'];
+
+      // Status cell — locked if not reviewed
+      const statusCell = reviewed
+        ? `<span style="${statusStyle} padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; cursor:default;">${escapeHtml(rowStatus)}</span>`
+        : `<span title="Review required before marking status" style="background:#f1f5f9; color:#94a3b8; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; cursor:not-allowed; display:inline-flex; align-items:center; gap:4px; border:1.5px dashed #cbd5e1;">🔒 Locked</span>`;
+
       return `
-        <tr>
+        <tr style="${!reviewed ? 'opacity:0.85;' : ''}">
           <td style="font-weight:600;">${escapeHtml(r.name)}</td>
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.coverage ? r.coverage + '%' : '—'}</td>
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.cases || 0}</td>
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.effort || 0}</td>
           <td style="font-weight:600; font-size:12px;">${person ? escapeHtml(person.name) : '—'}</td>
-          <td style="text-align:center;">
-            <span style="${statusStyle} padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(rowStatus)}</span>
-          </td>
+          <td style="text-align:center;">${statusCell}</td>
           <td style="text-align:right; white-space:nowrap;">
             <button class="icon-btn edit" onclick="openTestRowModal('${r.id}')" aria-label="Edit environment">✎</button>
             <button class="icon-btn" onclick="deleteTestRow('${r.id}')" aria-label="Remove environment">✕</button>
@@ -5287,6 +5327,24 @@ function renderTestPlan() {
   document.getElementById('testEnvEffort').value = plan.testEnvEffort || '';
   document.getElementById('testEnvStatus').value = plan.testEnvStatus || 'Not yet started';
   document.getElementById('testBufferEffort').value = plan.buffer.effort || '';
+
+  // Lock status dropdowns if not reviewed
+  const reviewed = plan.reviewed === true;
+  const prepSel = document.getElementById('testPrepStatus');
+  const envSel  = document.getElementById('testEnvStatus');
+  if (prepSel) {
+    prepSel.disabled = !reviewed;
+    prepSel.title = reviewed ? '' : '🔒 Review required before changing status';
+    prepSel.style.opacity = reviewed ? '1' : '0.45';
+    prepSel.style.cursor  = reviewed ? 'pointer' : 'not-allowed';
+  }
+  if (envSel) {
+    envSel.disabled = !reviewed;
+    envSel.title = reviewed ? '' : '🔒 Review required before changing status';
+    envSel.style.opacity = reviewed ? '1' : '0.45';
+    envSel.style.cursor  = reviewed ? 'pointer' : 'not-allowed';
+  }
+
   // Apply colored badge style to fixed row status selects
   updateFixedRowStatusStyle('testPrepStatus');
   updateFixedRowStatusStyle('testEnvStatus');
