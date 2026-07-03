@@ -2,8 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TeamLens</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7c3aed">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TeamLens">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- SEO / OG -->
+<meta name="description" content="QA resource planning, test tracking, VM repository, and team management">
+<meta name="application-name" content="TeamLens">
+
+<!-- Service Worker registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('[TeamLens] SW registered:', reg.scope))
+        .catch(err => console.warn('[TeamLens] SW failed:', err));
+    });
+  }
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap');
@@ -539,7 +564,7 @@
         </svg>
       </div>
       <h1>TeamLens</h1>
-      <div class="tagline">One lens. Full picture.</div>
+      <div class="tagline" style="background:linear-gradient(90deg,#a78bfa,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;letter-spacing:0.01em;">One lens. Full picture.</div>
     </div>
 
     <nav class="tabs">
@@ -719,6 +744,18 @@
       </table>
       <div class="empty-state" id="peopleEmpty" style="display:none;">No people added yet. Click "Add person" to start.</div>
     </div>
+
+    <!-- Workload view -->
+    <div class="panel" id="workloadPanel" style="display:none;">
+      <div class="panel-head">
+        <div>
+          <h3>📊 This month's workload</h3>
+          <div class="desc">Assigned days per person in the current month — based on Daily Plan</div>
+        </div>
+        <div id="workloadMonthLabel" style="font-size:12px; color:var(--text-faint); font-weight:600;"></div>
+      </div>
+      <div id="workloadGrid" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
   </div>
 
   <!-- DASHBOARD TAB -->
@@ -733,8 +770,14 @@
         <div>
           <h3>Release</h3>
           <div class="desc">Release items, QA effort, dates and go ahead details</div>
+          <!-- Archive filter pills -->
+          <div style="display:flex; gap:5px; margin-top:10px;" id="archiveFilterPills">
+            <button onclick="setArchiveFilter('active')"   id="archivePill_active"   style="padding:3px 12px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;">Active</button>
+            <button onclick="setArchiveFilter('all')"      id="archivePill_all"      style="padding:3px 12px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;">All</button>
+            <button onclick="setArchiveFilter('archived')" id="archivePill_archived" style="padding:3px 12px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s;">Completed</button>
+          </div>
         </div>
-        <div style="display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <!-- Bulk action bar (hidden until selection) -->
           <div id="bulkActionBar" style="display:none; align-items:center; gap:8px; background:var(--accent-dim); border:1px solid var(--accent); border-radius:9px; padding:6px 12px;">
             <span id="bulkCount" style="font-size:12px; font-weight:600; color:var(--accent);">0 selected</span>
@@ -1090,6 +1133,23 @@
           </table>
         </div>
         <div class="empty-state" id="testRowEmpty" style="display:none;">No environments added yet for this project.</div>
+      </div>
+
+      <!-- Progress bar panel -->
+      <div class="panel" id="testPlanProgressPanel" style="margin-bottom:14px; padding:16px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:12px; flex-wrap:wrap;">
+          <div style="font-size:12.5px; font-weight:700; color:var(--text);">Overall progress</div>
+          <div id="testPlanProgressBadges" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        </div>
+        <!-- Main progress bar -->
+        <div style="position:relative; height:10px; background:var(--panel-2); border-radius:99px; overflow:hidden; margin-bottom:6px; border:1px solid var(--border-soft);">
+          <div id="testPlanProgressBarDone" style="position:absolute; left:0; top:0; height:100%; background:linear-gradient(90deg,#10b981,#059669); border-radius:99px; transition:width 0.4s ease;"></div>
+          <div id="testPlanProgressBarInProgress" style="position:absolute; top:0; height:100%; background:linear-gradient(90deg,#fbbf24,#f59e0b); border-radius:99px; transition:width 0.4s ease;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-faint);">
+          <span id="testPlanProgressLabel">—</span>
+          <span id="testPlanProgressPct" style="font-weight:700; font-family:var(--mono); color:var(--text);"></span>
+        </div>
       </div>
 
       <div class="grid-4" id="testPlanSummaryStats"></div>
@@ -1651,14 +1711,16 @@
 <div class="modal-overlay" id="shareLinkModal">
   <div class="modal">
     <h3 id="shareLinkTitle">📎 Share report link</h3>
-    <div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">Anyone with this link can view the report — no login required.</div>
+    <div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">Share this link — anyone can view the report without logging in.</div>
     <div style="display:flex; gap:8px; align-items:center;">
       <input id="shareLinkInput" type="text" readonly style="flex:1; background:var(--panel-2); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:6px; font-size:12px; font-family:var(--mono);" placeholder="Generating link…">
       <button class="action" onclick="copyShareLink()" id="copyLinkBtn" style="white-space:nowrap;">Copy link</button>
     </div>
-    <div id="shareLinkStatus" style="font-size:12px; margin-top:8px; color:var(--text-faint);"></div>
+    <div id="shareLinkStatus" style="font-size:12px; margin-top:8px; color:var(--text-faint); line-height:1.6;"></div>
     <div class="modal-actions" style="margin-top:16px;">
       <button class="ghost" onclick="closeModal('shareLinkModal')">Close</button>
+      <button class="ghost" id="openReportBtn" onclick="openReportInTab()" style="display:none;">🔗 Open report in new tab</button>
+      <button class="ghost" id="downloadReportBtn" onclick="downloadReportHtml()" style="display:none;">⬇ Download HTML</button>
     </div>
   </div>
 </div>
@@ -1711,7 +1773,7 @@
 </div>
 
 <script>
-let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [] };
+let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [], reviewRequests: [] };
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let dayMonth = new Date().getMonth();
@@ -2070,10 +2132,13 @@ async function initApp(user) {
   // Seed Excel VM data once if not done yet
   seedVMData();
 
-  // Set initial active tab and mark all dirty
+  // Set initial active tab — Dashboard
   _activeTab = 'dashboard';
   markAllDirty();
-  renderAll(); // renders only active tab (dashboard)
+  // Click dashboard tab button to sync UI (active state, title, etc.)
+  const dashTabBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
+  if (dashTabBtn) dashTabBtn.click();
+  else renderAll();
 
   applyAccessUI();
   initRealtime();
@@ -2698,6 +2763,7 @@ async function loadState() {
       state.vms       = Array.isArray(parsed.vms) ? parsed.vms : [];
       state.vmPods    = Array.isArray(parsed.vmPods) ? parsed.vmPods :
         ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
+      state.reviewRequests = Array.isArray(parsed.reviewRequests) ? parsed.reviewRequests : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
     } else {
       el.textContent = 'no data yet — start by adding people';
@@ -3107,10 +3173,82 @@ function renderDashboard() {
 
     <!-- Alerts section -->
     ${renderAlertsHtml()}
+
+    <!-- Pending Reviews (shown only to Leads) -->
+    ${renderPendingReviewsHtml()}
   `;
 }
 
-function renderAlertsHtml() {
+function renderPendingReviewsHtml() {
+  // Only show to leads
+  if (!isCurrentUserLead()) return '';
+
+  const pending = (state.reviewRequests || []).filter(r => r.status === 'pending');
+  if (pending.length === 0) return '';
+
+  return `
+    <div class="panel" style="margin-bottom:18px; border:1.5px solid #c4b5fd;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+        <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#7c3aed,#2563eb); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">📨</div>
+        <div>
+          <h3 style="font-family:'Inter Tight',sans-serif; font-size:15px; font-weight:700; margin:0; color:var(--text);">Test Plans Awaiting Your Review</h3>
+          <div style="font-size:12px; color:var(--text-faint); margin-top:2px;">QA team has requested your review — click to open the test plan</div>
+        </div>
+        <span style="margin-left:auto; background:#f3e8ff; color:#7c3aed; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; flex-shrink:0;">${pending.length} pending</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${pending.map(req => {
+          const proj = state.projects.find(p => p.id === req.projectId);
+          const plan = state.testPlans?.[req.projectId];
+          const requestedAt = new Date(req.requestedAt);
+          const daysAgo = Math.floor((Date.now() - requestedAt.getTime()) / 86400000);
+          const timeLabel = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`;
+
+          // Quick stats from test plan
+          const rows = plan?.rows || [];
+          const done = rows.filter(r => r.status === 'Done').length;
+          const total = rows.length + 2; // +2 for testPrep + testEnv
+          const pct = total > 0 ? Math.round(((done) / total) * 100) : 0;
+
+          return `
+            <div style="display:flex; align-items:center; gap:14px; background:var(--panel-2); border:1px solid #e9d5ff; border-radius:12px; padding:14px 16px; flex-wrap:wrap; gap:10px;">
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; font-size:13.5px; color:var(--text); margin-bottom:4px;">${escapeHtml(req.projectName)}</div>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <span style="font-size:11.5px; color:var(--text-faint);">Requested by <strong style="color:var(--text-dim);">${escapeHtml(req.requestedBy.split('@')[0])}</strong></span>
+                  <span style="font-size:11px; color:var(--text-faint);">·</span>
+                  <span style="font-size:11.5px; color:var(--text-faint);">${timeLabel}</span>
+                  ${proj?.devPod ? `<span style="background:#f3e8ff;color:#7c3aed;padding:1px 8px;border-radius:4px;font-size:10.5px;font-weight:600;">${escapeHtml(proj.devPod)}</span>` : ''}
+                </div>
+                <!-- Mini progress bar -->
+                ${rows.length > 0 ? `
+                <div style="display:flex; align-items:center; gap:8px; margin-top:7px;">
+                  <div style="flex:1; height:5px; background:#e9d5ff; border-radius:99px; overflow:hidden; max-width:160px;">
+                    <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,#7c3aed,#2563eb); border-radius:99px;"></div>
+                  </div>
+                  <span style="font-size:11px; color:var(--text-faint); white-space:nowrap;">${done}/${rows.length} envs done</span>
+                </div>` : '<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">No environments added yet</div>'}
+              </div>
+              <div style="display:flex; gap:8px; flex-shrink:0; align-items:center;">
+                <button onclick="goToTestPlanForReview('${req.projectId}')"
+                  style="background:linear-gradient(135deg,#7c3aed,#2563eb); color:white; border:none; border-radius:9px; padding:8px 18px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 2px 8px rgba(124,58,237,0.3); white-space:nowrap; transition:all 0.15s;"
+                  onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">
+                  Open & Review →
+                </button>
+                <button onclick="dismissReviewRequest('${req.id}')"
+                  title="Dismiss request"
+                  style="background:transparent; border:1px solid var(--border); color:var(--text-faint); border-radius:8px; padding:7px 10px; font-size:12px; cursor:pointer; font-family:inherit; transition:all 0.12s;"
+                  onmouseover="this.style.borderColor='#ef4444'; this.style.color='#ef4444';" onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text-faint)';">
+                  ✕
+                </button>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+
   const today = toDateKey(new Date());
   const alerts = [];
 
@@ -3493,7 +3631,78 @@ function clearAIChat() {
   if (el) el.innerHTML = '';
 }
 
-// ====================== REVIEW BY LEAD ======================
+// ====================== REVIEW REQUEST WORKFLOW ======================
+
+// Check if current user is a Lead (title contains "Lead")
+function isCurrentUserLead() {
+  if (!currentUserEmail) return false;
+  const me = state.people.find(p =>
+    p.email && p.email.toLowerCase() === currentUserEmail.toLowerCase()
+  );
+  return me && (me.title || '').toLowerCase().includes('lead');
+}
+
+// Check if current user is QA (not lead, title contains "QA" or showInDailyPlan)
+function isCurrentUserQA() {
+  if (!currentUserEmail) return false;
+  const me = state.people.find(p =>
+    p.email && p.email.toLowerCase() === currentUserEmail.toLowerCase()
+  );
+  if (!me) return false;
+  const title = (me.title || '').toLowerCase();
+  return !title.includes('lead') && !title.includes('manager') && !title.includes('pm');
+}
+
+function requestReview(projectId) {
+  const proj = state.projects.find(p => p.id === projectId);
+  if (!proj) return;
+
+  if (!state.reviewRequests) state.reviewRequests = [];
+
+  // Check if already requested
+  const existing = state.reviewRequests.find(r => r.projectId === projectId && r.status === 'pending');
+  if (existing) {
+    showToastMsg('Review already requested for this item');
+    return;
+  }
+
+  state.reviewRequests.push({
+    id: uid(),
+    projectId,
+    projectName: proj.name,
+    requestedBy: currentUserEmail,
+    requestedAt: new Date().toISOString(),
+    status: 'pending'
+  });
+
+  saveState();
+  markDirty('dashboard');
+  renderTab('dashboard');
+  renderReviewPanel(state.testPlans?.[projectId]);
+  showToastMsg(`✅ Review requested for "${proj.name}" — Lead will see it on Dashboard`);
+}
+
+function dismissReviewRequest(requestId) {
+  if (!state.reviewRequests) return;
+  state.reviewRequests = state.reviewRequests.filter(r => r.id !== requestId);
+  saveState();
+  markDirty('dashboard');
+  renderTab('dashboard');
+  showToastMsg('Review request dismissed');
+}
+
+function goToTestPlanForReview(projectId) {
+  // Switch to test plan tab and select this project
+  selectedTestPlanProjectId = projectId;
+  switchTabTo('testplan');
+  // Re-render with that item selected after tab switch
+  setTimeout(() => {
+    selectedTestPlanProjectId = projectId;
+    renderTestPlan();
+  }, 100);
+}
+
+
 function toggleReviewApproval() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   const checkbox = document.getElementById('reviewCheckbox');
@@ -3503,10 +3712,18 @@ function toggleReviewApproval() {
     plan.reviewed = true;
     plan.reviewedBy = currentUserEmail || 'Unknown';
     plan.reviewedAt = new Date().toISOString();
+    // Mark pending review request as resolved
+    if (state.reviewRequests) {
+      state.reviewRequests = state.reviewRequests.map(r =>
+        r.projectId === selectedTestPlanProjectId && r.status === 'pending'
+          ? { ...r, status: 'approved', approvedAt: new Date().toISOString() }
+          : r
+      );
+    }
     saveState();
     syncTestPlanToProjects();
     renderTestPlan();
-    markDirty('projects','summary');
+    markDirty('projects','summary','dashboard');
     renderTab('projects');
     showToastMsg('✅ Test plan reviewed — Release tab data updated');
   } else {
@@ -3545,7 +3762,17 @@ function renderReviewPanel(plan) {
   const statusEl   = document.getElementById('reviewStatus');
   if (!panel) return;
 
-  const reviewed = plan?.reviewed === true;
+  const reviewed   = plan?.reviewed === true;
+  const isLead     = isCurrentUserLead();
+  const isQA       = isCurrentUserQA();
+
+  // Check if QA has already requested review for this item
+  const pendingReq = (state.reviewRequests || []).find(
+    r => r.projectId === selectedTestPlanProjectId && r.status === 'pending'
+  );
+
+  // Show/hide checkbox based on role (only leads can approve)
+  if (checkLabel) checkLabel.style.display = isLead ? 'flex' : 'none';
 
   if (reviewed) {
     panel.style.border = '1.5px solid #86efac';
@@ -3553,10 +3780,9 @@ function renderReviewPanel(plan) {
     iconBox.textContent = '✅';
     iconBox.style.background = '#dcfce7';
     desc.textContent = 'Approved — test plan reviewed by lead. Release tab data is now synced.';
-    checkbox.checked = true;
-    checkText.textContent = 'Reviewed ✓';
-    checkLabel.style.background = '#dcfce7';
-    checkLabel.style.borderColor = '#86efac';
+    if (checkbox) checkbox.checked = true;
+    if (checkText) checkText.textContent = 'Reviewed ✓';
+    if (checkLabel) { checkLabel.style.background = '#dcfce7'; checkLabel.style.borderColor = '#86efac'; }
     statusEl.innerHTML = '<span style="background:#dcfce7;color:#15803d;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">✅ Approved</span>';
     if (plan.reviewedBy) {
       reviewerInfoEl.style.display = 'flex';
@@ -3570,13 +3796,31 @@ function renderReviewPanel(plan) {
     panel.style.background = 'linear-gradient(135deg,#fefce8,#fef9c3)';
     iconBox.textContent = '📋';
     iconBox.style.background = '#fef9c3';
-    desc.textContent = 'Lead review pending — Release tab data (effort, dates, status) will remain blank until approved.';
-    checkbox.checked = false;
-    checkText.textContent = 'Mark as reviewed';
-    checkLabel.style.background = 'var(--panel-2)';
-    checkLabel.style.borderColor = 'var(--border)';
-    statusEl.innerHTML = '<span style="background:#fef9c3;color:#a16207;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">⏳ Pending review</span>';
+    if (checkbox) checkbox.checked = false;
+    if (checkText) checkText.textContent = 'Mark as reviewed';
+    if (checkLabel) { checkLabel.style.background = 'var(--panel-2)'; checkLabel.style.borderColor = 'var(--border)'; }
     reviewerInfoEl.style.display = 'none';
+
+    if (isLead) {
+      // Lead sees pending requests
+      desc.textContent = pendingReq
+        ? `⏳ Review requested by ${pendingReq.requestedBy.split('@')[0]} on ${new Date(pendingReq.requestedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}. Check the plan and approve below.`
+        : 'No review requested yet. QA will send a request when ready.';
+      statusEl.innerHTML = pendingReq
+        ? '<span style="background:#fef3c7;color:#b45309;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">⏳ Review requested</span>'
+        : '<span style="background:#f1f5f9;color:#64748b;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">— Awaiting request</span>';
+    } else if (isQA) {
+      // QA sees "Request Review" button
+      desc.textContent = pendingReq
+        ? `✉ Review request sent on ${new Date(pendingReq.requestedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}. Waiting for lead approval.`
+        : 'Test plan not yet reviewed. Request lead review when ready.';
+      statusEl.innerHTML = pendingReq
+        ? '<span style="background:#dbeafe;color:#1d4ed8;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">✉ Review requested</span>'
+        : `<button onclick="requestReview('${selectedTestPlanProjectId}')" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(124,58,237,0.3);">📨 Request Lead Review</button>`;
+    } else {
+      desc.textContent = 'Lead review pending — Release tab data will remain blank until approved.';
+      statusEl.innerHTML = '<span style="background:#fef9c3;color:#a16207;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">⏳ Pending review</span>';
+    }
   }
 }
 
@@ -4499,6 +4743,9 @@ function renderPeople() {
       </td>
     </tr>`;
   }).join('');
+
+  // ── Workload panel ──
+  renderWorkload();
 }
 
 // ====================== PROJECTS ======================
@@ -4755,6 +5002,14 @@ let selectedSummaryDevPod = null;
 let selectedReleaseStatus = null;
 let selectedSummaryStatus = null;
 let selectedDailyPlanPod = null;
+let archiveFilter = 'active'; // 'active' | 'all' | 'archived'
+
+// Helper — filter projects based on archiveFilter
+function getActiveProjects() {
+  if (archiveFilter === 'active')   return state.projects.filter(p => p.status !== 'Completed');
+  if (archiveFilter === 'archived') return state.projects.filter(p => p.status === 'Completed');
+  return state.projects; // 'all'
+}
 let editingTestRowId = null;
 
 function getTestPlanForProject(projectId) {
@@ -4798,8 +5053,19 @@ function populateTestPlanProjectSelect() {
   }
   noProjects.style.display = 'none';
 
-  // Release date pills
-  const allDates = [...new Set(state.projects.map(p => p.releaseDate).filter(Boolean))].sort();
+  // Release date pills (based on archive-filtered projects)
+  const archiveFiltered = getActiveProjects();
+  const allDates = [...new Set(archiveFiltered.map(p => p.releaseDate).filter(Boolean))].sort();
+
+  if (archiveFiltered.length === 0) {
+    sel.innerHTML = '';
+    noProjects.style.display = 'block';
+    body.style.display = 'none';
+    if (pillsEl) pillsEl.innerHTML = '';
+    return;
+  }
+  noProjects.style.display = 'none';
+
   if (pillsEl) {
     pillsEl.innerHTML =
       `<button onclick="setTestPlanReleaseFilter(null)" style="padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all 0.12s; ${selectedTestPlanReleaseDate === null ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">All</button>` +
@@ -4809,8 +5075,8 @@ function populateTestPlanProjectSelect() {
   // Dev POD pills
   renderPodPills('testPlanPodPills', selectedTestPlanDevPod, 'setTestPlanDevPodFilter');
 
-  // Filter by both release + POD
-  let filteredProjects = state.projects;
+  // Filter by archive + release + POD
+  let filteredProjects = archiveFiltered;
   if (selectedTestPlanReleaseDate) filteredProjects = filteredProjects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
   if (selectedTestPlanDevPod) filteredProjects = filteredProjects.filter(p => p.devPod === selectedTestPlanDevPod);
 
@@ -5067,8 +5333,35 @@ function renderTestPlan() {
     }
   }
 
-  // Milestones
-  document.getElementById('msBuildPickup').value = plan.milestones.buildPickup || '';
+  // ── Progress bar ──
+  const allRows = [
+    { status: plan.testPrepStatus || 'Not yet started' },
+    { status: plan.testEnvStatus  || 'Not yet started' },
+    ...plan.rows.map(r => ({ status: r.status || 'Not yet started' }))
+  ];
+  const totalRows = allRows.length;
+  const doneCount = allRows.filter(r => r.status === 'Done').length;
+  const inProgCount = allRows.filter(r => r.status === 'In progress').length;
+  const donePct = totalRows > 0 ? Math.round((doneCount / totalRows) * 100) : 0;
+  const inProgPct = totalRows > 0 ? Math.round((inProgCount / totalRows) * 100) : 0;
+
+  const barDone   = document.getElementById('testPlanProgressBarDone');
+  const barInProg = document.getElementById('testPlanProgressBarInProgress');
+  const labelEl   = document.getElementById('testPlanProgressLabel');
+  const pctEl     = document.getElementById('testPlanProgressPct');
+  const badgesEl  = document.getElementById('testPlanProgressBadges');
+
+  if (barDone)   { barDone.style.width = donePct + '%'; }
+  if (barInProg) { barInProg.style.width = inProgPct + '%'; barInProg.style.left = donePct + '%'; }
+  if (labelEl)   { labelEl.textContent = `${doneCount} of ${totalRows} environments done`; }
+  if (pctEl)     { pctEl.textContent = donePct + '% complete'; }
+  if (badgesEl)  {
+    badgesEl.innerHTML = [
+      doneCount   > 0 ? `<span style="background:#dcfce7;color:#15803d;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">✅ ${doneCount} Done</span>` : '',
+      inProgCount > 0 ? `<span style="background:#fef3c7;color:#b45309;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">🔄 ${inProgCount} In progress</span>` : '',
+      (totalRows - doneCount - inProgCount) > 0 ? `<span style="background:var(--panel-2);color:var(--text-faint);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">⬜ ${totalRows-doneCount-inProgCount} Not started</span>` : ''
+    ].filter(Boolean).join('');
+  }
   document.getElementById('msBvtCompletion').value = plan.milestones.bvtCompletion || '';
   document.getElementById('msExecNoBuffer').value = plan.milestones.execNoBuffer || '';
   document.getElementById('msExecWithBuffer').value = plan.milestones.execWithBuffer || '';
@@ -5102,15 +5395,15 @@ function exportTestPlanReport(scope) {
   let reportTitle;
 
   if (scope === 'all') {
-    projectsToInclude = state.projects;
-    reportTitle = 'Test Plan Report — All Release Items';
+    projectsToInclude = getActiveProjects();
+    reportTitle = 'Test Plan Report — All Active Release Items';
 
   } else if (scope === 'release') {
     if (!selectedTestPlanReleaseDate) {
-      projectsToInclude = state.projects;
-      reportTitle = 'Test Plan Report — All Release Items';
+      projectsToInclude = getActiveProjects();
+      reportTitle = 'Test Plan Report — All Active Release Items';
     } else {
-      projectsToInclude = state.projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
+      projectsToInclude = getActiveProjects().filter(p => p.releaseDate === selectedTestPlanReleaseDate);
       reportTitle = `Test Plan Report — Release ${formatDateDisplay(selectedTestPlanReleaseDate)}`;
     }
 
@@ -5119,7 +5412,7 @@ function exportTestPlanReport(scope) {
       alert('Please select a Dev POD filter first to generate a POD-wise report.');
       return;
     }
-    projectsToInclude = state.projects.filter(p => p.devPod === selectedTestPlanDevPod);
+    projectsToInclude = getActiveProjects().filter(p => p.devPod === selectedTestPlanDevPod);
     reportTitle = `Test Plan Report — ${selectedTestPlanDevPod}`;
 
   } else {
@@ -5498,67 +5791,120 @@ function downloadReportHtml(filename, title, bodyHtml) {
   URL.revokeObjectURL(url);
 }
 
+let _currentReportHtml = '';
+
 async function shareReportAsLink(title, bodyHtml) {
-  document.getElementById('shareLinkTitle').textContent = `📎 ${title}`;
-  document.getElementById('shareLinkInput').value = 'Generating…';
-  document.getElementById('shareLinkStatus').textContent = '';
-  document.getElementById('copyLinkBtn').disabled = true;
-  document.getElementById('shareLinkModal').classList.add('show');
+  // Show modal immediately
+  const modal = document.getElementById('shareLinkModal');
+  const titleEl = document.getElementById('shareLinkTitle');
+  const inputEl = document.getElementById('shareLinkInput');
+  const statusEl = document.getElementById('shareLinkStatus');
+  const copyBtn  = document.getElementById('copyLinkBtn');
 
-  const fullHtml = buildFullReportHtml(title, bodyHtml);
-  const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  if (!modal || !inputEl) {
+    alert('Share modal not found. Please refresh the page.');
+    return;
+  }
 
-  // Always store in localStorage first (instant, always works)
+  titleEl.textContent = `📎 ${title}`;
+  inputEl.value = 'Generating link…';
+  statusEl.textContent = '';
+  copyBtn.disabled = true;
+  const openBtn = document.getElementById('openReportBtn');
+  const dlBtn   = document.getElementById('downloadReportBtn');
+  if (openBtn) openBtn.style.display = 'none';
+  if (dlBtn)   dlBtn.style.display   = 'none';
+  modal.classList.add('show');
+
   try {
-    const reports = JSON.parse(localStorage.getItem('tl-shared-reports') || '{}');
-    reports[reportId] = { title, html: fullHtml, created_at: new Date().toISOString() };
-    // Keep last 20 reports only
-    const keys = Object.keys(reports);
-    if (keys.length > 20) delete reports[keys[0]];
-    localStorage.setItem('tl-shared-reports', JSON.stringify(reports));
-  } catch (e) { console.warn('localStorage report save failed:', e); }
+    let fullHtml;
+    try {
+      fullHtml = buildFullReportHtml(title, bodyHtml);
+      _currentReportHtml = fullHtml;
+      // Always show open + download as guaranteed fallback
+      const openBtn = document.getElementById('openReportBtn');
+      const dlBtn   = document.getElementById('downloadReportBtn');
+      if (openBtn) openBtn.style.display = 'inline-flex';
+      if (dlBtn)   dlBtn.style.display   = 'inline-flex';
+    } catch (buildErr) {
+      console.error('Report build error:', buildErr);
+      statusEl.innerHTML = `<span style="color:#dc2626;">✗ Error building report: ${escapeHtml(buildErr.message)}</span>`;
+      inputEl.value = '';
+      copyBtn.disabled = true;
+      return;
+    }
+    const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
 
-  // Also try Supabase for cross-device sharing
-  let supabaseSuccess = false;
-  try {
-    const { error } = await sbClient
-      .from('shared_reports')
-      .insert({
-        id: reportId,
-        title,
-        html: fullHtml,
-        created_by: currentUserEmail || 'unknown',
-        created_at: new Date().toISOString()
-      });
-    if (!error) supabaseSuccess = true;
-  } catch (e) { /* silent — localStorage fallback handles it */ }
+    // Try localStorage — handle quota exceeded gracefully
+    let localSaved = false;
+    try {
+      // Clear old reports first to make space
+      const existing = JSON.parse(localStorage.getItem('tl-shared-reports') || '{}');
+      const keys = Object.keys(existing).sort();
+      // Remove oldest if more than 5
+      while (keys.length >= 5) {
+        delete existing[keys.shift()];
+      }
+      existing[reportId] = { title, html: fullHtml, ts: Date.now() };
+      localStorage.setItem('tl-shared-reports', JSON.stringify(existing));
+      localSaved = true;
+    } catch (e) {
+      // Quota exceeded — try saving just this one report
+      try {
+        localStorage.removeItem('tl-shared-reports');
+        localStorage.setItem('tl-shared-reports', JSON.stringify({
+          [reportId]: { title, html: fullHtml, ts: Date.now() }
+        }));
+        localSaved = true;
+      } catch (e2) {
+        console.warn('localStorage full, skipping local save');
+      }
+    }
 
-  const baseUrl = window.location.origin + window.location.pathname;
-  const shareUrl = `${baseUrl}?report=${reportId}`;
+    // Try Supabase
+    let supabaseSuccess = false;
+    try {
+      const { error } = await sbClient
+        .from('shared_reports')
+        .insert({ id: reportId, title, html: fullHtml, created_by: currentUserEmail || 'unknown' });
+      if (!error) supabaseSuccess = true;
+    } catch (e) { /* silent */ }
 
-  document.getElementById('shareLinkInput').value = shareUrl;
-  document.getElementById('copyLinkBtn').disabled = false;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?report=${reportId}`;
 
-  if (supabaseSuccess) {
-    document.getElementById('shareLinkStatus').textContent = '✓ Link ready — anyone can open this link (no login needed).';
-  } else {
-    document.getElementById('shareLinkStatus').textContent = '✓ Link ready — works on this browser. For cross-device sharing, run the Supabase SQL below.';
-    // Add SQL hint
-    const statusEl = document.getElementById('shareLinkStatus');
-    statusEl.innerHTML = `✓ Link generated and saved locally.
-      <details style="margin-top:6px; font-size:11px;">
-        <summary style="cursor:pointer; color:var(--accent);">Enable cross-device sharing (Supabase setup)</summary>
-        <pre style="background:var(--panel-2); padding:8px; border-radius:6px; margin-top:6px; font-size:10px; overflow-x:auto;">CREATE TABLE IF NOT EXISTS shared_reports (
-  id text PRIMARY KEY,
-  title text,
-  html text,
-  created_by text,
-  created_at timestamptz DEFAULT now()
-);
-ALTER TABLE shared_reports ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public_read" ON shared_reports FOR SELECT USING (true);
-CREATE POLICY "auth_insert" ON shared_reports FOR INSERT TO authenticated WITH CHECK (true);</pre>
-      </details>`;
+    inputEl.value = shareUrl;
+    copyBtn.disabled = false;
+
+    if (supabaseSuccess) {
+      statusEl.innerHTML = `<span style="color:#15803d; font-weight:600;">✓ Link ready!</span> Anyone with this link can view the report (no login needed).`;
+    } else if (localSaved) {
+      statusEl.innerHTML = `<span style="color:#15803d; font-weight:600;">✓ Link ready!</span> Works on this browser/device.
+        <span style="color:var(--text-faint); font-size:11px; display:block; margin-top:4px;">For cross-device sharing, set up the Supabase <code>shared_reports</code> table.</span>`;
+    } else {
+      // Both failed — offer direct download as fallback
+      statusEl.innerHTML = `<span style="color:#b45309; font-weight:600;">⚠ Could not save link.</span> Download the report instead:`;
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'action';
+      dlBtn.style.cssText = 'margin-top:8px; font-size:12px; padding:6px 14px;';
+      dlBtn.textContent = '⬇ Download report HTML';
+      dlBtn.onclick = () => {
+        const blob = new Blob([fullHtml], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = title.replace(/[^a-z0-9]/gi, '_') + '.html';
+        a.click();
+      };
+      statusEl.appendChild(dlBtn);
+      inputEl.value = '';
+      copyBtn.disabled = true;
+    }
+
+  } catch (e) {
+    console.error('shareReportAsLink error:', e);
+    statusEl.innerHTML = `<span style="color:#dc2626;">✗ Error: ${escapeHtml(e.message || String(e))}</span>`;
+    inputEl.value = '';
+    copyBtn.disabled = true;
   }
 }
 
@@ -5576,6 +5922,22 @@ function copyShareLink() {
     input.select();
     document.execCommand('copy');
   });
+}
+
+function openReportInTab() {
+  if (!_currentReportHtml) return;
+  const blob = new Blob([_currentReportHtml], { type: 'text/html' });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+function downloadReportHtml() {
+  if (!_currentReportHtml) return;
+  const title = document.getElementById('shareLinkTitle')?.textContent?.replace(/^📎\s*/,'') || 'report';
+  const blob = new Blob([_currentReportHtml], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.html';
+  a.click();
 }
 
 // ---- Report viewer — runs on page load if ?report= is in the URL ----
@@ -5908,8 +6270,9 @@ function renderProjects() {
   if (statusSelect && selectedReleaseStatus) statusSelect.value = selectedReleaseStatus;
   else if (statusSelect) statusSelect.value = '';
 
-  // Apply all 3 filters
-  let filtered = state.projects;
+  // Apply archive filter first, then other filters
+  let filtered = getActiveProjects();
+  updateArchivePills();
   if (selectedReleaseDate) filtered = filtered.filter(p => p.releaseDate === selectedReleaseDate);
   if (selectedDevPod) filtered = filtered.filter(p => p.devPod === selectedDevPod);
   if (selectedReleaseStatus) filtered = filtered.filter(p => p.status === selectedReleaseStatus);
@@ -6049,11 +6412,12 @@ function renderPodPills(containerId, selectedPod, onClickFn) {
 
 // ====================== ALLOCATION ======================
 function populateProjectSelect(selectEl) {
-  if (state.projects.length === 0) {
-    selectEl.innerHTML = '<option value="">Add a project first</option>';
+  const active = getActiveProjects();
+  if (active.length === 0) {
+    selectEl.innerHTML = '<option value="">No active projects</option>';
     return;
   }
-  selectEl.innerHTML = state.projects.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+  selectEl.innerHTML = active.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
 }
 
 
@@ -6161,8 +6525,8 @@ function renderGantt() {
 
   const filterDate = filterSel?.value || '';
   let projects = filterDate
-    ? state.projects.filter(p => p.releaseDate === filterDate)
-    : state.projects;
+    ? getActiveProjects().filter(p => p.releaseDate === filterDate)
+    : getActiveProjects();
 
   projects = projects.filter(p => p.releaseDate || p.buildDate || p.completionDate);
 
@@ -6283,7 +6647,7 @@ function renderReleaseHealth() {
       allDates.map(d => `<button onclick="setHealthReleaseFilter('${d}')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; white-space:nowrap; transition:all 0.12s; ${selectedHealthReleaseDate === d ? 'background:#7c3aed; color:white; border-color:#7c3aed;' : 'background:#f1f5f9; color:#64748b; border-color:#e2e8f0;'}">${formatDateDisplay(d)}</button>`).join('');
   }
 
-  let projects = state.projects;
+  let projects = getActiveProjects();
   if (selectedHealthReleaseDate) projects = projects.filter(p => p.releaseDate === selectedHealthReleaseDate);
 
   if (projects.length === 0) {
@@ -6476,8 +6840,8 @@ function renderSummary() {
   const stSel = document.getElementById('summaryStatusSelect');
   if (stSel) stSel.value = selectedSummaryStatus || '';
 
-  // Apply 3 filters
-  let projects = state.projects;
+  // Apply archive filter first, then other filters
+  let projects = getActiveProjects();
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
   if (selectedSummaryStatus) projects = projects.filter(p => p.status === selectedSummaryStatus);
@@ -6532,7 +6896,36 @@ function renderSummary() {
   }).join('');
 }
 
-function setDailyPlanPodFilter(pod) {
+function setArchiveFilter(filter) {
+  archiveFilter = filter;
+  updateArchivePills();
+  markDirty('projects','summary','testplan','dailyplan','dashboard');
+  renderAll();
+}
+
+function updateArchivePills() {
+  const pills = {
+    active:   { bg:'#0f172a', fg:'white', border:'#0f172a' },
+    all:      { bg:'#0f172a', fg:'white', border:'#0f172a' },
+    archived: { bg:'#0f172a', fg:'white', border:'#0f172a' },
+  };
+  ['active','all','archived'].forEach(f => {
+    const btn = document.getElementById(`archivePill_${f}`);
+    if (!btn) return;
+    const isActive = archiveFilter === f;
+    if (isActive) {
+      btn.style.background = '#0f172a';
+      btn.style.color = 'white';
+      btn.style.borderColor = '#0f172a';
+    } else {
+      btn.style.background = 'var(--panel-2)';
+      btn.style.color = 'var(--text-faint)';
+      btn.style.borderColor = 'var(--border)';
+    }
+  });
+}
+
+
   selectedDailyPlanPod = pod;
   renderDailyPlan();
 }
