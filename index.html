@@ -380,13 +380,13 @@
     display: grid; gap: 1px; background: var(--border-soft);
     border: 1px solid var(--border-soft); border-radius: 12px; overflow: hidden; font-size: 11px;
   }
-  .cal-cell { background: var(--panel); padding: 6px 4px; text-align: center; color: var(--text-faint); }
-  .cal-cell.name { background: var(--panel-2); text-align: left; padding: 6px 11px; color: var(--text); font-size: 12px; position: sticky; left: 0; z-index: 5; box-shadow: 1px 0 0 var(--border-soft); }
+  .cal-cell { background: var(--panel); padding: 4px 4px; text-align: center; color: var(--text-faint); min-height: 36px; }
+  .cal-cell.name { background: var(--panel-2); text-align: left; padding: 4px 11px; color: var(--text); font-size: 12px; position: sticky; left: 0; z-index: 5; box-shadow: 1px 0 0 var(--border-soft); }
   .cal-cell.leave-pl  { background: #fef3c7; color: #b45309; cursor: pointer; font-weight: 700; }
   .cal-cell.leave-upl { background: #fee2e2; color: #dc2626; cursor: pointer; font-weight: 700; }
   .cal-cell.weekend   { background: var(--panel-2); color: var(--border); cursor: not-allowed; font-size: 10px; }
   .cal-cell.holiday-day { background: var(--panel-2); color: var(--border); cursor: not-allowed; font-size: 10px; }
-  .cal-cell.day-cell  { cursor: pointer; transition: background 0.1s; }
+  .cal-cell.day-cell  { cursor: pointer; transition: background 0.1s; vertical-align: top; }
   .cal-cell.day-cell:hover { background: var(--panel-2); }
   .cal-header { background: var(--panel-2) !important; color: var(--text-faint); font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
   .cal-cell.cal-header.name { z-index: 6; }
@@ -6684,7 +6684,12 @@ function buildDailyPlanMonthGridHtml(year, month, podFilter) {
       } else if (onLeave) {
         html += `<div class="cal-cell-r leave-r" style="text-align:left; padding-left:8px;">On leave</div>`;
       } else if (entries.length > 0) {
-        const segs = entries.map(e => `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.project)}${e.task ? ' · ' + escapeHtml(e.task) : ''}</div>`).join('');
+        const TASK_ICONS = {'Test Scenario Writing':'📝','Test Case Writing':'✍️','Test Data Prep':'🗂️','BVT':'🔬','Execution':'▶️'};
+        const segs = entries.map(e => {
+          const icon = e.task ? (TASK_ICONS[e.task] || '🏷️') : '';
+          const taskPart = e.task ? `<div style="font-size:9px;color:#b45309;font-weight:600;">${icon} ${escapeHtml(e.task)}</div>` : '';
+          return `<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.project)}</div>${taskPart}`;
+        }).join('<div style="height:3px;"></div>');
         html += `<div class="cal-cell-r" style="text-align:left; padding:3px 8px; line-height:1.4;">${segs}</div>`;
       } else {
         html += `<div class="cal-cell-r"></div>`;
@@ -8570,9 +8575,9 @@ function renderDailyPlan() {
   `;
 
   // Fixed column widths — scroll horizontally if many people
-  const COL_DATE = 80;
-  const COL_DAY  = 44;
-  const COL_PERSON = 160; // fixed per person — no squishing
+  const COL_DATE = 72;
+  const COL_DAY  = 36;
+  const COL_PERSON = 140; // compact per person column
   const totalWidth = COL_DATE + COL_DAY + (totalPeople * COL_PERSON);
   grid.style.gridTemplateColumns = `${COL_DATE}px ${COL_DAY}px repeat(${totalPeople}, ${COL_PERSON}px)`;
   grid.style.minWidth = totalWidth + 'px';
@@ -8617,17 +8622,21 @@ function renderDailyPlan() {
       } else if (entries.length > 0) {
         const segs = entries.map(e => {
           const color = colorForProject(e.project);
-          const taskBadge = e.task ? `<span style="font-size:10px;background:${color}33;color:${color};border-radius:3px;padding:0 4px;font-weight:700;white-space:nowrap;">${escapeHtml(e.task)}</span>` : '';
-          return `<div style="background:${color}22; color:${color}; font-weight:500; padding:3px 7px; border-radius:4px; margin:1px 0; line-height:1.4; font-size:12px; position:relative;" 
+          const TASK_ICONS = {'Test Scenario Writing':'📝','Test Case Writing':'✍️','Test Data Prep':'🗂️','BVT':'🔬','Execution':'▶️'};
+          const taskIcon = e.task ? (TASK_ICONS[e.task] || '🏷️') : '';
+          const taskBadge = e.task
+            ? `<div style="display:inline-flex;align-items:center;gap:3px;background:${color}18;border:1px solid ${color}35;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700;color:${color};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;"><span>${taskIcon}</span><span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.task)}</span></div>`
+            : '';
+          return `<div style="background:${color}12;border-left:2.5px solid ${color};border-radius:0 4px 4px 0;margin:2px 0;padding:3px 5px 3px 6px;position:relative;"
             onmouseenter="this.querySelector('.dp-actions').style.display='flex'"
             onmouseleave="this.querySelector('.dp-actions').style.display='none'">
-            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:36px;">${escapeHtml(e.project)}</div>
+            <div style="font-size:11.5px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:34px;line-height:1.3;">${escapeHtml(e.project)}</div>
             ${taskBadge}
             <div class="dp-actions" style="display:none;position:absolute;top:2px;right:2px;gap:2px;align-items:center;">
-              <button title="Edit" onclick="event.stopPropagation();editDailyPlanEntry('${e.id}')" 
-                style="background:${color}44;border:none;border-radius:3px;cursor:pointer;padding:1px 4px;font-size:10px;color:${color};line-height:1;font-family:inherit;">✎</button>
-              <button title="Remove" onclick="event.stopPropagation();clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')" 
-                style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:1px 4px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>
+              <button title="Edit" onclick="event.stopPropagation();editDailyPlanEntry('${e.id}')"
+                style="background:${color}25;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:${color};line-height:1;font-family:inherit;">✎</button>
+              <button title="Remove" onclick="event.stopPropagation();clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')"
+                style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>
             </div>
           </div>`;
         }).join('');
