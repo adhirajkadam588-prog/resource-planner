@@ -1138,11 +1138,11 @@
         </div>
         <table>
           <tbody>
-            <tr><td style="width:280px; color:var(--text-dim);">Build pickup</td><td><input id="msBuildPickup" type="date" onchange="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">BVT completion</td><td><input id="msBvtCompletion" type="date" onchange="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">Execution completion without buffer</td><td><input id="msExecNoBuffer" type="date" onchange="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">Execution completion with buffer</td><td><input id="msExecWithBuffer" type="date" onchange="saveMilestones()"></td></tr>
-            <tr><td style="color:var(--text-dim);">Merged build go ahead</td><td><input id="msMergedBuildGoAhead" type="date" onchange="saveMilestones()"></td></tr>
+            <tr><td style="width:280px; color:var(--text-dim);">Build pickup</td><td><input id="msBuildPickup" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
+            <tr><td style="color:var(--text-dim);">BVT completion</td><td><input id="msBvtCompletion" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
+            <tr><td style="color:var(--text-dim);">Execution completion without buffer</td><td><input id="msExecNoBuffer" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
+            <tr><td style="color:var(--text-dim);">Execution completion with buffer</td><td><input id="msExecWithBuffer" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
+            <tr><td style="color:var(--text-dim);">Merged build go ahead</td><td><input id="msMergedBuildGoAhead" type="date" onchange="saveMilestones()" oninput="saveMilestones()"></td></tr>
           </tbody>
         </table>
       </div>
@@ -5292,13 +5292,14 @@ function saveBufferValues() {
 }
 
 function saveMilestones() {
+  if (!selectedTestPlanProjectId) return;
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
-  plan.milestones.buildPickup = document.getElementById('msBuildPickup').value;
-  plan.milestones.bvtCompletion = document.getElementById('msBvtCompletion').value;
-  plan.milestones.execNoBuffer = document.getElementById('msExecNoBuffer').value;
-  plan.milestones.execWithBuffer = document.getElementById('msExecWithBuffer').value;
+  plan.milestones.buildPickup        = document.getElementById('msBuildPickup').value;
+  plan.milestones.bvtCompletion      = document.getElementById('msBvtCompletion').value;
+  plan.milestones.execNoBuffer       = document.getElementById('msExecNoBuffer').value;
+  plan.milestones.execWithBuffer     = document.getElementById('msExecWithBuffer').value;
   plan.milestones.mergedBuildGoAhead = document.getElementById('msMergedBuildGoAhead').value;
-  debouncedSave(); // debounced — date picker changes won't spam Supabase
+  saveState(); // immediate — not debounced so dates don't get lost on refresh
   renderTestPlan();
 }
 
