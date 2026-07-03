@@ -3627,7 +3627,10 @@ function clearAIChat() {
 
 // Check if current user is a Lead (title contains "Lead")
 function isCurrentUserLead() {
+  // Admin can always approve reviews
+  if (currentUserRole === 'admin') return true;
   if (!currentUserEmail) return false;
+  // Check People tab — title contains "Lead"
   const me = state.people.find(p =>
     p.email && p.email.toLowerCase() === currentUserEmail.toLowerCase()
   );
@@ -3756,7 +3759,9 @@ function renderReviewPanel(plan) {
 
   const reviewed   = plan?.reviewed === true;
   const isLead     = isCurrentUserLead();
-  const isQA       = isCurrentUserQA();
+  // Show Request Review to everyone who is not a lead
+  // (no email match needed — all non-leads can request)
+  const isQA       = !isLead;
 
   // Check if QA has already requested review for this item
   const pendingReq = (state.reviewRequests || []).find(
@@ -4792,12 +4797,20 @@ function extractJiraId(url) {
 // Compute auto-status from test plan rows
 function computeAutoStatus(plan) {
   if (!plan || !plan.rows || plan.rows.length === 0) return null;
-  const statuses = plan.rows.map(r => r.status || 'Not yet started');
-  const allDone = statuses.every(s => s === 'Done');
-  const anyInProgress = statuses.some(s => s === 'In progress');
-  const anyDone = statuses.some(s => s === 'Done');
-  if (allDone) return 'Completed';
-  if (anyInProgress || anyDone) return 'In progress';
+
+  // Include fixed rows (Test prep + Test env) in the status check
+  const allStatuses = [
+    plan.testPrepStatus || 'Not yet started',
+    plan.testEnvStatus  || 'Not yet started',
+    ...plan.rows.map(r => r.status || 'Not yet started')
+  ];
+
+  const allDone       = allStatuses.every(s => s === 'Done');
+  const anyInProgress = allStatuses.some(s => s === 'In progress');
+  const anyDone       = allStatuses.some(s => s === 'Done');
+
+  if (allDone)                    return 'Completed';
+  if (anyInProgress || anyDone)   return 'In progress';
   return 'Not started';
 }
 
@@ -5164,8 +5177,11 @@ function saveTestRow() {
   }
   editingTestRowId = null;
   closeModal('testRowModal');
+  // Sync status to Release tab immediately
+  syncTestPlanToProjects();
   saveState();
   renderTestPlan();
+  markDirty('projects');
 }
 
 function deleteTestRow(id) {
@@ -5193,11 +5209,14 @@ function saveBufferValues() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   plan.testPrepEffort = parseFloat(document.getElementById('testPrepEffort').value) || 0;
   plan.testPrepStatus = document.getElementById('testPrepStatus').value;
-  plan.testEnvEffort = parseFloat(document.getElementById('testEnvEffort').value) || 0;
-  plan.testEnvStatus = document.getElementById('testEnvStatus').value;
-  plan.buffer.effort = parseFloat(document.getElementById('testBufferEffort').value) || 0;
-  debouncedSave(); // debounced — rapid typing won't spam Supabase
+  plan.testEnvEffort  = parseFloat(document.getElementById('testEnvEffort').value) || 0;
+  plan.testEnvStatus  = document.getElementById('testEnvStatus').value;
+  plan.buffer.effort  = parseFloat(document.getElementById('testBufferEffort').value) || 0;
+  // Sync status to Release tab immediately
+  syncTestPlanToProjects();
+  debouncedSave();
   renderTestPlan();
+  markDirty('projects');
 }
 
 function saveMilestones() {
@@ -5770,133 +5789,71 @@ function buildFullReportHtml(title, bodyHtml) {
 </html>`;
 }
 
-function downloadReportHtml(filename, title, bodyHtml) {
-  const fullHtml = buildFullReportHtml(title, bodyHtml);
-  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
 let _currentReportHtml = '';
 
 async function shareReportAsLink(title, bodyHtml) {
-  // Show modal immediately
-  const modal = document.getElementById('shareLinkModal');
-  const titleEl = document.getElementById('shareLinkTitle');
-  const inputEl = document.getElementById('shareLinkInput');
+  const modal    = document.getElementById('shareLinkModal');
+  const titleEl  = document.getElementById('shareLinkTitle');
+  const inputEl  = document.getElementById('shareLinkInput');
   const statusEl = document.getElementById('shareLinkStatus');
   const copyBtn  = document.getElementById('copyLinkBtn');
+  const openBtn  = document.getElementById('openReportBtn');
+  const dlBtn    = document.getElementById('downloadReportBtn');
 
-  if (!modal || !inputEl) {
-    alert('Share modal not found. Please refresh the page.');
+  if (!modal) { alert('Modal not found — please refresh.'); return; }
+
+  // Reset modal
+  if (titleEl)  titleEl.textContent  = '📎 ' + title;
+  if (inputEl)  inputEl.value        = 'Building report…';
+  if (statusEl) statusEl.innerHTML   = '';
+  if (copyBtn)  copyBtn.disabled     = true;
+  if (openBtn)  openBtn.style.display = 'none';
+  if (dlBtn)    dlBtn.style.display   = 'none';
+  modal.classList.add('show');
+
+  // Build HTML
+  let fullHtml;
+  try {
+    fullHtml = buildFullReportHtml(title, bodyHtml);
+    _currentReportHtml = fullHtml;
+  } catch (err) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626;">✗ Could not build report: ' + escapeHtml(err.message) + '</span>';
+    if (inputEl)  inputEl.value = '';
     return;
   }
 
-  titleEl.textContent = `📎 ${title}`;
-  inputEl.value = 'Generating link…';
-  statusEl.textContent = '';
-  copyBtn.disabled = true;
-  const openBtn = document.getElementById('openReportBtn');
-  const dlBtn   = document.getElementById('downloadReportBtn');
-  if (openBtn) openBtn.style.display = 'none';
-  if (dlBtn)   dlBtn.style.display   = 'none';
-  modal.classList.add('show');
+  // Show Open + Download buttons ALWAYS (these always work)
+  if (openBtn) openBtn.style.display = 'inline-flex';
+  if (dlBtn)   dlBtn.style.display   = 'inline-flex';
+
+  // Try Supabase first
+  const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  let linkGenerated = false;
 
   try {
-    let fullHtml;
-    try {
-      fullHtml = buildFullReportHtml(title, bodyHtml);
-      _currentReportHtml = fullHtml;
-      // Always show open + download as guaranteed fallback
-      const openBtn = document.getElementById('openReportBtn');
-      const dlBtn   = document.getElementById('downloadReportBtn');
-      if (openBtn) openBtn.style.display = 'inline-flex';
-      if (dlBtn)   dlBtn.style.display   = 'inline-flex';
-    } catch (buildErr) {
-      console.error('Report build error:', buildErr);
-      statusEl.innerHTML = `<span style="color:#dc2626;">✗ Error building report: ${escapeHtml(buildErr.message)}</span>`;
-      inputEl.value = '';
-      copyBtn.disabled = true;
-      return;
+    const { error } = await sbClient
+      .from('shared_reports')
+      .insert({ id: reportId, title, html: fullHtml, created_by: currentUserEmail || 'unknown' });
+
+    if (!error) {
+      const shareUrl = window.location.origin + window.location.pathname + '?report=' + reportId;
+      if (inputEl) inputEl.value = shareUrl;
+      if (copyBtn) copyBtn.disabled = false;
+      if (statusEl) statusEl.innerHTML = '<span style="color:#15803d;font-weight:600;">✓ Shareable link ready!</span> Anyone can open this — no login needed.';
+      linkGenerated = true;
     }
-    const reportId = 'rpt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  } catch (e) { /* Supabase unavailable */ }
 
-    // Try localStorage — handle quota exceeded gracefully
-    let localSaved = false;
-    try {
-      // Clear old reports first to make space
-      const existing = JSON.parse(localStorage.getItem('tl-shared-reports') || '{}');
-      const keys = Object.keys(existing).sort();
-      // Remove oldest if more than 5
-      while (keys.length >= 5) {
-        delete existing[keys.shift()];
-      }
-      existing[reportId] = { title, html: fullHtml, ts: Date.now() };
-      localStorage.setItem('tl-shared-reports', JSON.stringify(existing));
-      localSaved = true;
-    } catch (e) {
-      // Quota exceeded — try saving just this one report
-      try {
-        localStorage.removeItem('tl-shared-reports');
-        localStorage.setItem('tl-shared-reports', JSON.stringify({
-          [reportId]: { title, html: fullHtml, ts: Date.now() }
-        }));
-        localSaved = true;
-      } catch (e2) {
-        console.warn('localStorage full, skipping local save');
-      }
-    }
-
-    // Try Supabase
-    let supabaseSuccess = false;
-    try {
-      const { error } = await sbClient
-        .from('shared_reports')
-        .insert({ id: reportId, title, html: fullHtml, created_by: currentUserEmail || 'unknown' });
-      if (!error) supabaseSuccess = true;
-    } catch (e) { /* silent */ }
-
-    const baseUrl = window.location.origin + window.location.pathname;
-    const shareUrl = `${baseUrl}?report=${reportId}`;
-
-    inputEl.value = shareUrl;
-    copyBtn.disabled = false;
-
-    if (supabaseSuccess) {
-      statusEl.innerHTML = `<span style="color:#15803d; font-weight:600;">✓ Link ready!</span> Anyone with this link can view the report (no login needed).`;
-    } else if (localSaved) {
-      statusEl.innerHTML = `<span style="color:#15803d; font-weight:600;">✓ Link ready!</span> Works on this browser/device.
-        <span style="color:var(--text-faint); font-size:11px; display:block; margin-top:4px;">For cross-device sharing, set up the Supabase <code>shared_reports</code> table.</span>`;
-    } else {
-      // Both failed — offer direct download as fallback
-      statusEl.innerHTML = `<span style="color:#b45309; font-weight:600;">⚠ Could not save link.</span> Download the report instead:`;
-      const dlBtn = document.createElement('button');
-      dlBtn.className = 'action';
-      dlBtn.style.cssText = 'margin-top:8px; font-size:12px; padding:6px 14px;';
-      dlBtn.textContent = '⬇ Download report HTML';
-      dlBtn.onclick = () => {
-        const blob = new Blob([fullHtml], { type: 'text/html' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = title.replace(/[^a-z0-9]/gi, '_') + '.html';
-        a.click();
-      };
-      statusEl.appendChild(dlBtn);
-      inputEl.value = '';
-      copyBtn.disabled = true;
-    }
-
-  } catch (e) {
-    console.error('shareReportAsLink error:', e);
-    statusEl.innerHTML = `<span style="color:#dc2626;">✗ Error: ${escapeHtml(e.message || String(e))}</span>`;
-    inputEl.value = '';
-    copyBtn.disabled = true;
+  if (!linkGenerated) {
+    // No Supabase — show open in tab + download as primary actions
+    if (inputEl) inputEl.value = '';
+    if (inputEl) inputEl.placeholder = 'Link not available — use buttons below';
+    if (statusEl) statusEl.innerHTML =
+      '<span style="color:#b45309;font-weight:600;">⚠ Shareable link needs Supabase setup.</span>' +
+      '<span style="color:var(--text-faint);font-size:11.5px;display:block;margin-top:4px;">' +
+      'Use <b>Open in new tab</b> to view, or <b>Download HTML</b> to share via email/Teams.' +
+      '</span>';
   }
 }
 
