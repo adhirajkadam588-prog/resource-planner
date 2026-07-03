@@ -1877,27 +1877,36 @@ function initRealtime() {
       table: 'resource_planner',
       filter: 'id=eq.shared'
     }, (payload) => {
-      // Skip if this update was triggered by our own save (within 3 seconds)
-      if (_lastSavedAt && Date.now() - _lastSavedAt < 3000) return;
+      // Only skip if WE saved in last 1.5s (not 3s — too long)
+      // This prevents echo but doesn't block other users' changes
+      if (_lastSavedAt && Date.now() - _lastSavedAt < 1500) {
+        console.log('[Realtime] Skipping own save echo');
+        return;
+      }
 
-      // Debounce rapid updates — wait 800ms then reload
+      console.log('[Realtime] Change received from another user — reloading...');
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
         await loadState();
         markAllDirty();
         renderAll();
         showSyncToast();
-      }, 800);
+      }, 500); // faster — 500ms instead of 800ms
     })
     .subscribe((status) => {
       const indicator = document.getElementById('realtimeIndicator');
       if (!indicator) return;
       if (status === 'SUBSCRIBED') {
         indicator.style.background = '#22c55e';
-        indicator.title = 'Live sync active';
+        indicator.title = 'Live sync active — changes from other users will appear automatically';
+        console.log('[Realtime] Subscribed to resource_planner changes');
+      } else if (status === 'CHANNEL_ERROR') {
+        indicator.style.background = '#ef4444';
+        indicator.title = 'Sync error — run: alter publication supabase_realtime add table resource_planner;';
+        console.warn('[Realtime] Channel error — table may not be in realtime publication');
       } else {
         indicator.style.background = '#94a3b8';
-        indicator.title = 'Connecting…';
+        indicator.title = 'Connecting to live sync…';
       }
     });
 }
@@ -4854,9 +4863,10 @@ function syncTestPlanToProjects() {
       if (proj.completionDate) { proj.completionDate = ''; changed = true; }
     }
 
-    // Sync status ONLY if reviewed and test plan has environment rows
+    // Status sync — always happens (no review gate needed)
+    // Status reflects actual test progress regardless of lead review
     const hasRows = plan.rows && plan.rows.length > 0;
-    if (reviewed && hasRows) {
+    if (hasRows) {
       const autoStatus = computeAutoStatus(plan);
       if (autoStatus && proj.status !== autoStatus) {
         proj.status = autoStatus;
