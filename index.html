@@ -3987,26 +3987,26 @@ function shareAllPlansReport() {
 
     return '<div class="project-card">'+
       '<div class="project-card-header">'+
-        '<div style="flex:1;">'+
-          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">'+
-            '<h2 style="margin:0;">'+escapeHtml(proj.name)+'</h2>'+
-            (proj.jiraUrl?'<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>':'')+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'+
+            '<h2 style="margin:0;font-size:17px;">'+escapeHtml(proj.name)+'</h2>'+
+            (proj.jiraUrl?'<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>':'')+
           '</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'+
             (proj.devPod?'<span style="background:'+podC[0]+';color:'+podC[1]+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+escapeHtml(proj.devPod)+'</span>':'')+
             '<span style="background:'+sbg+';color:'+sfg+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+(proj.status||'Not started')+'</span>'+
             (reviewed?'<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">✅ Reviewed</span>':
                       '<span style="background:#fef9c3;color:#a16207;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">⏳ Pending review</span>')+
-            (proj.releaseDate?'<span style="font-size:12px;color:#64748b;margin-left:4px;">📅 '+formatDateDisplay(proj.releaseDate)+'</span>':'')+
+            (proj.releaseDate?'<span style="font-size:12px;color:#64748b;">📅 '+formatDateDisplay(proj.releaseDate)+'</span>':'')+
           '</div>'+
         '</div>'+
-        '<div style="min-width:180px;flex-shrink:0;">'+
+        '<div style="min-width:160px;flex-shrink:0;text-align:right;">'+
           '<div style="font-size:11px;color:#94a3b8;margin-bottom:5px;font-weight:600;">'+done+'/'+total+' done · '+donePct+'%</div>'+
           '<div style="height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden;border:1px solid #e2e8f0;display:flex;">'+
             '<div style="width:'+donePct+'%;background:linear-gradient(90deg,#10b981,#059669);border-radius:99px;"></div>'+
             '<div style="width:'+inProgPct+'%;background:#fbbf24;border-radius:99px;"></div>'+
           '</div>'+
-          '<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">'+
+          '<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;justify-content:flex-end;">'+
             (done>0?'<span style="background:#dcfce7;color:#15803d;padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:600;">✅ '+done+' Done</span>':'')+
             (inProg>0?'<span style="background:#fef3c7;color:#b45309;padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:600;">🔄 '+inProg+' In progress</span>':'')+
             (notStart>0?'<span style="background:#f1f5f9;color:#64748b;padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:600;">⬜ '+notStart+' Not started</span>':'')+
@@ -4594,12 +4594,12 @@ function renderHelp() {
     <div style="position:absolute;right:-20px;top:-20px;font-size:140px;opacity:0.08;line-height:1;">🔍</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <span style="background:rgba(255,255,255,0.2);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">User Guide</span>
-      <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v2.0</span>
+      <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v3.0</span>
     </div>
     <h1 style="font-family:'Inter Tight',sans-serif;font-size:28px;font-weight:800;margin:0 0 10px;letter-spacing:-0.03em;">TeamLens Help Center</h1>
-    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide to all features — planning, tracking, VM management, AI assistant, and more.</p>
+    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide to all features — planning, tracking, test plans, archive, VM management, AI assistant, and more.</p>
     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
-      ${[['13','Tabs'],['10+','Shortcuts'],['Real-time','Sync'],['AI','Assistant']].map(([v,l])=>`
+      ${[['14','Tabs'],['10+','Shortcuts'],['Real-time','Sync'],['AI','Assistant'],['Release','Vault']].map(([v,l])=>`
         <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;backdrop-filter:blur(4px);">
           <div style="font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${l}</div>
           <div style="font-size:18px;font-weight:800;">${v}</div>
@@ -4629,13 +4629,13 @@ function renderHelp() {
          ['3','✅','Build test plan','Test Plan → select release item → add environments → set effort, coverage, assignee, status.','#10b981'],
          ['4','🏖️','Mark leaves','Leave Calendar → click day → PL (amber) → UPL (red) → empty (click again).','#f59e0b'],
          ['5','📅','Plan daily work','Daily Plan → POD filter → + Assign → pick person, project, date range.','#8b5cf6']].map(([n,icon,title,desc,color])=>`
-        <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;">
-          <div style="width:28px;height:28px;border-radius:50%;background:${color};color:white;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${n}</div>
-          <div>
-            <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:3px;">${icon} ${title}</div>
-            <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">${desc}</div>
-          </div>
-        </div>`).join('')}
+      <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;">
+        <div style="width:28px;height:28px;border-radius:50%;background:${color};color:white;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${n}</div>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:3px;">${icon} ${title}</div>
+          <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">${desc}</div>
+        </div>
+      </div>`).join('')}
     </div>
     <div style="background:linear-gradient(135deg,#dbeafe,#ede9fe);border:1px solid #a5b4fc;border-radius:10px;padding:12px 16px;margin-top:14px;display:flex;gap:10px;align-items:center;">
       <span style="font-size:18px;">💡</span>
@@ -4643,8 +4643,8 @@ function renderHelp() {
     </div>
   </div>
 
-  <!-- Tab Guide Grid — 3 cols -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
+  <!-- Tab Guide Grid — 3 cols row 1 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
 
     <!-- Dashboard -->
     <div class="panel" style="margin:0;">
@@ -4654,7 +4654,7 @@ function renderHelp() {
         <div style="font-size:11px;color:var(--text-faint);">Login landing page</div></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">
-        ${[['📊','4 stat cards — free today, at-risk, VMs expiring, assigned'],['📅','Today\'s assignments snapshot'],['👥','Team availability (free/busy)'],['🚨','Urgent alerts — VM expiry, build delays'],['→','At-risk count links to Summary tab']].map(([i,t])=>`
+        ${[['📊','4 stat cards — free today, at-risk, VMs expiring, assigned today'],['📅','Today\'s team assignments at a glance'],['👥','Team availability badges — Free / Assigned / PL / UPL / Holiday'],['🚨','Alerts — VM expiry warnings, build delays'],['📋','Pending lead reviews panel (for leads)'],['→','At-risk count links to Summary tab']].map(([i,t])=>`
           <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text-dim);padding:3px 0;">
             <span style="flex-shrink:0;">${i}</span><span>${t}</span>
           </div>`).join('')}
@@ -4669,9 +4669,9 @@ function renderHelp() {
         <div style="font-size:11px;color:var(--text-faint);">Team roster</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Name · Title · Email · Dev POD<br>
-        <strong>Daily Plan toggle</strong> — OFF for PM/Managers (hides from Daily Plan calendar)<br>
-        POD badge dikhega in People table
+        Add name, title, email, Dev POD for each team member<br>
+        <strong>Daily Plan toggle</strong> — turn OFF for PM/Managers to hide them from the Daily Plan calendar<br>
+        Workload panel shows current month assignments per person
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
         ${[['WinGuardians','#dbeafe','#1d4ed8'],['Heisenbug','#dcfce7','#15803d'],['Hydra','#fce7f3','#9d174d'],['Sentinels','#fef3c7','#b45309'],['DareDevils','#fee2e2','#b91c1c'],['Evil Inc.','#f3e8ff','#7e22ce']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
@@ -4682,31 +4682,39 @@ function renderHelp() {
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#0ea5e920;border:1px solid #0ea5e933;display:flex;align-items:center;justify-content:center;font-size:17px;">📁</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release Tab</div>
-        <div style="font-size:11px;color:var(--text-faint);">Track all releases</div></div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release</div>
+        <div style="font-size:11px;color:var(--text-faint);">Track all active releases</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        🎫 JIRA auto-extracts ticket ID<br>
-        📥 Dev to QA / Efforts / Status ← auto-sync from Test Plan<br>
-        ☑️ Bulk select → Set status or 🗑 Delete<br>
-        📝 Notes per release item<br>
-        Column header dropdowns filter inline
+        🎫 JIRA URL auto-extracts ticket ID as a clickable badge<br>
+        📥 Dev to QA date, effort, status — auto-sync from Test Plan after lead review<br>
+        ☑️ Bulk select → set status or 🗑 delete multiple items<br>
+        Column header dropdowns filter the table inline<br>
+        Only <strong>active</strong> (non-completed) items shown here
       </div>
     </div>
+
+  </div>
+
+  <!-- Row 2 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
 
     <!-- Test Plan -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#10b98120;border:1px solid #10b98133;display:flex;align-items:center;justify-content:center;font-size:17px;">✅</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Test Plan</div>
-        <div style="font-size:11px;color:var(--text-faint);">Environment matrix + effort</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Environment matrix + milestones</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        📋 Test prep + 🔧 Test env rows (effort + status)<br>
-        Environments: coverage%, cases, effort, assignee, status<br>
+        Filter by Release date or Dev POD pills<br>
+        Fixed rows: 📋 Test prep · 🔧 Test env & data prep<br>
+        Add environments: coverage %, cases, effort, assignee, status<br>
+        Buffer + Total rows auto-calculated<br>
         Milestones: build pickup, BVT, exec dates<br>
-        <strong>📋 Copy plan</strong> — clone envs to another release item<br>
-        Share report: item / release / POD / all
+        <strong>👁 View all plans</strong> — accordion view of all filtered items<br>
+        <strong>📋 Copy plan</strong> — clone environments to another release item<br>
+        <strong>Review by Lead</strong> — locks status & dates until approved
       </div>
       <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
         ${[['Not yet started','#f1f5f9','#64748b'],['In progress','#fef3c7','#b45309'],['Done','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
@@ -4727,7 +4735,7 @@ function renderHelp() {
             <div style="background:${bg};color:${fg};padding:2px 6px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;">${t}</div>
           </div>`).join('')}
       </div>
-      <div style="font-size:11.5px;color:var(--text-dim);">H = Holiday &nbsp;·&nbsp; · = Weekend<br>Summary table shows PL/UPL count per person</div>
+      <div style="font-size:11.5px;color:var(--text-dim);">H = Holiday &nbsp;·&nbsp; · = Weekend<br>Leave is reflected in Dashboard availability badges</div>
     </div>
 
     <!-- Daily Plan -->
@@ -4738,34 +4746,52 @@ function renderHelp() {
         <div style="font-size:11px;color:var(--text-faint);">Day-wise assignment + AI</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        POD filter → shows only that team's members<br>
-        🟢 Free people sorted first in assign modal<br>
-        Resource Availability cards show next free date<br>
-        Click cell to remove assignment (Ctrl+Z to undo)<br>
-        <strong>✨ AI Assistant</strong> — ask anything about your team
+        Filter by Dev POD to see only that team's members<br>
+        🟢 Free people sorted first in the assign modal<br>
+        Resource Availability cards show each person's next free date<br>
+        Click an assigned cell to remove it (Ctrl+Z to undo)<br>
+        <strong>✨ AI Assistant</strong> — ask anything about your team, releases, or VMs in natural language
       </div>
     </div>
 
   </div>
 
-  <!-- Second row of tabs -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
+  <!-- Row 3 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
 
     <!-- Summary -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#22d3ee20;border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">📊</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release Summary</div>
-        <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Reports</div></div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Summary</div>
+        <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Table · Share with manager</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        🏥 Release Health — per-item risk cards (8 checks)<br>
-        📅 Gantt timeline — today line, release markers<br>
-        📋 Summary table — filterable + shareable<br>
-        Working on it ← from Daily Plan (±30 days)
+        Shows <strong>all releases</strong> including completed — ideal for manager sharing<br>
+        🏥 Release Health — per-item risk cards (active items only)<br>
+        📅 Gantt timeline — today line, all releases<br>
+        📋 Summary table — filterable, paginated (10/page)<br>
+        "Working on it" column ← from Daily Plan (±30 days)
       </div>
       <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
-        ${[['🔴 At risk','#fee2e2','#dc2626'],['🟡 Needs attention','#fef9c3','#a16207'],['🟢 On track','#dcfce7','#15803d'],['✅ Completed','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
+        ${[['🔴 At risk','#fee2e2','#dc2626'],['🟡 Needs attention','#fef9c3','#a16207'],['🟢 On track','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
+      </div>
+    </div>
+
+    <!-- Release Vault -->
+    <div class="panel" style="margin:0;border:1.5px solid #fbbf2444;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.3),rgba(245,158,11,0.2));border:1px solid #fbbf2433;display:flex;align-items:center;justify-content:center;font-size:17px;">🔐</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release Vault</div>
+        <div style="font-size:11px;color:var(--text-faint);">Completed releases archive</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        Items appear here when: Release status = <strong>Completed</strong> AND all test plan environments = <strong>Done</strong><br>
+        Filter by Release date or Dev POD<br>
+        Accordion view — environments, effort, milestones per item<br>
+        Paginated (10 items/page)<br>
+        <strong>⬇ Download Report</strong> / <strong>🔗 Open in new tab</strong> — share with manager<br>
+        Read-only — edit from Release tab
       </div>
     </div>
 
@@ -4777,13 +4803,13 @@ function renderHelp() {
         <div style="font-size:11px;color:var(--text-faint);">Track all QA VMs</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Group/filter by POD · status filter (in use/free/expiring)<br>
+        Group/filter by POD · status filter (in use / free / expiring)<br>
         <strong>In-use toggle</strong> — click in table to flip instantly<br>
         <strong>Auto-free</strong> — VM auto-marks free when End Date passes<br>
-        VM details parsed: OS badge, Office version, IP<br>
-        <strong>✎ Manage groups</strong> — add, rename, delete POD groups
+        VM details parsed: OS badge, Office version, IP address<br>
+        <strong>✎ Manage groups</strong> — add, rename, or delete POD groups
       </div>
-      <div style="display:flex;gap:5px;margin-top:8px;">
+      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
         <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🟢 Free</span>
         <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🔴 In use</span>
         <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">Expired</span>
@@ -4791,37 +4817,61 @@ function renderHelp() {
       </div>
     </div>
 
-    <!-- AI Assistant -->
-    <div class="panel" style="margin:0; border:1.5px solid #7c3aed44; background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(37,99,235,0.03));">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:17px;">✨</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">AI Planning Assistant</div>
-        <div style="font-size:11px;color:var(--text-faint);">Powered by Claude · Daily Plan tab</div></div>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Knows your team, releases, daily plan, VMs<br>
-        Ask in natural language — get smart answers<br>
-        <strong>Suggested prompts:</strong> "Who is free today?", "Which releases are at risk?"<br>
-        Multi-turn conversation (last 10 messages)
-      </div>
-      <div style="background:var(--panel-2);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--text-faint);">
-        ℹ️ Needs internet · Context refreshes every message · Clear button resets chat
-      </div>
-    </div>
+  </div>
 
+  <!-- Review Workflow -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed33;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">🔒</div>
+      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Review by Lead — How it Works</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Dates and status are locked until a lead approves the test plan</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      ${[['1','QA builds test plan','Adds environments, effort, milestones — all editable'],
+         ['2','Request review','Non-leads see "Request Lead Review" button — sends to lead\'s dashboard'],
+         ['3','Lead approves','Lead opens the plan, reviews, checks "Mark as reviewed"'],
+         ['4','Data unlocks','Dates + effort + status sync to Release tab automatically']].map(([n,t,d])=>`
+        <div style="background:var(--panel-2);border-radius:10px;padding:12px;border:1px solid var(--border-soft);">
+          <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">${n}</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:4px;">${t}</div>
+          <div style="font-size:11.5px;color:var(--text-faint);line-height:1.6;">${d}</div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- AI Assistant -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed44;background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(37,99,235,0.03));">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">✨</div>
+      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">AI Planning Assistant</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Powered by Claude · Available in Daily Plan tab</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${[['Who is free today?','Shows available team members with no assignments'],
+         ['Which releases are at risk?','Lists releases missing dates, effort, or behind schedule'],
+         ['What is the total effort for DareDevils?','Sums up test plan effort by POD'],
+         ['Who is working on CAD Removal this week?','Pulls from Daily Plan assignments']].map(([q,a])=>`
+        <div style="background:var(--panel-2);border-radius:8px;padding:10px 12px;border:1px solid var(--border-soft);">
+          <div style="font-size:11.5px;font-weight:700;color:#7c3aed;margin-bottom:3px;">"${q}"</div>
+          <div style="font-size:11px;color:var(--text-faint);">${a}</div>
+        </div>`).join('')}
+    </div>
+    <div style="background:var(--panel-2);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11.5px;color:var(--text-faint);">
+      ℹ️ Knows your team, releases, daily plan, leaves, VMs · Multi-turn conversation (last 10 messages) · Needs active internet connection
+    </div>
   </div>
 
   <!-- Keyboard Shortcuts -->
-  <div class="panel" style="margin-bottom:18px;">
+  <div class="panel" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <div style="width:40px;height:40px;border-radius:12px;background:#f43f5e22;border:1px solid #f43f5e33;display:flex;align-items:center;justify-content:center;font-size:20px;">⌨️</div>
-      <h2 style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;margin:0;color:var(--text);">Keyboard Shortcuts</h2>
+      <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Keyboard Shortcuts</h2>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div>
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:8px;">Navigation</div>
         <div style="display:flex;flex-direction:column;gap:5px;">
-          ${[['Alt+P','People'],['Alt+R','Release'],['Alt+T','Test Plan'],['Alt+D','Daily Plan (+ AI)'],['Alt+S','Summary'],['Alt+L','Leave Calendar'],['Alt+H','Holidays']].map(([k,t])=>`
+          ${[['Alt+P','People'],['Alt+R','Release'],['Alt+T','Test Plan'],['Alt+D','Daily Plan + AI'],['Alt+S','Summary'],['Alt+L','Leave Calendar'],['Alt+H','Holidays'],['Alt+V','Release Vault']].map(([k,t])=>`
             <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--panel-2);border-radius:7px;">
               <kbd style="background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--text);">${k}</kbd>
               <span style="font-size:12px;color:var(--text-dim);">${t}</span>
@@ -4841,26 +4891,26 @@ function renderHelp() {
     </div>
   </div>
 
-  <!-- Undo + Activity + Settings -->
+  <!-- Bottom 3 -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">↩️ Undo System</div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Last <strong>20 actions</strong> remembered.<br>Toast appears → click ↩ Undo or Ctrl+Z<br>Data restored in Supabase automatically</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Last <strong>20 actions</strong> are remembered.<br>A toast appears → click ↩ Undo or Ctrl+Z.<br>Data is restored in Supabase automatically.</div>
       <div style="display:flex;flex-direction:column;gap:3px;">
-        ${['Release add/edit/delete','Bulk status / delete','Test row add/edit/delete','Daily plan assign/clear','VM add/edit/delete'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">✓ ${t}</div>`).join('')}
+        ${['Release add / edit / delete','Bulk status / delete','Test row add / edit / delete','Daily plan assign / clear','VM add / edit / delete'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">✓ ${t}</div>`).join('')}
       </div>
     </div>
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">📋 Activity Log</div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Open from sidebar → 📋 Activity log<br>All users' actions visible to everyone<br>Saved in Supabase + localStorage backup</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Open from sidebar → 📋 Activity log.<br>All users' actions visible to admins.<br>Saved in Supabase + localStorage backup.</div>
       <div style="display:flex;flex-direction:column;gap:3px;">
-        ${['➕ Release added/edited/deleted','📅 Daily plan assigned/cleared','🏖️ Leave marked (PL/UPL)','📝 Notes added','👤 People changes','🔄 Bulk status update'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">${t}</div>`).join('')}
+        ${['➕ Release added / edited / deleted','📅 Daily plan assigned / cleared','🏖️ Leave marked (PL / UPL)','📝 Notes added','👤 People changes','🔄 Bulk status update'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">${t}</div>`).join('')}
       </div>
     </div>
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">⚙️ Settings & Sync</div>
       <div style="display:flex;flex-direction:column;gap:7px;">
-        ${[['🌙','Dark Mode','Toggle switch in sidebar · Shift+D · Saved permanently'],['🟢','Real-time Sync','Green dot = live · Changes appear in <1 sec across all users'],['🔍','Search','Sidebar search bar · People, releases, VMs'],['🔒','Change Password','Sidebar footer → Change password'],['👤','Permissions','Admin tab → per-user tab access · Copy from another user']].map(([i,t,d])=>`
+        ${[['🌙','Dark Mode','Toggle in sidebar · Shift+D · Preference saved permanently'],['🟢','Real-time Sync','Green dot = live · Changes appear across all users in under 1 second'],['🔍','Search','Sidebar search bar · finds people, releases, and VMs'],['🔒','Password','Sidebar footer → Change password'],['👤','Permissions','Admin tab → per-user tab access · Copy from another user · Release Vault permission included'],['💾','Tab Memory','Last open tab is remembered on refresh via localStorage']].map(([i,t,d])=>`
           <div style="padding:8px 10px;background:var(--panel-2);border-radius:8px;">
             <div style="font-size:12px;font-weight:600;color:var(--text);">${i} ${t}</div>
             <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${d}</div>
@@ -4873,17 +4923,17 @@ function renderHelp() {
   <div class="panel" style="margin-bottom:18px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <div style="width:40px;height:40px;border-radius:12px;background:#64748b22;border:1px solid #64748b33;display:flex;align-items:center;justify-content:center;font-size:20px;">❓</div>
-      <h2 style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;margin:0;color:var(--text);">Common Questions</h2>
+      <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Common Questions</h2>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${[['Release tab status not updating?','Status auto-syncs only when Test Plan has environment rows added. Bulk updates work when no rows exist.'],
-         ['Dev to QA date not showing?','Set "Build pickup" milestone in Test Plan → Milestones section. This auto-populates Dev to QA date.'],
-         ['"Working on it" column empty?','Shows people from Daily Plan (±30 days window). Assign people in Daily Plan tab first.'],
-         ['Share report link not working?','Link works on same browser (localStorage). Run Supabase SQL in Help for cross-device sharing.'],
-         ['AI Assistant not responding?','Check internet connection. The AI uses Anthropic API — needs active internet.'],
-         ['VM still shows "In use" after end date?','Auto-free runs when data loads. Refresh or make any change to trigger it.'],
-         ['Data not saving?','Check sidebar "lastSaved". If "save failed" → run the RLS fix SQL in Supabase SQL Editor.'],
-         ['Permission changes not reflecting?','Run: alter publication supabase_realtime add table user_roles; in Supabase SQL Editor.']].map(([q,a])=>`
+      ${[['Release tab dates not showing?','Dates (Dev to QA, Go ahead, Completion) sync from Test Plan only after a lead has reviewed and approved the plan.'],
+         ['Build pickup date not saving on refresh?','Make sure you are selecting the date and waiting for the save confirmation toast. The save is immediate (not debounced).'],
+         ['Item not appearing in Release Vault?','Both conditions must be met: Release status = Completed AND every environment in the Test Plan (including Test prep and Test env) = Done.'],
+         ['"Working on it" column empty?','Shows people from Daily Plan within a ±30 day window. Assign people in the Daily Plan tab first.'],
+         ['AI Assistant not responding?','Check your internet connection. The AI uses the Anthropic API and requires active internet access.'],
+         ['VM still shows "In use" after end date?','Auto-free runs when data loads. Refresh the page or make any small change to trigger the check.'],
+         ['Data not saving?','Check the sidebar "lastSaved" indicator. If it shows "save failed", run the RLS fix SQL in Supabase SQL Editor.'],
+         ['Permission changes not reflecting for a user?','Run: alter publication supabase_realtime add table user_roles; in Supabase SQL Editor. Then have the user refresh.']].map(([q,a])=>`
         <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:10px;padding:12px 14px;">
           <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:5px;display:flex;gap:6px;">
             <span style="color:#7c3aed;flex-shrink:0;">Q</span>${q}
@@ -4898,7 +4948,7 @@ function renderHelp() {
   <!-- Footer -->
   <div style="text-align:center;padding:28px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:16px;border:1px solid var(--border-soft);">
     <div style="font-size:28px;margin-bottom:8px;">🔍</div>
-    <div style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">TeamLens v2.0</div>
+    <div style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">TeamLens v3.0</div>
     <div style="font-size:12px;color:var(--text-faint);">Built for QA teams · <span style="color:#7c3aed;font-weight:600;">One lens. Full picture.</span></div>
   </div>
 
@@ -6382,18 +6432,25 @@ function openDailyPlanReportModal() {
   document.getElementById('dailyPlanReportModal').classList.add('show');
 }
 
-function buildDailyPlanMonthGridHtml(year, month) {
+function buildDailyPlanMonthGridHtml(year, month, podFilter) {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  if (state.people.length === 0) return '';
+
+  // Apply POD filter — same as what user sees on screen
+  let people = state.people.filter(p => p.showInDailyPlan !== false);
+  if (podFilter) people = people.filter(p => p.devPod === podFilter);
+  if (people.length === 0) return '';
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const totalPeople = state.people.length;
+  const colWidth = 130;
+  const totalWidth = 90 + 50 + (people.length * colWidth);
+
   let html = `<div class="month-label">${monthNames[month]} ${year}</div>`;
-  html += `<div class="cal-grid-r" style="grid-template-columns: 90px 50px repeat(${totalPeople}, minmax(140px, 1fr));">`;
+  html += `<div style="overflow-x:auto; margin-bottom:20px;">`;
+  html += `<div class="cal-grid-r" style="grid-template-columns: 90px 50px repeat(${people.length}, ${colWidth}px); min-width:${totalWidth}px;">`;
   html += `<div class="cal-cell-r name-r header-r">Date</div><div class="cal-cell-r header-r">Day</div>`;
-  state.people.forEach(p => {
-    html += `<div class="cal-cell-r header-r" style="text-align:left; padding-left:8px;">${escapeHtml(p.name)}</div>`;
+  people.forEach(p => {
+    html += `<div class="cal-cell-r header-r" style="text-align:left; padding-left:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(p.name)}</div>`;
   });
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -6405,23 +6462,23 @@ function buildDailyPlanMonthGridHtml(year, month) {
     html += `<div class="cal-cell-r name-r" style="${nonWorking ? 'opacity:0.55;' : ''}">${dateLabel}</div>`;
     html += `<div class="cal-cell-r" style="${nonWorking ? 'opacity:0.55;' : ''}">${dayNames[dateObj.getDay()]}</div>`;
 
-    state.people.forEach(p => {
-      const leaveMap_ = getLeaveMap(p.id); const leaveDays = Object.keys(leaveMap_);
-      const onLeave = leaveDays.includes(dateKey);
+    people.forEach(p => {
+      const leaveMap_ = getLeaveMap(p.id);
+      const onLeave = Object.keys(leaveMap_).includes(dateKey);
       const entries = state.dailyPlan.filter(e => e.personId === p.id && e.date === dateKey);
       if (nonWorking) {
         html += `<div class="cal-cell-r weekend-r"></div>`;
       } else if (onLeave) {
         html += `<div class="cal-cell-r leave-r" style="text-align:left; padding-left:8px;">On leave</div>`;
       } else if (entries.length > 0) {
-        const segs = entries.map(e => `<div>${escapeHtml(e.project)}</div>`).join('');
-        html += `<div class="cal-cell-r" style="text-align:left; padding:3px 8px; line-height:1.3;">${segs}</div>`;
+        const segs = entries.map(e => `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.project)}</div>`).join('');
+        html += `<div class="cal-cell-r" style="text-align:left; padding:3px 8px; line-height:1.4;">${segs}</div>`;
       } else {
         html += `<div class="cal-cell-r"></div>`;
       }
     });
   }
-  html += `</div>`;
+  html += `</div></div>`;
   return html;
 }
 
@@ -6446,7 +6503,7 @@ function exportDailyPlanReport() {
   for (let idx = startIndex; idx <= endIndex; idx++) {
     const y = Math.floor(idx / 12);
     const m = idx % 12;
-    gridsHtml += buildDailyPlanMonthGridHtml(y, m);
+    gridsHtml += buildDailyPlanMonthGridHtml(y, m, selectedDailyPlanPod || null);
   }
 
   if (!gridsHtml) {
@@ -6454,20 +6511,22 @@ function exportDailyPlanReport() {
     return;
   }
 
-  const bodyHtml = `
-    <div class="section-card">
-      <h2>Daily resource plan</h2>
-      <div style="font-size:11px; color:#8b91a0; margin-bottom:14px;">Grey cells = weekend/holiday, amber "L" = on leave, colored short code = project assignment</div>
-      ${gridsHtml}
-    </div>
-  `;
-
   closeModal('dailyPlanReportModal');
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const rangeLabel = startIndex === endIndex
     ? `${monthNames[fromMonth]} ${fromYear}`
     : `${monthNames[fromMonth]} ${fromYear} – ${monthNames[toMonth]} ${toYear}`;
-  shareReportAsLink(`Daily Resource Plan — ${rangeLabel}`, bodyHtml);
+  const podLabel = selectedDailyPlanPod ? ` · ${selectedDailyPlanPod}` : '';
+  const podDesc = selectedDailyPlanPod ? ` · Filtered by Dev POD: ${selectedDailyPlanPod}` : ' · All Dev PODs';
+
+  const bodyHtml = `
+    <div class="section-card">
+      <h2>Daily resource plan</h2>
+      <div style="font-size:11px; color:#8b91a0; margin-bottom:14px;">Grey cells = weekend/holiday, amber = on leave, colored text = project assignment${podDesc}</div>
+      ${gridsHtml}
+    </div>
+  `;
+  shareReportAsLink(`Daily Resource Plan — ${rangeLabel}${podLabel}`, bodyHtml);
 }
 
 // ====================== SUMMARY REPORT ======================
