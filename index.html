@@ -1710,9 +1710,28 @@
 
 <!-- Activity Log Modal -->
 <div class="modal-overlay" id="activityLogModal">
-  <div class="modal" style="width:560px;">
-    <h3>📋 Activity log</h3>
-    <div id="activityLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+  <div class="modal" style="width:580px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+      <h3 style="margin:0;">📋 Activity log</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; color:var(--text-faint);">Show last:</span>
+        <div style="display:flex; gap:5px;" id="activityDayPills">
+          <button onclick="filterActivityLog(1)"   id="actPill1"   style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text-faint); font-family:inherit;">Today</button>
+          <button onclick="filterActivityLog(7)"   id="actPill7"   style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text-faint); font-family:inherit;">7 days</button>
+          <button onclick="filterActivityLog(30)"  id="actPill30"  style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text-faint); font-family:inherit;">30 days</button>
+          <button onclick="filterActivityLog(0)"   id="actPillAll" style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid #0f172a; background:#0f172a; color:white; font-family:inherit;">All</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:5px;">
+          <span style="font-size:12px; color:var(--text-faint);">Custom:</span>
+          <input type="number" id="actCustomDays" min="1" max="365" placeholder="days"
+            style="width:60px; padding:4px 8px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-family:inherit; background:var(--panel-2); color:var(--text);"
+            onkeydown="if(event.key==='Enter'){ const v=parseInt(this.value); if(v>0) filterActivityLog(v); }">
+          <button onclick="const v=parseInt(document.getElementById('actCustomDays').value); if(v>0) filterActivityLog(v);"
+            style="padding:4px 10px; border-radius:8px; border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim); font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:600;">Go</button>
+        </div>
+      </div>
+    </div>
+    <div id="activityLogList" style="max-height:460px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('activityLogModal')">Close</button>
     </div>
@@ -2461,27 +2480,24 @@ async function logActivity(action, details = {}) {
   } catch (e) { /* silently ignore if table missing */ }
 }
 
+let _activityLogs = []; // cached logs for filtering
+let _activityDayFilter = 0; // 0 = All
+
 async function openActivityLog() {
   const listEl = document.getElementById('activityLogList');
   listEl.innerHTML = `<div style="color:var(--text-faint); font-size:12px; padding:16px; text-align:center;">Loading…</div>`;
   document.getElementById('activityLogModal').classList.add('show');
 
   let logs = [];
-
-  // Try Supabase first — has all users' logs
   try {
     const { data, error } = await sbClient
       .from('activity_log')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(500);
+    if (!error && data && data.length > 0) logs = data;
+  } catch (e) {}
 
-    if (!error && data && data.length > 0) {
-      logs = data;
-    }
-  } catch (e) { /* fall through to localStorage */ }
-
-  // Merge with localStorage (has local unsaved entries)
   try {
     const local = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
     if (local.length > 0) {
@@ -2489,14 +2505,58 @@ async function openActivityLog() {
       const localOnly = local.filter(l => !supaIds.has(l.created_at));
       logs = [...localOnly, ...logs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {}
+
+  _activityLogs = logs;
+  _activityDayFilter = 0;
+  setActivityPill(0);
+  renderActivityList();
+}
+
+function filterActivityLog(days) {
+  _activityDayFilter = days;
+  setActivityPill(days);
+  renderActivityList();
+}
+
+function setActivityPill(days) {
+  ['actPill1','actPill7','actPill30','actPillAll'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = 'var(--panel-2)';
+    el.style.color = 'var(--text-faint)';
+    el.style.borderColor = 'var(--border)';
+  });
+  const activeId = days === 1 ? 'actPill1' : days === 7 ? 'actPill7' : days === 30 ? 'actPill30' : days === 0 ? 'actPillAll' : null;
+  if (activeId) {
+    const el = document.getElementById(activeId);
+    if (el) { el.style.background = '#0f172a'; el.style.color = 'white'; el.style.borderColor = '#0f172a'; }
+  }
+}
+
+function renderActivityList() {
+  const listEl = document.getElementById('activityLogList');
+  if (!listEl) return;
+
+  let logs = _activityLogs;
+
+  // Apply day filter
+  if (_activityDayFilter > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - _activityDayFilter);
+    cutoff.setHours(0, 0, 0, 0);
+    logs = logs.filter(l => new Date(l.created_at) >= cutoff);
+  }
 
   if (logs.length === 0) {
+    const msg = _activityDayFilter > 0
+      ? `No activity in the last ${_activityDayFilter === 1 ? 'day' : _activityDayFilter + ' days'}.`
+      : 'No activity yet. Actions like adding people, assigning tasks, marking leaves will appear here.';
     listEl.innerHTML = `
       <div style="text-align:center; padding:32px 20px;">
         <div style="font-size:32px; margin-bottom:12px;">📋</div>
-        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:6px;">No activity yet</div>
-        <div style="font-size:12px; color:var(--text-faint);">Actions like adding people, assigning tasks, marking leaves will appear here.</div>
+        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:6px;">No activity</div>
+        <div style="font-size:12px; color:var(--text-faint);">${msg}</div>
       </div>`;
     return;
   }
@@ -2522,7 +2582,7 @@ async function openActivityLog() {
     'Leave marked': '#fef3c7:#b45309',
   };
 
-  listEl.innerHTML = logs.slice(0, 150).map(entry => {
+  listEl.innerHTML = logs.slice(0, 200).map(entry => {
     const icon = ACTION_ICONS[entry.action] || '📌';
     const colorStr = ACTION_COLORS[entry.action] || '#f1f5f9:#64748b';
     const [cbg, cfg] = colorStr.split(':');
@@ -3148,10 +3208,10 @@ function renderDashboard() {
         <div class="value green">${availToday.length}</div>
         <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${availToday.slice(0,3).map(p=>escapeHtml(p.name)).join(', ')}${availToday.length>3?' +more':''}</div>
       </div>
-      <div class="stat-card" onclick="switchTabTo('summary')" style="cursor:pointer;" title="Click to view Release Health in Summary tab">
+      <div class="stat-card" onclick="switchTabTo('summary')" style="cursor:${(currentUserRole==='admin'||(currentUserPermissions['summary']||'read')!=='none')?'pointer':'default'};" title="Click to view Release Health in Summary tab">
         <div class="label">Releases at risk</div>
         <div class="value ${atRisk.length > 0 ? 'red' : 'green'}">${atRisk.length}</div>
-        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${atRisk.length === 0 ? 'All on track 🟢' : 'View details in Summary →'}</div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${atRisk.length === 0 ? 'All on track 🟢' : ((currentUserRole==='admin'||(currentUserPermissions['summary']||'read')!=='none') ? 'View details in Summary →' : atRisk.length + ' release(s) need attention')}</div>
       </div>
       <div class="stat-card">
         <div class="label">VMs expiring ≤14d</div>
@@ -3359,6 +3419,11 @@ function renderPendingReviewsHtml() {
 
 
 function switchTabTo(tabName) {
+  // Check permission — don't navigate if user has no access
+  if (currentUserRole !== 'admin') {
+    const perm = currentUserPermissions[tabName] || 'read';
+    if (perm === 'none') return; // silently block
+  }
   const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
   if (btn) btn.click();
 }
