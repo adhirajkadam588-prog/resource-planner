@@ -7389,8 +7389,7 @@ function openArchiveReportInTab() {
   if (archiveReleaseFilter) title = 'Archive — ' + formatDateDisplay(archiveReleaseFilter);
   if (archivePodFilter)     title += ' · ' + archivePodFilter;
 
-  const cardsHtml = items.map(buildTestPlanProjectSectionHtml).join('\n');
-  const fullHtml  = buildFullReportHtml(title, cardsHtml);
+  const fullHtml = buildArchiveReportHtml(title, items);
   const blob = new Blob([fullHtml], { type: 'text/html' });
   window.open(URL.createObjectURL(blob), '_blank');
 }
@@ -7403,14 +7402,116 @@ function downloadArchiveReport() {
   if (archiveReleaseFilter) title = 'Archive — ' + formatDateDisplay(archiveReleaseFilter);
   if (archivePodFilter)     title += ' · ' + archivePodFilter;
 
-  const cardsHtml = items.map(buildTestPlanProjectSectionHtml).join('\n');
-  const fullHtml  = buildFullReportHtml(title, cardsHtml);
+  const fullHtml = buildArchiveReportHtml(title, items);
   const blob = new Blob([fullHtml], { type: 'text/html' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = title.replace(/[^a-z0-9]/gi,'_').toLowerCase() + '.html';
   a.click();
   showToastMsg('✅ Archive report downloaded!');
+}
+
+function buildArchiveReportHtml(title, items) {
+  const generatedOn = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  const POD_COLORS = {
+    'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
+    'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
+    'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
+  };
+  const ec = {'Not yet started':'#f1f5f9:#64748b','In progress':'#fef3c7:#b45309','Done':'#dcfce7:#15803d'};
+
+  const cardsHtml = items.map(proj => {
+    const plan = getTestPlanForProject(proj.id);
+    const podC = POD_COLORS[proj.devPod] || ['#f1f5f9','#64748b'];
+    const allStatuses = [
+      plan.testPrepStatus||'Not yet started',
+      plan.testEnvStatus||'Not yet started',
+      ...plan.rows.map(r=>r.status||'Not yet started')
+    ];
+    const total=allStatuses.length, done=allStatuses.filter(s=>s==='Done').length;
+    const donePct=total>0?Math.round(done/total*100):0;
+
+    const envRows = [
+      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:'—',cases:'—'},
+      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started', effort:plan.testEnvEffort||0, assignee:'—',cases:'—'},
+      ...plan.rows.map(r=>{const p=state.people.find(x=>x.id===r.assigneeId);return{name:r.name,status:r.status||'Not yet started',effort:r.effort||0,assignee:p?p.name:'—',cases:r.cases||0};}),
+      {name:'Buffer',status:'',effort:plan.buffer&&plan.buffer.effort||0,assignee:'—',cases:'—'},
+    ];
+    const totalEffort = envRows.reduce((s,r)=>s+(parseFloat(r.effort)||0),0);
+    const totalCases  = plan.rows.reduce((s,r)=>s+(r.cases||0),0);
+    const ms = plan.milestones||{};
+
+    const rowsHtml = envRows.map(r=>{
+      const [bg,fg]=(ec[r.status]||'#f1f5f9:#64748b').split(':');
+      const statusCell=r.status?'<span style="background:'+bg+';color:'+fg+';padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">'+escapeHtml(r.status)+'</span>':'—';
+      return '<tr><td>'+escapeHtml(r.name)+'</td><td style="text-align:center;">'+r.cases+'</td><td style="text-align:center;">'+r.effort+' PD</td><td>'+escapeHtml(r.assignee)+'</td><td style="text-align:center;">'+statusCell+'</td></tr>';
+    }).join('');
+
+    const msHtml=(ms.buildPickup||ms.bvtCompletion||ms.execWithBuffer||ms.mergedBuildGoAhead)?
+      '<div style="padding:10px 16px;border-top:1px solid #f1f5f9;display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#94a3b8;">'+
+        (ms.buildPickup?'<span>📥 Build pickup: <strong style="color:#1e293b;">'+formatDateDisplay(ms.buildPickup)+'</strong></span>':'')+
+        (ms.bvtCompletion?'<span>🔬 BVT: <strong style="color:#1e293b;">'+formatDateDisplay(ms.bvtCompletion)+'</strong></span>':'')+
+        (ms.execWithBuffer?'<span>🏁 Exec w/ buffer: <strong style="color:#1e293b;">'+formatDateDisplay(ms.execWithBuffer)+'</strong></span>':'')+
+        (ms.mergedBuildGoAhead?'<span>🚀 Go ahead: <strong style="color:#1e293b;">'+formatDateDisplay(ms.mergedBuildGoAhead)+'</strong></span>':'')+
+      '</div>':'';
+
+    return '<div style="background:white;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:18px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);">'+
+      '<div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">'+
+        '<div style="flex:1;">'+
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">'+
+            '<span style="font-size:16px;font-weight:700;color:#0f172a;">'+escapeHtml(proj.name)+'</span>'+
+            (proj.devPod?'<span style="background:'+podC[0]+';color:'+podC[1]+';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">'+escapeHtml(proj.devPod)+'</span>':'')+
+            '<span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">✅ Completed</span>'+
+          '</div>'+
+          '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#64748b;">'+
+            (proj.releaseDate?'<span>📅 Release: <strong style="color:#334155;">'+formatDateDisplay(proj.releaseDate)+'</strong></span>':'')+
+            (proj.completionDate?'<span>🏁 Completed: <strong style="color:#334155;">'+formatDateDisplay(proj.completionDate)+'</strong></span>':'')+
+            (proj.effort?'<span>⏱ Effort: <strong style="color:#334155;">'+proj.effort+' PDs</strong></span>':'')+
+          '</div>'+
+        '</div>'+
+        '<div style="text-align:right;min-width:130px;">'+
+          '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px;font-weight:600;">'+done+'/'+total+' done · '+donePct+'%</div>'+
+          '<div style="height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+donePct+'%;background:linear-gradient(90deg,#10b981,#059669);border-radius:99px;"></div></div>'+
+        '</div>'+
+      '</div>'+
+      '<table style="width:100%;border-collapse:collapse;">'+
+        '<thead><tr style="background:#f8fafc;">'+
+          '<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;padding:7px 12px;border-bottom:1px solid #f1f5f9;">Environment</th>'+
+          '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;padding:7px 12px;border-bottom:1px solid #f1f5f9;">Cases</th>'+
+          '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;padding:7px 12px;border-bottom:1px solid #f1f5f9;">Effort</th>'+
+          '<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;padding:7px 12px;border-bottom:1px solid #f1f5f9;">Assigned</th>'+
+          '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;padding:7px 12px;border-bottom:1px solid #f1f5f9;">Status</th>'+
+        '</tr></thead>'+
+        '<tbody style="font-size:13px;color:#475569;">'+rowsHtml+'</tbody>'+
+        '<tfoot><tr style="background:#f0f4ff;font-weight:700;color:#1e3a8a;border-top:2px solid #c7d7fe;">'+
+          '<td style="padding:8px 12px;">Total</td>'+
+          '<td style="text-align:center;padding:8px 12px;">'+totalCases+'</td>'+
+          '<td style="text-align:center;padding:8px 12px;">'+totalEffort.toFixed(1)+' PD</td>'+
+          '<td colspan="2"></td>'+
+        '</tr></tfoot>'+
+      '</table>'+
+      msHtml+
+    '</div>';
+  }).join('');
+
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'+
+    '<title>'+escapeHtml(title)+'</title>'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Inter,-apple-system,sans-serif;background:#f0f2f5;color:#1a1d24;padding:40px 24px 80px;font-size:14px;line-height:1.5;}</style>'+
+    '</head><body>'+
+    '<div style="max-width:960px;margin:0 auto;">'+
+      '<div style="background:linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);border-radius:14px;padding:32px 36px;margin-bottom:28px;color:white;">'+
+        '<div style="display:flex;align-items:center;gap:16px;">'+
+          '<div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;">🗃</div>'+
+          '<div><h1 style="font-size:22px;font-weight:700;margin-bottom:4px;">'+escapeHtml(title)+'</h1>'+
+          '<div style="font-size:12px;opacity:0.7;">Generated on '+generatedOn+' · TeamLens · '+items.length+' completed releases</div></div>'+
+        '</div>'+
+      '</div>'+
+      cardsHtml+
+      '<div style="text-align:center;margin-top:32px;font-size:12px;color:#94a3b8;">TeamLens Archive · '+new Date().toLocaleString('en-IN')+'</div>'+
+    '</div>'+
+  '</body></html>';
 }
 
 function renderSummary() {
