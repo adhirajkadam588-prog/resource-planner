@@ -3057,10 +3057,19 @@ function renderDashboard() {
   const today = toDateKey(new Date());
   const todayDisplay = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
-  // 1. Team availability today
-  const dpPeople = state.people.filter(p => p.showInDailyPlan !== false);
-  const availToday = dpPeople.filter(p => isPersonFreeOn(p.id, today));
-  const busyToday  = dpPeople.filter(p => !isPersonFreeOn(p.id, today));
+  // 1. Team availability today — Free = no assignment (leave/holiday shown separately)
+  const dpPeople   = state.people.filter(p => p.showInDailyPlan !== false);
+  const availToday = dpPeople.filter(p => {
+    const leaveMap   = getLeaveMap(p.id);
+    const onLeave    = !!leaveMap[today];
+    const isHoliday  = state.holidays.some(h => h.date === today);
+    const assigned   = state.dailyPlan.some(e => e.personId === p.id && e.date === today);
+    return !onLeave && !isHoliday && !assigned;
+  });
+  const busyToday = dpPeople.filter(p => {
+    const assigned = state.dailyPlan.some(e => e.personId === p.id && e.date === today);
+    return assigned;
+  });
 
   // 2. At-risk releases
   const atRisk = state.projects.filter(proj => {
@@ -3159,10 +3168,26 @@ function renderDashboard() {
         </div>
         <div style="display:flex; flex-direction:column; gap:6px;">
           ${dpPeople.slice(0,8).map(p => {
-            const free = isPersonFreeOn(p.id, today);
+            const leaveMap   = getLeaveMap(p.id);
+            const leaveToday = leaveMap[today];
+            const isHoliday  = state.holidays.some(h => h.date === today);
+            const assigned   = state.dailyPlan.some(e => e.personId === p.id && e.date === today);
+
+            let badge;
+            if (isHoliday) {
+              badge = `<span style="background:#f3e8ff; color:#7c3aed; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">🎉 Holiday</span>`;
+            } else if (leaveToday === 'PL') {
+              badge = `<span style="background:#fef3c7; color:#b45309; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">🏖 On PL</span>`;
+            } else if (leaveToday === 'UPL') {
+              badge = `<span style="background:#fee2e2; color:#dc2626; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">🤒 On UPL</span>`;
+            } else if (assigned) {
+              badge = `<span style="background:#fef3c7; color:#b45309; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">📋 Assigned</span>`;
+            } else {
+              badge = `<span style="background:#dcfce7; color:#15803d; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">🟢 Free</span>`;
+            }
             return `<div style="display:flex; align-items:center; justify-content:space-between; padding:5px 0;">
               <div style="font-size:12.5px; color:var(--text); font-weight:500;">${escapeHtml(p.name)}</div>
-              <span style="background:${free?'#dcfce7':'#fee2e2'}; color:${free?'#15803d':'#dc2626'}; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">${free ? '🟢 Free' : '🔴 Busy'}</span>
+              ${badge}
             </div>`;
           }).join('')}
           ${dpPeople.length > 8 ? `<div style="font-size:11px; color:var(--accent); margin-top:4px; cursor:pointer; font-weight:600;" onclick="switchTabTo('dailyplan')">+${dpPeople.length-8} more → view Daily Plan</div>` : ''}
