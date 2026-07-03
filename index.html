@@ -558,7 +558,7 @@
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
         Dashboard
       </button>
-      <div class="nav-section-label">Setup</div>
+      <div class="nav-section-label" id="navLabelSetup">Setup</div>
       <button class="tab-btn active" data-tab="people" data-title="People" data-desc="Team roster available for resource planning">
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         People
@@ -572,7 +572,7 @@
         Test plan
       </button>
 
-      <div class="nav-section-label">Availability</div>
+      <div class="nav-section-label" id="navLabelAvailability">Availability</div>
       <button class="tab-btn" data-tab="leave" data-title="Leave calendar" data-desc="Click a day to toggle leave for that person">
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
         Leave calendar
@@ -582,14 +582,14 @@
         Holidays
       </button>
 
-      <div class="nav-section-label">Planning</div>
+      <div class="nav-section-label" id="navLabelPlanning">Planning</div>
       <button class="tab-btn" data-tab="dailyplan" data-title="Daily resource plan" data-desc="One project per person per day, across a date range">
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span>
         Daily plan
       </button>
 
 
-      <div class="nav-section-label">Infrastructure</div>
+      <div class="nav-section-label" id="navLabelInfrastructure">Infrastructure</div>
       <button class="tab-btn" data-tab="vmrepo" data-title="Infra Hub" data-desc="Track VM allocations, usage, and availability across all QA team members">
         <span class="nav-ico">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -610,7 +610,7 @@
         Admin
       </button>
 
-      <div class="nav-section-label">Overview</div>
+      <div class="nav-section-label" id="navLabelOverview">Overview</div>
       <button class="tab-btn" data-tab="summary" data-title="Release Summary" data-desc="Release wise summary — share with your manager">
         <span class="nav-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
         Summary
@@ -2054,6 +2054,16 @@ function applyAccessUI() {
     }
   });
 
+  // Hide nav section labels if ALL tabs in that section are hidden
+  const p = currentUserPermissions;
+  const getDisp = (...tabs) => tabs.every(t => (p[t]||'read') === 'none') ? 'none' : '';
+  const el = id => document.getElementById(id);
+  if (el('navLabelSetup'))          el('navLabelSetup').style.display          = getDisp('people','projects','testplan');
+  if (el('navLabelAvailability'))   el('navLabelAvailability').style.display   = getDisp('leave','holidays');
+  if (el('navLabelPlanning'))       el('navLabelPlanning').style.display       = getDisp('dailyplan');
+  if (el('navLabelInfrastructure')) el('navLabelInfrastructure').style.display = getDisp('vmrepo');
+  if (el('navLabelOverview'))       el('navLabelOverview').style.display       = getDisp('summary','archive');
+
   // + Add VM is always visible to everyone (all users can add VMs)
   const vmTabContent = document.getElementById('tab-vmrepo');
   if (vmTabContent) {
@@ -2158,8 +2168,11 @@ async function initApp(user) {
     console.warn('initApp load error:', e);
   }
 
-  // Restore last active tab — or fallback to dashboard
-  const savedTab = localStorage.getItem('tl_active_tab') || 'dashboard';
+  // On fresh login → dashboard. On page refresh → restore last tab.
+  const isRefresh = sessionStorage.getItem('tl_session_active') === 'true';
+  const savedTab  = isRefresh ? (localStorage.getItem('tl_active_tab') || 'dashboard') : 'dashboard';
+  sessionStorage.setItem('tl_session_active', 'true');
+
   _activeTab = savedTab;
   markAllDirty();
 
