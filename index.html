@@ -5291,7 +5291,7 @@ function saveBufferValues() {
   markDirty('projects');
 }
 
-function saveMilestones() {
+async function saveMilestones() {
   if (!selectedTestPlanProjectId) return;
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   plan.milestones.buildPickup        = document.getElementById('msBuildPickup').value;
@@ -5299,7 +5299,7 @@ function saveMilestones() {
   plan.milestones.execNoBuffer       = document.getElementById('msExecNoBuffer').value;
   plan.milestones.execWithBuffer     = document.getElementById('msExecWithBuffer').value;
   plan.milestones.mergedBuildGoAhead = document.getElementById('msMergedBuildGoAhead').value;
-  saveState(); // immediate — not debounced so dates don't get lost on refresh
+  await saveState(); // await — ensures Supabase write completes before returning
   renderTestPlan();
 }
 
@@ -5469,6 +5469,7 @@ function renderTestPlan() {
       (totalRows - doneCount - inProgCount) > 0 ? `<span style="background:var(--panel-2);color:var(--text-faint);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">⬜ ${totalRows-doneCount-inProgCount} Not started</span>` : ''
     ].filter(Boolean).join('');
   }
+  document.getElementById('msBuildPickup').value = plan.milestones.buildPickup || '';
   document.getElementById('msBvtCompletion').value = plan.milestones.bvtCompletion || '';
   document.getElementById('msExecNoBuffer').value = plan.milestones.execNoBuffer || '';
   document.getElementById('msExecWithBuffer').value = plan.milestones.execWithBuffer || '';
