@@ -1986,41 +1986,7 @@ function applyAccessUI() {
   if (adminTabBtn) adminTabBtn.style.display = isAdmin ? 'flex' : 'none';
   if (adminNavSection) adminNavSection.style.display = isAdmin ? 'block' : 'none';
 
-  // Smart banner — only show if user actually has restrictions
-  const existingBanner = document.getElementById('readOnlyBanner');
-  const mainEl = document.querySelector('.main');
-
-  if (!isAdmin) {
-    const hiddenTabs  = Object.entries(currentUserPermissions).filter(([,v]) => v === 'none').map(([k]) => k);
-    const readOnlyTabs = Object.entries(currentUserPermissions).filter(([,v]) => v === 'read').map(([k]) => k);
-    const tabLabels = { people:'People', projects:'Release', testplan:'Test Plan',
-      dailyplan:'Daily Plan', leave:'Leave', holidays:'Holidays',
-      summary:'Summary', vmrepo:'Infra Hub' };
-
-    if (hiddenTabs.length > 0 || readOnlyTabs.length > 0) {
-      let bannerMsg = '';
-      if (hiddenTabs.length > 0)
-        bannerMsg += `🚫 Hidden: <strong>${hiddenTabs.map(k => tabLabels[k]||k).join(', ')}</strong>`;
-      if (hiddenTabs.length > 0 && readOnlyTabs.length > 0) bannerMsg += ' &nbsp;·&nbsp; ';
-      if (readOnlyTabs.length > 0)
-        bannerMsg += `👁 Read-only: <strong>${readOnlyTabs.map(k => tabLabels[k]||k).join(', ')}</strong>`;
-
-      if (!existingBanner) {
-        const banner = document.createElement('div');
-        banner.id = 'readOnlyBanner';
-        banner.style.cssText = 'background:var(--amber-dim); color:var(--amber); font-size:12px; font-weight:500; padding:8px 16px; border-radius:6px; margin-bottom:12px; display:flex; align-items:center; gap:8px;';
-        banner.innerHTML = `<span>⚠</span><span>${bannerMsg}</span>`;
-        if (mainEl) mainEl.insertBefore(banner, mainEl.firstChild);
-      } else {
-        existingBanner.innerHTML = `<span>⚠</span><span>${bannerMsg}</span>`;
-      }
-    } else {
-      // No restrictions — remove banner if it exists
-      if (existingBanner) existingBanner.remove();
-    }
-  } else {
-    if (existingBanner) existingBanner.remove();
-  }
+  // Banner removed — users don't need to see permission notifications
 
   // Help and Dashboard tabs always visible to everyone
   const helpBtn = document.querySelector('.tab-btn[data-tab="help"]');
@@ -2169,9 +2135,9 @@ async function initApp(user) {
   }
 
   // On fresh login → dashboard. On page refresh → restore last tab.
-  const isRefresh = sessionStorage.getItem('tl_session_active') === 'true';
+  const isRefresh = !window._isLoginAction;
   const savedTab  = isRefresh ? (localStorage.getItem('tl_active_tab') || 'dashboard') : 'dashboard';
-  sessionStorage.setItem('tl_session_active', 'true');
+  window._isLoginAction = false; // reset after use
 
   _activeTab = savedTab;
   markAllDirty();
@@ -2306,7 +2272,10 @@ async function signIn() {
       btn.textContent = 'Sign in';
       return;
     }
-    if (data.user) await initApp(data.user);
+    if (data.user) {
+      window._isLoginAction = true; // fresh login → go to dashboard
+      await initApp(data.user);
+    }
   } catch (e) {
     errEl.textContent = 'Connection error: ' + e.message;
     btn.disabled = false;
