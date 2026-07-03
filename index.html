@@ -8627,21 +8627,19 @@ function renderDailyPlan() {
           const taskBadge = e.task
             ? `<div style="display:inline-flex;align-items:center;gap:3px;background:${color}18;border:1px solid ${color}35;border-radius:4px;padding:0px 4px;font-size:9.5px;font-weight:700;color:${color};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;"><span>${taskIcon}</span><span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.task)}</span></div>`
             : '';
+          const canEditDP = canEdit('dailyplan');
+          const actionBtns = canEditDP
+            ? `<button title="Edit" onclick="event.stopPropagation();editDailyPlanEntry('${e.id}')"
+                style="background:${color}25;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:${color};line-height:1;font-family:inherit;">✎</button>
+               <button title="Remove" onclick="event.stopPropagation();clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')"
+                style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>`
+            : '';
           return `<div style="background:${color}12;border-left:2.5px solid ${color};border-radius:0 4px 4px 0;margin:1px 0;padding:2px 4px 2px 5px;position:relative;"
             onmouseenter="this.querySelector('.dp-actions').style.display='flex'"
             onmouseleave="this.querySelector('.dp-actions').style.display='none'">
-            <div style="font-size:11px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:32px;line-height:1.2;">${escapeHtml(e.project)}</div>
+            <div style="font-size:11px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:${canEditDP ? 32 : 4}px;line-height:1.2;">${escapeHtml(e.project)}</div>
             ${taskBadge}
-            <div class="dp-actions" style="display:none;position:absolute;top:2px;right:2px;gap:2px;align-items:center;">
-              ${canEdit('dailyplan') ? `
-              <button title="Edit" onclick="event.stopPropagation();editDailyPlanEntry('${e.id}')"
-                style="background:${color}25;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:${color};line-height:1;font-family:inherit;">✎</button>
-              <button title="Remove" onclick="event.stopPropagation();if(canEdit('dailyplan'))clearDailyPlanCell('${p.id}','${dateKey}','${e.id}');else showToastMsg('🔒 Read-only access');"
-                style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>
-              ` : ''}
-            </div>
-                style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>
-            </div>
+            <div class="dp-actions" style="display:none;position:absolute;top:2px;right:2px;gap:2px;align-items:center;">${actionBtns}</div>
           </div>`;
         }).join('');
         html += `<div class="cal-cell day-cell" style="text-align:left; padding:2px 3px;">${segs}</div>`;
