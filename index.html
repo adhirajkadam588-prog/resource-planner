@@ -1713,18 +1713,17 @@
   <div class="modal" style="width:580px;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
       <h3 style="margin:0;">📋 Activity log</h3>
-      <div style="display:flex; align-items:center; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <span style="font-size:12px; color:var(--text-faint);">Show last:</span>
-        <div style="display:flex; gap:5px;" id="activityDayPills">
-          <button onclick="filterActivityLog(1)"   id="actPill1"   style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text-faint); font-family:inherit;">Today</button>
+        <div style="display:flex; gap:5px;">
+          <button onclick="filterActivityLog(1)"   id="actPill1"   style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid #0f172a; background:#0f172a; color:white; font-family:inherit;">Today</button>
           <button onclick="filterActivityLog(7)"   id="actPill7"   style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text-faint); font-family:inherit;">7 days</button>
           <button onclick="filterActivityLog(30)"  id="actPill30"  style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text-faint); font-family:inherit;">30 days</button>
-          <button onclick="filterActivityLog(0)"   id="actPillAll" style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid #0f172a; background:#0f172a; color:white; font-family:inherit;">All</button>
+          <button onclick="filterActivityLog(0)"   id="actPillAll" style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--panel-2); color:var(--text-faint); font-family:inherit;">All</button>
         </div>
         <div style="display:flex; align-items:center; gap:5px;">
-          <span style="font-size:12px; color:var(--text-faint);">Custom:</span>
-          <input type="number" id="actCustomDays" min="1" max="365" placeholder="days"
-            style="width:60px; padding:4px 8px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-family:inherit; background:var(--panel-2); color:var(--text);"
+          <input type="number" id="actCustomDays" min="1" max="365" placeholder="Custom days…"
+            style="width:100px; padding:4px 8px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-family:inherit; background:var(--panel-2); color:var(--text);"
             onkeydown="if(event.key==='Enter'){ const v=parseInt(this.value); if(v>0) filterActivityLog(v); }">
           <button onclick="const v=parseInt(document.getElementById('actCustomDays').value); if(v>0) filterActivityLog(v);"
             style="padding:4px 10px; border-radius:8px; border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim); font-size:11.5px; cursor:pointer; font-family:inherit; font-weight:600;">Go</button>
@@ -2508,13 +2507,17 @@ async function openActivityLog() {
   } catch (e) {}
 
   _activityLogs = logs;
-  _activityDayFilter = 0;
-  setActivityPill(0);
+  _activityDayFilter = 1; // default — Today
+  document.getElementById('actCustomDays').value = '';
+  setActivityPill(1);
   renderActivityList();
 }
 
 function filterActivityLog(days) {
   _activityDayFilter = days;
+  // Clear custom input when a preset pill is clicked
+  const customEl = document.getElementById('actCustomDays');
+  if (customEl) customEl.value = '';
   setActivityPill(days);
   renderActivityList();
 }
@@ -2523,15 +2526,17 @@ function setActivityPill(days) {
   ['actPill1','actPill7','actPill30','actPillAll'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.style.background = 'var(--panel-2)';
-    el.style.color = 'var(--text-faint)';
-    el.style.borderColor = 'var(--border)';
+    el.style.background   = 'var(--panel-2)';
+    el.style.color        = 'var(--text-faint)';
+    el.style.borderColor  = 'var(--border)';
   });
-  const activeId = days === 1 ? 'actPill1' : days === 7 ? 'actPill7' : days === 30 ? 'actPill30' : days === 0 ? 'actPillAll' : null;
+  const map = { 1:'actPill1', 7:'actPill7', 30:'actPill30', 0:'actPillAll' };
+  const activeId = map[days];
   if (activeId) {
     const el = document.getElementById(activeId);
     if (el) { el.style.background = '#0f172a'; el.style.color = 'white'; el.style.borderColor = '#0f172a'; }
   }
+  // If custom days — no pill highlighted, that's fine
 }
 
 function renderActivityList() {
