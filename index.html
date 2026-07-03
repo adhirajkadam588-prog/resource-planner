@@ -1068,7 +1068,16 @@
                 <td style="text-align:center;">
                   <input id="testPrepEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
                 </td>
-                <td style="text-align:center; color:var(--text-faint);">—</td>
+                <td style="padding:4px 6px;">
+                  <div style="position:relative;" id="testPrepAssigneeWrap">
+                    <div onclick="toggleFixedAssigneeDD('testPrep')" id="testPrepAssigneeDisplay"
+                      style="padding:3px 8px; background:var(--panel); border:1px solid var(--border); border-radius:7px; cursor:pointer; font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; min-width:110px; gap:4px; white-space:nowrap; overflow:hidden;">
+                      <span id="testPrepAssigneeLabel" style="overflow:hidden; text-overflow:ellipsis;">— Select —</span>
+                      <span style="font-size:9px; flex-shrink:0;">▼</span>
+                    </div>
+                    <div id="testPrepAssigneeDD" style="display:none; position:absolute; top:calc(100% + 2px); left:0; min-width:180px; background:var(--panel); border:1px solid var(--border); border-radius:10px; z-index:999; box-shadow:0 8px 24px rgba(0,0,0,0.15); max-height:180px; overflow-y:auto; padding:5px;" onclick="event.stopPropagation()"></div>
+                  </div>
+                </td>
                 <td style="text-align:center;">
                   <select id="testPrepStatus" onchange="saveBufferValues(); updateFixedRowStatusStyle('testPrepStatus')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:none; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; text-align:center;">
                     <option value="Not yet started">Not yet started</option>
@@ -1086,7 +1095,16 @@
                 <td style="text-align:center;">
                   <input id="testEnvEffort" type="number" min="0" step="0.5" placeholder="0" style="width:70px; text-align:center;" onchange="saveBufferValues()">
                 </td>
-                <td style="text-align:center; color:var(--text-faint);">—</td>
+                <td style="padding:4px 6px;">
+                  <div style="position:relative;" id="testEnvAssigneeWrap">
+                    <div onclick="toggleFixedAssigneeDD('testEnv')" id="testEnvAssigneeDisplay"
+                      style="padding:3px 8px; background:var(--panel); border:1px solid var(--border); border-radius:7px; cursor:pointer; font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; min-width:110px; gap:4px; white-space:nowrap; overflow:hidden;">
+                      <span id="testEnvAssigneeLabel" style="overflow:hidden; text-overflow:ellipsis;">— Select —</span>
+                      <span style="font-size:9px; flex-shrink:0;">▼</span>
+                    </div>
+                    <div id="testEnvAssigneeDD" style="display:none; position:absolute; top:calc(100% + 2px); left:0; min-width:180px; background:var(--panel); border:1px solid var(--border); border-radius:10px; z-index:999; box-shadow:0 8px 24px rgba(0,0,0,0.15); max-height:180px; overflow-y:auto; padding:5px;" onclick="event.stopPropagation()"></div>
+                  </div>
+                </td>
                 <td style="text-align:center;">
                   <select id="testEnvStatus" onchange="saveBufferValues(); updateFixedRowStatusStyle('testEnvStatus')" style="padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:none; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; text-align:center;">
                     <option value="Not yet started">Not yet started</option>
@@ -1640,11 +1658,22 @@
   <div class="modal">
     <h3>Assign resource</h3>
     <div class="field"><label>Person</label><select id="dpPerson"></select></div>
-    <div class="field"><label>Project</label><select id="dpProject"></select></div>
+    <div class="field"><label>Release item</label><select id="dpProject"></select></div>
+    <div class="field">
+      <label>Task</label>
+      <select id="dpTask">
+        <option value="">— Select task —</option>
+        <option value="Test Scenario Writing">Test Scenario Writing</option>
+        <option value="Test Case Writing">Test Case Writing</option>
+        <option value="Test Data Prep">Test Data Prep</option>
+        <option value="BVT">BVT</option>
+        <option value="Execution">Execution</option>
+      </select>
+    </div>
     <div class="field"><label>Start date</label><input id="dpStart" type="date"></div>
     <div class="field"><label>End date</label><input id="dpEnd" type="date"></div>
     <div class="modal-actions">
-      <button class="ghost" onclick="closeModal('dailyPlanModal')">Cancel</button>
+      <button class="ghost" onclick="delete document.getElementById('dailyPlanModal').dataset.editId; closeModal('dailyPlanModal')">Cancel</button>
       <button class="action" onclick="saveDailyPlan()">Assign</button>
     </div>
   </div>
@@ -1675,7 +1704,7 @@
       <div id="trCalculatedCasesPreview" style="padding:7px 10px; background:var(--panel-2); border:1px solid var(--border); border-radius:6px; font-family:var(--mono); font-weight:600;">0</div>
     </div>
     <div class="field"><label>Effort (PD)</label><input id="trEffort" type="number" min="0" step="0.5" placeholder="e.g. 5"></div>
-    <div class="field"><label>Assigned to</label><select id="trAssignee"></select></div>
+    <div class="field"><label>Assigned to</label><select id="trAssignee" style="width:100%;"></select></div>
     <div class="field" id="trStatusField">
       <label>Completion status <span id="trStatusLockBadge" style="display:none; background:#fef3c7; color:#b45309; font-size:10px; padding:1px 7px; border-radius:10px; font-weight:600; margin-left:4px;">🔒 Locked — needs review</span></label>
       <select id="trStatus">
@@ -3880,11 +3909,10 @@ function buildAllPlansHtml(projects) {
     const inProgPct= total > 0 ? Math.round((inProg/total)*100) : 0;
 
     const envRows = [
-      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started', effort:plan.testPrepEffort||0, assignee:'—', cases:'—'},
-      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started',  effort:plan.testEnvEffort||0,  assignee:'—', cases:'—'},
+      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started', effort:plan.testPrepEffort||0, assignee:getFixedAssigneeNames(plan.testPrepAssigneeIds), cases:'—'},
+      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started',  effort:plan.testEnvEffort||0,  assignee:getFixedAssigneeNames(plan.testEnvAssigneeIds), cases:'—'},
       ...plan.rows.map(r => {
-        const person = state.people.find(p => p.id === r.assigneeId);
-        return {name:r.name, status:r.status||'Not yet started', effort:r.effort||0, assignee:person?person.name:'—', cases:r.cases||0};
+        return {name:r.name, status:r.status||'Not yet started', effort:r.effort||0, assignee:getAssigneeNames(r), cases:r.cases||0};
       })
     ];
 
@@ -4014,9 +4042,9 @@ function shareAllPlansReport() {
     const [sbg,sfg]=sc[proj.status]||sc['Not started'];
     const ec={'Not yet started':'#f1f5f9:#64748b','In progress':'#fef3c7:#b45309','Done':'#dcfce7:#15803d'};
     const envRows=[
-      {name:'📋 Test prep',cls:'row-prep',status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:'—',cases:'—'},
-      {name:'🔧 Test env & data prep',cls:'row-prep',status:plan.testEnvStatus||'Not yet started',effort:plan.testEnvEffort||0,assignee:'—',cases:'—'},
-      ...plan.rows.map(r=>{const p=state.people.find(x=>x.id===r.assigneeId);return{name:r.name,cls:'row-env',status:r.status||'Not yet started',effort:r.effort||0,assignee:p?p.name:'—',cases:r.cases||0};}),
+      {name:'📋 Test prep',cls:'row-prep',status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:getFixedAssigneeNames(plan.testPrepAssigneeIds),cases:'—'},
+      {name:'🔧 Test env & data prep',cls:'row-prep',status:plan.testEnvStatus||'Not yet started',effort:plan.testEnvEffort||0,assignee:getFixedAssigneeNames(plan.testEnvAssigneeIds),cases:'—'},
+      ...plan.rows.map(r=>{return{name:r.name,cls:'row-env',status:r.status||'Not yet started',effort:r.effort||0,assignee:getAssigneeNames(r),cases:r.cases||0};}),
       {name:'Buffer',cls:'row-buffer',status:'',effort:plan.buffer&&plan.buffer.effort||0,assignee:'—',cases:'—'},
     ];
     const totalEffort=envRows.reduce((s,r)=>s+(parseFloat(r.effort)||0),0);
@@ -5080,6 +5108,18 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 document.addEventListener('click', (e) => {
+  // Close fixed row assignee dropdowns
+  ['testPrep','testEnv'].forEach(type => {
+    const wrap = document.getElementById(type + 'AssigneeWrap');
+    const dd   = document.getElementById(type + 'AssigneeDD');
+    if (dd && wrap && !wrap.contains(e.target)) dd.style.display = 'none';
+  });
+
+  // Close assignee dropdown
+  const wrap = document.getElementById('trAssigneeWrap');
+  const dd   = document.getElementById('trAssigneeDropdown');
+  if (dd && wrap && !wrap.contains(e.target)) dd.style.display = 'none';
+
   document.querySelectorAll('.export-wrap').forEach(wrap => {
     if (!wrap.contains(e.target)) {
       wrap.querySelectorAll('.export-menu').forEach(menu => menu.classList.remove('show'));
@@ -5582,20 +5622,20 @@ function openTestRowModal(id) {
   editingTestRowId = id || null;
   const titleEl = document.getElementById('testRowModalTitle');
   const btnEl   = document.getElementById('testRowSaveBtn');
-  const plan     = getTestPlanForProject(selectedTestPlanProjectId);
+  const plan    = getTestPlanForProject(selectedTestPlanProjectId);
   const reviewed = plan.reviewed === true;
 
+  // Single select for env rows
   const assigneeSel = document.getElementById('trAssignee');
   assigneeSel.innerHTML = '<option value="">— Unassigned —</option>' +
     state.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
 
-  // Lock status select if not reviewed
-  const statusSel  = document.getElementById('trStatus');
-  const lockBadge  = document.getElementById('trStatusLockBadge');
+  const statusSel = document.getElementById('trStatus');
+  const lockBadge = document.getElementById('trStatusLockBadge');
   if (statusSel) {
-    statusSel.disabled           = !reviewed;
-    statusSel.style.opacity      = reviewed ? '1' : '0.4';
-    statusSel.style.cursor       = reviewed ? 'default' : 'not-allowed';
+    statusSel.disabled            = !reviewed;
+    statusSel.style.opacity       = reviewed ? '1' : '0.4';
+    statusSel.style.cursor        = reviewed ? 'default' : 'not-allowed';
     statusSel.style.pointerEvents = reviewed ? '' : 'none';
     statusSel.title = reviewed ? '' : '🔒 Lead review required before changing status';
   }
@@ -5606,10 +5646,10 @@ function openTestRowModal(id) {
     if (!row) return;
     titleEl.textContent = 'Edit environment';
     btnEl.textContent   = 'Save changes';
-    document.getElementById('trName').value       = row.name;
-    document.getElementById('trBaseCases').value  = row.baseCases || '';
-    document.getElementById('trCoverage').value   = row.coverage || '';
-    document.getElementById('trEffort').value     = row.effort || '';
+    document.getElementById('trName').value      = row.name;
+    document.getElementById('trBaseCases').value = row.baseCases || '';
+    document.getElementById('trCoverage').value  = row.coverage || '';
+    document.getElementById('trEffort').value    = row.effort || '';
     assigneeSel.value = row.assigneeId || '';
     if (statusSel) statusSel.value = row.status || 'Not yet started';
   } else {
@@ -5624,6 +5664,113 @@ function openTestRowModal(id) {
   }
   updateCalculatedCasesPreview();
   document.getElementById('testRowModal').classList.add('show');
+}
+
+function buildAssigneeDropdown(selectedIds) {
+  const dropdown = document.getElementById('trAssigneeDropdown');
+  if (!dropdown) return;
+  selectedIds = selectedIds || [];
+  dropdown.style.display = 'none';
+  dropdown.innerHTML = state.people.map(p => `
+    <label style="display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:7px; cursor:pointer; font-size:12.5px; color:var(--text);"
+      onmouseover="this.style.background='var(--panel-2)'" onmouseout="this.style.background=''">
+      <input type="checkbox" value="${p.id}" ${selectedIds.includes(p.id) ? 'checked' : ''}
+        onchange="updateAssigneeLabel()" style="accent-color:#7c3aed; width:15px; height:15px; cursor:pointer; flex-shrink:0;">
+      ${escapeHtml(p.name)}
+    </label>`).join('');
+  updateAssigneeLabel();
+}
+
+function toggleAssigneeDropdown() {
+  const dd = document.getElementById('trAssigneeDropdown');
+  if (!dd) return;
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateAssigneeLabel() {
+  const checked = [...document.querySelectorAll('#trAssigneeDropdown input[type=checkbox]:checked')];
+  const label = document.getElementById('trAssigneeLabel');
+  if (!label) return;
+  if (checked.length === 0) {
+    label.textContent = '— Select people —';
+    label.style.color = 'var(--text-faint)';
+  } else {
+    const names = checked.map(cb => {
+      const p = state.people.find(x => x.id === cb.value);
+      return p ? p.name : cb.value;
+    });
+    label.textContent = names.join(', ');
+    label.style.color = 'var(--text)';
+  }
+}
+
+function getSelectedAssigneeIds() {
+  return [...document.querySelectorAll('#trAssigneeDropdown input[type=checkbox]:checked')]
+    .map(cb => cb.value);
+}
+
+
+function toggleFixedAssigneeDD(type) {
+  const dd = document.getElementById(type + 'AssigneeDD');
+  if (!dd) return;
+  const isOpen = dd.style.display !== 'none';
+  // Close all first
+  ['testPrep','testEnv'].forEach(t => {
+    const d = document.getElementById(t + 'AssigneeDD');
+    if (d) d.style.display = 'none';
+  });
+  if (!isOpen) {
+    dd.style.display = 'block';
+    // Populate if empty
+    if (!dd.innerHTML.trim()) buildFixedAssigneeDD(type);
+  }
+}
+
+function buildFixedAssigneeDD(type) {
+  const dd = document.getElementById(type + 'AssigneeDD');
+  if (!dd) return;
+  const plan = getTestPlanForProject(selectedTestPlanProjectId);
+  const current = (type === 'testPrep' ? plan.testPrepAssigneeIds : plan.testEnvAssigneeIds) || [];
+  dd.innerHTML = state.people.map(p => `
+    <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text);"
+      onmouseover="this.style.background='var(--panel-2)'" onmouseout="this.style.background=''">
+      <input type="checkbox" value="${p.id}" ${current.includes(p.id) ? 'checked' : ''}
+        onchange="updateFixedAssigneeLabel('${type}'); saveBufferValues();"
+        style="accent-color:#7c3aed;width:14px;height:14px;cursor:pointer;flex-shrink:0;">
+      ${escapeHtml(p.name)}
+    </label>`).join('');
+}
+
+function updateFixedAssigneeLabel(type) {
+  const dd    = document.getElementById(type + 'AssigneeDD');
+  const label = document.getElementById(type + 'AssigneeLabel');
+  if (!dd || !label) return;
+  const checked = [...dd.querySelectorAll('input[type=checkbox]:checked')];
+  if (checked.length === 0) {
+    label.textContent = '— Select —';
+    label.parentElement.style.color = 'var(--text-faint)';
+  } else {
+    const names = checked.map(cb => { const p = state.people.find(x => x.id === cb.value); return p ? p.name : ''; }).filter(Boolean);
+    label.textContent = names.join(', ');
+    label.parentElement.style.color = 'var(--text)';
+  }
+}
+
+function getFixedAssigneeIds(type) {
+  const dd = document.getElementById(type + 'AssigneeDD');
+  if (!dd) return [];
+  return [...dd.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
+}
+
+function getFixedAssigneeNames(ids) {
+  if (!ids || ids.length === 0) return '—';
+  return ids.map(id => { const p = state.people.find(x => x.id === id); return p ? p.name : ''; }).filter(Boolean).join(', ') || '—';
+}
+
+function getAssigneeNames(row) {
+  const ids = row.assigneeIds && row.assigneeIds.length > 0 ? row.assigneeIds : (row.assigneeId ? [row.assigneeId] : []);
+  if (ids.length === 0) return '—';
+  return ids.map(id => { const p = state.people.find(x => x.id === id); return p ? p.name : ''; }).filter(Boolean).join(', ') || '—';
 }
 
 function updateCalculatedCasesPreview() {
@@ -5644,7 +5791,6 @@ function saveTestRow() {
   const plan       = getTestPlanForProject(selectedTestPlanProjectId);
   const reviewed   = plan.reviewed === true;
 
-  // Status only saved if plan is reviewed
   const statusEl = document.getElementById('trStatus');
   const status = reviewed ? statusEl.value : (
     plan.rows.find(r => r.id === editingTestRowId)?.status || 'Not yet started'
@@ -5658,10 +5804,10 @@ function saveTestRow() {
   if (editingTestRowId) {
     snapshotState('Edit test row: ' + name);
     const row = plan.rows.find(r => r.id === editingTestRowId);
-    if (row) { row.name = name; row.baseCases = baseCases; row.coverage = coverage; row.cases = cases; row.effort = effort; row.assigneeId = assigneeId; row.status = status; }
+    if (row) { row.name = name; row.baseCases = baseCases; row.coverage = coverage; row.cases = cases; row.effort = effort; row.assigneeId = assigneeId; row.assigneeIds = [assigneeId].filter(Boolean); row.status = status; }
   } else {
     snapshotState('Add test row: ' + name);
-    plan.rows.push({ id: uid(), name, baseCases, coverage, cases, effort, assigneeId, status: 'Not yet started' });
+    plan.rows.push({ id: uid(), name, baseCases, coverage, cases, effort, assigneeId, assigneeIds: [assigneeId].filter(Boolean), status: 'Not yet started' });
   }
   editingTestRowId = null;
   closeModal('testRowModal');
@@ -5696,11 +5842,12 @@ function saveBufferValues() {
   const plan     = getTestPlanForProject(selectedTestPlanProjectId);
   const reviewed = plan.reviewed === true;
 
-  plan.testPrepEffort = parseFloat(document.getElementById('testPrepEffort').value) || 0;
-  plan.testEnvEffort  = parseFloat(document.getElementById('testEnvEffort').value) || 0;
-  plan.buffer.effort  = parseFloat(document.getElementById('testBufferEffort').value) || 0;
+  plan.testPrepEffort       = parseFloat(document.getElementById('testPrepEffort').value) || 0;
+  plan.testEnvEffort        = parseFloat(document.getElementById('testEnvEffort').value) || 0;
+  plan.buffer.effort        = parseFloat(document.getElementById('testBufferEffort').value) || 0;
+  plan.testPrepAssigneeIds  = getFixedAssigneeIds('testPrep');
+  plan.testEnvAssigneeIds   = getFixedAssigneeIds('testEnv');
 
-  // Status only saved if reviewed — ignore UI value if not reviewed
   if (reviewed) {
     plan.testPrepStatus = document.getElementById('testPrepStatus').value;
     plan.testEnvStatus  = document.getElementById('testEnvStatus').value;
@@ -5740,7 +5887,7 @@ function renderTestPlan() {
     empty.style.display = 'none';
     const reviewed = plan.reviewed === true;
     tbody.innerHTML = plan.rows.map(r => {
-      const person = state.people.find(p => p.id === r.assigneeId);
+      const assigneeDisplay = getAssigneeNames(r);
       const rowStatus = r.status || 'Not yet started';
       const statusStyles = {
         'Not yet started': 'background:var(--panel-2); color:var(--text-faint);',
@@ -5760,7 +5907,7 @@ function renderTestPlan() {
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.coverage ? r.coverage + '%' : '—'}</td>
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.cases || 0}</td>
           <td style="text-align:center; font-family:var(--mono); font-weight:600;">${r.effort || 0}</td>
-          <td style="font-weight:600; font-size:12px;">${person ? escapeHtml(person.name) : '—'}</td>
+          <td style="font-weight:600; font-size:12px;">${escapeHtml(assigneeDisplay)}</td>
           <td style="text-align:center;">${statusCell}</td>
           <td style="text-align:right; white-space:nowrap;">
             <button class="icon-btn edit" onclick="openTestRowModal('${r.id}')" aria-label="Edit environment">✎</button>
@@ -5772,11 +5919,17 @@ function renderTestPlan() {
   }
 
   // Test prep and buffer inputs reflect saved state
-  document.getElementById('testPrepEffort').value = plan.testPrepEffort || '';
-  document.getElementById('testPrepStatus').value = plan.testPrepStatus || 'Not yet started';
-  document.getElementById('testEnvEffort').value = plan.testEnvEffort || '';
-  document.getElementById('testEnvStatus').value = plan.testEnvStatus || 'Not yet started';
-  document.getElementById('testBufferEffort').value = plan.buffer.effort || '';
+  document.getElementById('testPrepEffort').value    = plan.testPrepEffort || '';
+  document.getElementById('testPrepStatus').value    = plan.testPrepStatus || 'Not yet started';
+  document.getElementById('testEnvEffort').value     = plan.testEnvEffort  || '';
+  document.getElementById('testEnvStatus').value     = plan.testEnvStatus  || 'Not yet started';
+  document.getElementById('testBufferEffort').value  = plan.buffer.effort  || '';
+
+  // Load fixed row assignees
+  buildFixedAssigneeDD('testPrep');
+  buildFixedAssigneeDD('testEnv');
+  updateFixedAssigneeLabel('testPrep');
+  updateFixedAssigneeLabel('testEnv');
 
   // Lock status dropdowns if not reviewed
   const reviewed = plan.reviewed === true;
@@ -6138,6 +6291,7 @@ function buildTestPlanProjectSectionHtml(proj) {
   const envRowsHtml = plan.rows.length > 0
     ? plan.rows.map(r => {
         const person = state.people.find(p => p.id === r.assigneeId);
+        const assigneeDisplay = getAssigneeNames(r);
         const rowStatus = r.status || 'Not yet started';
         const statusColors = { 'Not yet started': '#f1f5f9:#64748b', 'In progress': '#fef3c7:#b45309', 'Done': '#dcfce7:#15803d' };
         const fixedStatusBadge = (s) => { const [bg,fg] = (statusColors[s] || statusColors['Not yet started']).split(':'); return `<span style="background:${bg}; color:${fg}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;">${s}</span>`; };
@@ -6148,7 +6302,7 @@ function buildTestPlanProjectSectionHtml(proj) {
             <td class="r">${r.coverage ? r.coverage + '%' : '—'}</td>
             <td class="r">${r.cases || 0}</td>
             <td class="r">${r.effort || 0}</td>
-            <td>${person ? escapeHtml(person.name) : '—'}</td>
+            <td>${escapeHtml(assigneeDisplay)}</td>
             <td>${fixedStatusBadge(rowStatus)}</td>
           </tr>`;
       }).join('')
@@ -6529,7 +6683,7 @@ function buildDailyPlanMonthGridHtml(year, month, podFilter) {
       } else if (onLeave) {
         html += `<div class="cal-cell-r leave-r" style="text-align:left; padding-left:8px;">On leave</div>`;
       } else if (entries.length > 0) {
-        const segs = entries.map(e => `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.project)}</div>`).join('');
+        const segs = entries.map(e => `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.project)}${e.task ? ' · ' + escapeHtml(e.task) : ''}</div>`).join('');
         html += `<div class="cal-cell-r" style="text-align:left; padding:3px 8px; line-height:1.4;">${segs}</div>`;
       } else {
         html += `<div class="cal-cell-r"></div>`;
@@ -7410,11 +7564,10 @@ function renderArchive() {
 
     // Env rows
     const envRows = [
-      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started', effort:plan.testPrepEffort||0, assignee:'—', cases:'—'},
-      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started',  effort:plan.testEnvEffort||0,  assignee:'—', cases:'—'},
+      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started', effort:plan.testPrepEffort||0, assignee:getFixedAssigneeNames(plan.testPrepAssigneeIds), cases:'—'},
+      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started',  effort:plan.testEnvEffort||0,  assignee:getFixedAssigneeNames(plan.testEnvAssigneeIds), cases:'—'},
       ...plan.rows.map(r => {
-        const person = state.people.find(p => p.id === r.assigneeId);
-        return {name:r.name, status:r.status||'Not yet started', effort:r.effort||0, assignee:person?person.name:'—', cases:r.cases||0};
+        return {name:r.name, status:r.status||'Not yet started', effort:r.effort||0, assignee:getAssigneeNames(r), cases:r.cases||0};
       })
     ];
 
@@ -7592,9 +7745,9 @@ function buildArchiveReportHtml(title, items) {
     const donePct=total>0?Math.round(done/total*100):0;
 
     const envRows = [
-      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:'—',cases:'—'},
-      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started', effort:plan.testEnvEffort||0, assignee:'—',cases:'—'},
-      ...plan.rows.map(r=>{const p=state.people.find(x=>x.id===r.assigneeId);return{name:r.name,status:r.status||'Not yet started',effort:r.effort||0,assignee:p?p.name:'—',cases:r.cases||0};}),
+      {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:getFixedAssigneeNames(plan.testPrepAssigneeIds),cases:'—'},
+      {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started', effort:plan.testEnvEffort||0, assignee:getFixedAssigneeNames(plan.testEnvAssigneeIds),cases:'—'},
+      ...plan.rows.map(r=>{return{name:r.name,status:r.status||'Not yet started',effort:r.effort||0,assignee:getAssigneeNames(r),cases:r.cases||0};}),
       {name:'Buffer',status:'',effort:plan.buffer&&plan.buffer.effort||0,assignee:'—',cases:'—'},
     ];
     const totalEffort = envRows.reduce((s,r)=>s+(parseFloat(r.effort)||0),0);
@@ -8027,6 +8180,7 @@ function openDailyPlanModal() {
   populateProjectSelect(document.getElementById('dpProject'));
   document.getElementById('dpStart').value = todayStr;
   document.getElementById('dpEnd').value = todayStr;
+  document.getElementById('dpTask').value = '';
   document.getElementById('dailyPlanModal').classList.add('show');
 }
 
@@ -8064,19 +8218,64 @@ function dateRange(startStr, endStr) {
   return dates;
 }
 
+function editDailyPlanEntry(entryId) {
+  const entry = state.dailyPlan.find(d => d.id === entryId);
+  if (!entry) return;
+
+  const todayStr = toDateKey(new Date());
+  const sel = document.getElementById('dpPerson');
+  const sortedPeople = [...state.people].filter(p => p.showInDailyPlan !== false).sort((a,b) => {
+    const aFree = isPersonFreeOn(a.id, todayStr);
+    const bFree = isPersonFreeOn(b.id, todayStr);
+    if (aFree && !bFree) return -1;
+    if (!aFree && bFree) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  sel.innerHTML = sortedPeople.map(p => {
+    const free = isPersonFreeOn(p.id, todayStr);
+    return `<option value="${p.id}">${free ? '🟢 ' : '🔴 '}${escapeHtml(p.name)}`;
+  }).join('');
+  if (state.people.length === 0) sel.innerHTML = '<option value="">Add a person first</option>';
+
+  populateProjectSelect(document.getElementById('dpProject'));
+
+  // Pre-fill with existing entry values
+  document.getElementById('dpPerson').value  = entry.personId;
+  document.getElementById('dpProject').value = entry.project;
+  document.getElementById('dpTask').value    = entry.task || '';
+  document.getElementById('dpStart').value   = entry.date;
+  document.getElementById('dpEnd').value     = entry.date;
+
+  // Remove old entry when saving
+  document.getElementById('dailyPlanModal').dataset.editId = entryId;
+  document.getElementById('dailyPlanModal').classList.add('show');
+}
+
 function saveDailyPlan() {
   const personId = document.getElementById('dpPerson').value;
-  const project = document.getElementById('dpProject').value;
-  const start = document.getElementById('dpStart').value;
-  const end = document.getElementById('dpEnd').value;
+  const project  = document.getElementById('dpProject').value;
+  const task     = document.getElementById('dpTask').value;
+  const start    = document.getElementById('dpStart').value;
+  const end      = document.getElementById('dpEnd').value;
   if (!personId || !project || !start || !end) return;
+
+  const modal  = document.getElementById('dailyPlanModal');
+  const editId = modal.dataset.editId;
+
   const dates = dateRange(start, end);
   if (dates.length === 0) return;
   const person = state.people.find(p => p.id === personId);
-  snapshotState(`Assign ${person?.name || ''} → ${project}`);
+
+  // If editing — remove old entry first
+  if (editId) {
+    state.dailyPlan = state.dailyPlan.filter(d => d.id !== editId);
+    delete modal.dataset.editId;
+  }
+
+  snapshotState(`Assign ${person?.name || ''} → ${project}${task ? ' · ' + task : ''}`);
   dates.forEach(date => {
-    const alreadyExists = state.dailyPlan.some(d => d.personId === personId && d.project === project && d.date === date);
-    if (!alreadyExists) state.dailyPlan.push({ id: uid(), personId, project, date });
+    const alreadyExists = state.dailyPlan.some(d => d.personId === personId && d.project === project && d.task === task && d.date === date);
+    if (!alreadyExists) state.dailyPlan.push({ id: uid(), personId, project, task: task || '', date });
   });
   logActivity('Daily plan assigned', {
     name: person?.name || personId, project,
@@ -8401,7 +8600,19 @@ function renderDailyPlan() {
       } else if (entries.length > 0) {
         const segs = entries.map(e => {
           const color = colorForProject(e.project);
-          return `<div title="Click to remove" style="background:${color}22; color:${color}; cursor:pointer; font-weight:500; padding:3px 7px; border-radius:4px; margin:1px 0; line-height:1.3; font-size:12px; display:inline-block;" onclick="clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')">${escapeHtml(e.project)}</div>`;
+          const taskBadge = e.task ? `<span style="font-size:10px;background:${color}33;color:${color};border-radius:3px;padding:0 4px;font-weight:700;white-space:nowrap;">${escapeHtml(e.task)}</span>` : '';
+          return `<div style="background:${color}22; color:${color}; font-weight:500; padding:3px 7px; border-radius:4px; margin:1px 0; line-height:1.4; font-size:12px; position:relative;" 
+            onmouseenter="this.querySelector('.dp-actions').style.display='flex'"
+            onmouseleave="this.querySelector('.dp-actions').style.display='none'">
+            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:36px;">${escapeHtml(e.project)}</div>
+            ${taskBadge}
+            <div class="dp-actions" style="display:none;position:absolute;top:2px;right:2px;gap:2px;align-items:center;">
+              <button title="Edit" onclick="event.stopPropagation();editDailyPlanEntry('${e.id}')" 
+                style="background:${color}44;border:none;border-radius:3px;cursor:pointer;padding:1px 4px;font-size:10px;color:${color};line-height:1;font-family:inherit;">✎</button>
+              <button title="Remove" onclick="event.stopPropagation();clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')" 
+                style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:1px 4px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>
+            </div>
+          </div>`;
         }).join('');
         html += `<div class="cal-cell day-cell" style="text-align:left; padding:3px 6px;">${segs}</div>`;
       } else {
