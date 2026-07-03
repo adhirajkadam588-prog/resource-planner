@@ -2,33 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TeamLens</title>
-
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#7c3aed">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TeamLens">
-<link rel="apple-touch-icon" href="icon-192.png">
-
-<!-- SEO / OG -->
-<meta name="description" content="QA resource planning, test tracking, VM repository, and team management">
-<meta name="application-name" content="TeamLens">
-
-<!-- Service Worker registration -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('[TeamLens] SW registered:', reg.scope))
-        .catch(err => console.warn('[TeamLens] SW failed:', err));
-    });
-  }
-</script>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap');
@@ -2125,20 +2100,31 @@ async function initApp(user) {
   document.getElementById('loginError').textContent = '';
   document.getElementById('loginBtn').disabled = false;
   document.getElementById('loginBtn').textContent = 'Sign in';
-  await fetchUserRole(user.id);
-  await loadState();
-  if (currentUserRole === 'admin') await fetchAllUserRoles();
 
-  // Seed Excel VM data once if not done yet
-  seedVMData();
+  try {
+    await fetchUserRole(user.id);
+    await loadState();
+    if (currentUserRole === 'admin') await fetchAllUserRoles();
+    seedVMData();
+  } catch(e) {
+    console.warn('initApp load error:', e);
+  }
 
   // Set initial active tab — Dashboard
   _activeTab = 'dashboard';
   markAllDirty();
-  // Click dashboard tab button to sync UI (active state, title, etc.)
-  const dashTabBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
-  if (dashTabBtn) dashTabBtn.click();
-  else renderAll();
+
+  try {
+    const dashTabBtn = document.querySelector('.tab-btn[data-tab="dashboard"]');
+    if (dashTabBtn) {
+      dashTabBtn.click();
+    } else {
+      renderAll();
+    }
+  } catch(e) {
+    console.warn('Dashboard render error:', e);
+    renderAll();
+  }
 
   applyAccessUI();
   initRealtime();
@@ -3055,6 +3041,10 @@ function renderDashboard() {
   const el = document.getElementById('dashboardContent');
   if (!el) return;
 
+  // Null safety
+  if (!state.reviewRequests) state.reviewRequests = [];
+  if (!state.vms) state.vms = [];
+
   const today = toDateKey(new Date());
   const todayDisplay = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
@@ -3179,6 +3169,67 @@ function renderDashboard() {
   `;
 }
 
+function renderAlertsHtml() {
+  const today = toDateKey(new Date());
+  const alerts = [];
+
+  (state.vms || []).forEach(vm => {
+    if (!vm.expiry) return;
+    const daysLeft = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+    const vmName = vm.details.split('-')[0].trim();
+    if (daysLeft < 0) {
+      alerts.push({ icon:'🖥️', level:'red', title:'VM expired ' + Math.abs(daysLeft) + 'd ago', detail: vmName + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
+    } else if (daysLeft <= 7) {
+      alerts.push({ icon:'🖥️', level:'amber', title:'VM expiring in ' + daysLeft + 'd', detail: vmName + ' · expires ' + formatDateDisplay(vm.expiry), action:'vmrepo' });
+    }
+  });
+
+  (state.vms || []).forEach(vm => {
+    if (!vm.inUse || !vm.endDate) return;
+    const daysOver = Math.round((new Date(today+'T00:00:00') - new Date(vm.endDate+'T00:00:00')) / 86400000);
+    if (daysOver > 0) {
+      alerts.push({ icon:'🔓', level:'amber', title:'VM usage ended ' + daysOver + 'd ago — still marked in use', detail: vm.details.split('-')[0].trim() + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
+    }
+  });
+
+  getActiveProjects().forEach(proj => {
+    if (proj.status === 'Completed') return;
+    const plan = state.testPlans && state.testPlans[proj.id];
+    const effectiveBuild = (plan && plan.milestones && plan.milestones.buildPickup) || proj.buildDate || '';
+    if (effectiveBuild && effectiveBuild < today) {
+      const d = Math.round((new Date(today+'T00:00:00') - new Date(effectiveBuild+'T00:00:00')) / 86400000);
+      alerts.push({ icon:'📁', level:'red', title:'Build delay: ' + escapeHtml(proj.name), detail:'Dev to QA was ' + formatDateDisplay(effectiveBuild) + ' (' + d + 'd ago)', action:'summary' });
+    }
+  });
+
+  if (alerts.length === 0) return '';
+
+  const rows = alerts.slice(0, 8).map(a => {
+    const bgMap = { red: '#fee2e2', amber: '#fef9c3' };
+    const fgMap = { red: '#dc2626', amber: '#a16207' };
+    const bdMap = { red: '#fca5a5', amber: '#fde047' };
+    const bg = bgMap[a.level] || '#f1f5f9';
+    const fg = fgMap[a.level] || '#475569';
+    const bd = bdMap[a.level] || '#e2e8f0';
+    return '<div style="display:flex;align-items:center;gap:10px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:9px;padding:9px 14px;">' +
+      '<span style="font-size:16px;flex-shrink:0;">' + a.icon + '</span>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:12.5px;font-weight:600;color:' + fg + ';">' + a.title + '</div>' +
+        '<div style="font-size:11px;color:' + fg + ';opacity:0.8;margin-top:1px;">' + a.detail + '</div>' +
+      '</div>' +
+      '<button onclick="switchTabTo(\'' + a.action + '\')" style="background:' + fg + ';color:white;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;">→</button>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="panel" style="margin-bottom:18px;border-color:#fca5a5;">' +
+    '<div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px;">' +
+      '<span style="font-size:18px;">🚨</span> Alerts ' +
+      '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;">' + alerts.length + '</span>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:7px;">' + rows + '</div>' +
+  '</div>';
+}
+
 function renderPendingReviewsHtml() {
   // Only show to leads
   if (!isCurrentUserLead()) return '';
@@ -3248,65 +3299,6 @@ function renderPendingReviewsHtml() {
     </div>`;
 }
 
-
-  const today = toDateKey(new Date());
-  const alerts = [];
-
-  // VM expiry alerts
-  (state.vms || []).forEach(vm => {
-    if (!vm.expiry) return;
-    const daysLeft = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
-    if (daysLeft < 0) {
-      alerts.push({ icon:'🖥️', level:'red', title:`VM expired ${Math.abs(daysLeft)}d ago`, detail:`${vm.details.split('-')[0].trim()} · used by ${vm.usedBy||'—'}`, action:'vmrepo' });
-    } else if (daysLeft <= 7) {
-      alerts.push({ icon:'🖥️', level:'amber', title:`VM expiring in ${daysLeft}d`, detail:`${vm.details.split('-')[0].trim()} · expires ${formatDateDisplay(vm.expiry)}`, action:'vmrepo' });
-    }
-  });
-
-  // VM end date passed but still marked in-use
-  (state.vms || []).forEach(vm => {
-    if (!vm.inUse || !vm.endDate) return;
-    const daysOver = Math.round((new Date(today+'T00:00:00') - new Date(vm.endDate+'T00:00:00')) / 86400000);
-    if (daysOver > 0) {
-      alerts.push({ icon:'🔓', level:'amber', title:`VM usage ended ${daysOver}d ago — still marked in use`, detail:`${vm.details.split('-')[0].trim()} · used by ${vm.usedBy||'—'}`, action:'vmrepo' });
-    }
-  });
-
-  // At-risk releases
-  state.projects.forEach(proj => {
-    if (proj.status === 'Completed') return;
-    const plan = state.testPlans?.[proj.id];
-    const effectiveBuild = plan?.milestones?.buildPickup || proj.buildDate || '';
-    if (effectiveBuild && effectiveBuild < today) {
-      const d = Math.round((new Date(today+'T00:00:00') - new Date(effectiveBuild+'T00:00:00')) / 86400000);
-      alerts.push({ icon:'📁', level:'red', title:`Build delay: ${escapeHtml(proj.name)}`, detail:`Dev to QA was ${formatDateDisplay(effectiveBuild)} (${d}d ago)`, action:'summary' });
-    }
-  });
-
-  if (alerts.length === 0) return '';
-
-  const COLORS = { red:'#fee2e2:#dc2626:#fca5a5', amber:'#fef9c3:#a16207:#fde047' };
-  return `
-    <div class="panel" style="margin-bottom:18px; border-color:#fca5a5;">
-      <div style="font-weight:700; font-size:14px; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-        <span style="font-size:18px;">🚨</span> Alerts
-        <span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:700;">${alerts.length}</span>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:7px;">
-        ${alerts.slice(0,8).map(a => {
-          const [bg,fg,border] = COLORS[a.level].split(':');
-          return `<div style="display:flex; align-items:center; gap:10px; background:${bg}; border:1px solid ${border}; border-radius:9px; padding:9px 14px;">
-            <span style="font-size:16px; flex-shrink:0;">${a.icon}</span>
-            <div style="flex:1; min-width:0;">
-              <div style="font-size:12.5px; font-weight:600; color:${fg};">${a.title}</div>
-              <div style="font-size:11px; color:${fg}; opacity:0.8; margin-top:1px;">${a.detail}</div>
-            </div>
-            <button onclick="switchTabTo('${a.action}')" style="background:${fg}; color:white; border:none; border-radius:7px; padding:4px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; flex-shrink:0;">→</button>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
 
 function switchTabTo(tabName) {
   const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
@@ -6925,7 +6917,7 @@ function updateArchivePills() {
   });
 }
 
-
+function setDailyPlanPodFilter(pod) {
   selectedDailyPlanPod = pod;
   renderDailyPlan();
 }
