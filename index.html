@@ -545,15 +545,6 @@
         <h1>TeamLens</h1>
         <div class="tagline" style="background:linear-gradient(90deg,#a78bfa,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;letter-spacing:0.01em;">One lens. Full picture.</div>
       </div>
-      <!-- Bell button — fixed at bottom of sidebar -->
-      <button onclick="toggleNotificationPanel()" id="bellBtn" title="Notifications"
-        style="position:fixed;bottom:120px;left:calc(var(--sidebar-w) - 48px);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;transition:all 0.15s;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-        <span id="bellBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;border:1.5px solid #0b1120;"></span>
-      </button>
-    </div>
 
     <nav class="tabs">
       <!-- Search bar -->
@@ -706,6 +697,17 @@
           <div id="darkToggleThumb" style="position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:white; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
         </div>
       </div>
+      <!-- Bell / Notifications -->
+      <button onclick="toggleNotificationPanel()" id="bellBtn"
+        onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.color='#e2e8f0';"
+        onmouseout="this.style.background='transparent';this.style.color='#64748b';"
+        style="display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:none;border-radius:8px;color:#64748b;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;text-align:left;margin-bottom:2px;transition:all 0.12s;position:relative;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span>Notifications</span>
+        <span id="bellBadge" style="display:none;background:#ef4444;color:white;border-radius:20px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:auto;"></span>
+      </button>
       <!-- Activity Log -->
       <button onclick="openActivityLog()"
         onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.color='#e2e8f0';"
@@ -739,13 +741,13 @@
         <span>Sign out</span>
       </button>
     </div>
-    <!-- Notification Panel — fixed outside sidebar -->
-    <div id="notificationPanel" style="display:none;position:fixed;top:0;left:var(--sidebar-w);width:300px;height:100vh;background:#1e293b;border-right:1px solid #334155;z-index:500;box-shadow:4px 0 24px rgba(0,0,0,0.4);flex-direction:column;">
+    <!-- Notification Panel — fixed, below page header -->
+    <div id="notificationPanel" style="display:none;position:fixed;top:0;right:0;width:320px;height:100vh;background:#1e293b;border-left:1px solid #334155;z-index:300;box-shadow:-4px 0 24px rgba(0,0,0,0.35);flex-direction:column;">
       <div style="padding:16px 16px 12px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
         <div style="font-size:14px;font-weight:700;color:#f1f5f9;">🔔 Notifications</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <button onclick="markAllNotificationsRead()" style="font-size:10.5px;color:#94a3b8;background:transparent;border:none;cursor:pointer;font-family:inherit;padding:2px 6px;">Mark all read</button>
-          <button onclick="toggleNotificationPanel()" style="background:rgba(255,255,255,0.08);border:none;border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#94a3b8;font-size:14px;">✕</button>
+          <button onclick="toggleNotificationPanel()" style="background:rgba(255,255,255,0.08);border:none;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#94a3b8;font-size:14px;">✕</button>
         </div>
       </div>
       <div id="notificationList" style="flex:1;overflow-y:auto;padding:6px 0;"></div>
@@ -824,7 +826,7 @@
             <button class="action" style="padding:5px 12px; font-size:12px; background:linear-gradient(135deg,#dc2626,#b91c1c); box-shadow:0 2px 6px rgba(220,38,38,0.35);" onclick="bulkDelete()">🗑 Delete</button>
             <button class="ghost" style="padding:5px 10px; font-size:12px;" onclick="clearBulkSelection()">✕</button>
           </div>
-          <button class="action" onclick="openProjectModal()">+ Add release item</button>
+          <button id="addReleaseBtn" class="action" onclick="openProjectModal()">+ Add release item</button>
         </div>
       </div>
       <div style="overflow-x:auto;">
@@ -861,6 +863,7 @@
               <th style="white-space:nowrap;">QA Go ahead date</th>
               <th style="white-space:nowrap;">QA completion date</th>
               <th style="white-space:nowrap;">Owner</th>
+              <th style="white-space:nowrap;">QA Lead</th>
               <th style="white-space:nowrap; min-width:110px;">
                 Status
                 <select onchange="setReleaseStatusFilter(this.value || null)" id="releaseStatusSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
@@ -3034,8 +3037,11 @@ async function loadState() {
       state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
       state.notifications           = Array.isArray(parsed.notifications)           ? parsed.notifications           : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
-      // Update bell badge after state loads
-      setTimeout(() => updateBellBadge(), 100);
+      setTimeout(() => {
+        checkMilestoneNotifications();
+        checkBuildDelayNotifications();
+        updateBellBadge();
+      }, 300);
     } else {
       el.textContent = 'no data yet — start by adding people';
     }
@@ -3325,6 +3331,7 @@ async function inheritPermissions(targetRowId, sourceUserId) {
 // ====================== DASHBOARD ======================
 function renderDashboard() {
   checkMilestoneNotifications();
+  checkBuildDelayNotifications();
   updateBellBadge();
   const el = document.getElementById('dashboardContent');
   if (!el) return;
@@ -3467,7 +3474,7 @@ function renderDashboard() {
         if (!proj) return false;
         const currentPerson = state.people.find(p => p.email === currentUserEmail);
         if (!currentPerson) return false;
-        if (proj.goAheadBy === currentPerson.id) return true;
+        if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
         const plan = state.testPlans && state.testPlans[proj.id];
         if (plan) {
           if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds && r.assigneeIds.includes(currentPerson.id)))) return true;
@@ -3665,7 +3672,7 @@ function renderAlertsHtml() {
     // Check if current user is associated with this project
     const isAssociated = isLeadOrAdmin || (() => {
       if (!currentPerson) return false;
-      if (proj.goAheadBy === currentPerson.id) return true;
+      if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
       if (plan) {
         if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
         if ((plan.testPrepAssigneeIds||[]).includes(currentPerson.id)) return true;
@@ -6611,7 +6618,10 @@ function saveTestRow() {
   if (assigneeId && assigneeId !== (state.people.find(p=>p.email===currentUserEmail)?.id)) {
     const assignee = state.people.find(p => p.id === assigneeId);
     const projName = state.projects.find(p => p.id === selectedTestPlanProjectId)?.name || '';
-    if (assignee) addNotification('assigned', `You were assigned to ${name}`, `${projName} — by ${currentUserEmail}`, selectedTestPlanProjectId);
+    // Only add if the logged-in user IS the assignee
+    if (assignee && assignee.email === currentUserEmail) {
+      addNotification('assigned', `You were assigned to ${name}`, `${projName}`, selectedTestPlanProjectId);
+    }
   }
   syncTestPlanToProjects();
   saveState();
@@ -7575,11 +7585,19 @@ function exportSummaryReport() {
   };
 
   const rowsHtml = projects.map(proj => {
-    // Working on it — from Daily Plan
-    const workerNames = getWorkingOnIt(proj.name);
-    const members = workerNames.length > 0
-      ? workerNames.map(n => `<span style="display:inline-block; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px; font-size:11px; margin:1px; color:#334155;">${escapeHtml(n)}</span>`).join('')
-      : '<span style="color:#94a3b8; font-style:italic;">—</span>';
+    // Working on it — grouped by Lead / QA
+    const grouped = getWorkingOnItGrouped(proj.name);
+    let members = '';
+    if (grouped.leads.length === 0 && grouped.qas.length === 0) {
+      members = '<span style="color:#94a3b8;font-style:italic;">—</span>';
+    } else {
+      if (grouped.leads.length > 0) {
+        members += `<div style="margin-bottom:3px;"><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;display:block;margin-bottom:2px;">Lead</span>${grouped.leads.map(n=>`<span style="display:inline-block;background:#ede9fe;border:1px solid #c4b5fd;border-radius:5px;padding:2px 8px;font-size:11px;margin:1px;color:#6d28d9;">${escapeHtml(n)}</span>`).join('')}</div>`;
+      }
+      if (grouped.qas.length > 0) {
+        members += `<div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#0ea5e9;display:block;margin-bottom:2px;">QA</span>${grouped.qas.map(n=>`<span style="display:inline-block;background:#e0f2fe;border:1px solid #bae6fd;border-radius:5px;padding:2px 8px;font-size:11px;margin:1px;color:#0369a1;">${escapeHtml(n)}</span>`).join('')}</div>`;
+      }
+    }
 
     const statusColors = {
       'not started': '#dbeafe:#1d4ed8',
@@ -7738,6 +7756,9 @@ function buildDelayBadgeReport(plannedDate, actualDate) {
 function renderProjects() {
   const tbody = document.getElementById('projectTableBody');
   const empty = document.getElementById('projectEmpty');
+  // Show/hide add button based on permission
+  const addBtn = document.getElementById('addReleaseBtn');
+  if (addBtn) addBtn.style.display = canEdit('projects') ? '' : 'none';
 
   const POD_COLORS = {
     'WinGuardians': ['#dbeafe','#1d4ed8'],
@@ -7836,11 +7857,34 @@ function renderProjects() {
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
       <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(p.goAheadBy || '—')}</td>
+      <td style="font-size:12px;">${(() => {
+        const plan = state.testPlans && state.testPlans[p.id];
+        if (!plan) return '<span style="color:var(--text-faint);">—</span>';
+        // Collect all assigned person IDs from test plan
+        const assignedIds = new Set();
+        (plan.rows || []).forEach(r => {
+          if (r.assigneeId) assignedIds.add(r.assigneeId);
+          (r.assigneeIds || []).forEach(id => assignedIds.add(id));
+        });
+        (plan.testPrepAssigneeIds || []).forEach(id => assignedIds.add(id));
+        (plan.testEnvAssigneeIds  || []).forEach(id => assignedIds.add(id));
+        // Filter only those with Lead in title
+        const leads = [...assignedIds]
+          .map(id => state.people.find(per => per.id === id))
+          .filter(per => per && per.title && per.title.toLowerCase().includes('lead'));
+        if (leads.length === 0) return '<span style="color:var(--text-faint);">—</span>';
+        return leads.map(per => {
+          const initials = per.name.split(' ').map(x=>x[0]?.toUpperCase()||'').join('').slice(0,2);
+          return `<span style="display:inline-flex;align-items:center;gap:5px;margin:1px 0;">
+            <span style="width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${initials}</span>
+            <span style="color:var(--text-dim);font-size:11.5px;font-weight:500;">${escapeHtml(per.name)}</span>
+          </span>`;
+        }).join('<br>');
+      })()}</td>
       <td>${p.status ? `<span class="badge ${statusBadgeClass(p.status)}">${escapeHtml(p.status)}</span>` : '—'}</td>
       <td style="text-align:right; white-space:nowrap;">
         <button class="icon-btn" onclick="openNotesModal('${p.id}','${escapeHtml(p.name).replace(/'/g,"\\'")}');" title="Notes">📝</button>
-        <button class="icon-btn edit" onclick="openProjectModal('${p.id}')">✎</button>
-        <button class="icon-btn" onclick="deleteProject('${p.id}')">✕</button>
+        ${canEdit('projects') ? `<button class="icon-btn edit" onclick="openProjectModal('${p.id}')">✎</button><button class="icon-btn" onclick="deleteProject('${p.id}')">✕</button>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -7895,28 +7939,46 @@ function getWorkingOnIt(projectName) {
   const today = new Date();
   const window30Before = new Date(today); window30Before.setDate(today.getDate() - 30);
   const window30After  = new Date(today); window30After.setDate(today.getDate() + 30);
-
   const from = toDateKey(window30Before);
   const to   = toDateKey(window30After);
-
   const personIds = new Set();
-
   state.dailyPlan.forEach(entry => {
     if (entry.project !== projectName) return;
-    // entry has startDate/endDate or single date
     const entryStart = entry.startDate || entry.date || '';
     const entryEnd   = entry.endDate   || entry.date || '';
     if (!entryStart) return;
-    // Check overlap with our window
-    if (entryEnd >= from && entryStart <= to) {
-      personIds.add(entry.personId);
-    }
+    if (entryEnd >= from && entryStart <= to) personIds.add(entry.personId);
   });
-
   return [...personIds]
     .map(id => state.people.find(p => p.id === id))
     .filter(Boolean)
     .map(p => p.name);
+}
+
+// Returns { leads: [...], qas: [...] } for Working on it column
+function getWorkingOnItGrouped(projectName) {
+  const today = new Date();
+  const window30Before = new Date(today); window30Before.setDate(today.getDate() - 30);
+  const window30After  = new Date(today); window30After.setDate(today.getDate() + 30);
+  const from = toDateKey(window30Before);
+  const to   = toDateKey(window30After);
+  const personIds = new Set();
+  state.dailyPlan.forEach(entry => {
+    if (entry.project !== projectName) return;
+    const entryStart = entry.startDate || entry.date || '';
+    const entryEnd   = entry.endDate   || entry.date || '';
+    if (!entryStart) return;
+    if (entryEnd >= from && entryStart <= to) personIds.add(entry.personId);
+  });
+  const leads = [], qas = [];
+  [...personIds].forEach(id => {
+    const person = state.people.find(p => p.id === id);
+    if (!person) return;
+    const isLead = person.title && person.title.toLowerCase().includes('lead');
+    if (isLead) leads.push(person.name);
+    else qas.push(person.name);
+  });
+  return { leads, qas };
 }
 
 function setDevPodFilter(pod) {
@@ -8104,26 +8166,49 @@ function switchTimelineView(view) {
 }
 
 // ── Notification System ─────────────────────────────────────
+function isUserAssociatedWithProject(projectId) {
+  if (currentUserRole === 'admin' || isCurrentUserLead()) return true;
+  const proj = state.projects.find(p => p.id === projectId);
+  if (!proj) return false;
+  const currentPerson = state.people.find(p => p.email === currentUserEmail);
+  if (!currentPerson) return false;
+  // goAheadBy stores person NAME (not ID)
+  if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
+  const plan = state.testPlans && state.testPlans[projectId];
+  if (plan) {
+    if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
+    if ((plan.testPrepAssigneeIds||[]).includes(currentPerson.id)) return true;
+    if ((plan.testEnvAssigneeIds||[]).includes(currentPerson.id))  return true;
+  }
+  return false;
+}
+
 function addNotification(type, title, detail, projectId) {
   if (!state.notifications) state.notifications = [];
+
+  // Role-based filter — QA only gets notifications for their associated projects
+  if (projectId && type !== 'assigned') {
+    if (!isUserAssociatedWithProject(projectId)) return;
+  }
+
   // Avoid duplicates for same type+project today
   const today = toDateKey(new Date());
   const exists = state.notifications.some(n =>
     n.type === type && n.projectId === projectId &&
-    n.createdAt && n.createdAt.startsWith(today)
+    n.createdAt && n.createdAt.startsWith(today) &&
+    n.title === title
   );
   if (exists) return;
+
   state.notifications.unshift({
     id: uid(), type, title, detail,
     projectId: projectId || null,
     read: false,
     createdAt: new Date().toISOString()
   });
-  // Keep last 50
   if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
   saveState();
   updateBellBadge();
-  // If panel is open, refresh it
   const panel = document.getElementById('notificationPanel');
   if (panel && panel.style.display === 'flex') renderNotificationList();
 }
@@ -8133,7 +8218,7 @@ function updateBellBadge() {
   if (!badge) return;
   const unread = (state.notifications || []).filter(n => !n.read).length;
   if (unread > 0) {
-    badge.style.display = 'flex';
+    badge.style.display = 'inline-block';
     badge.textContent = unread > 9 ? '9+' : unread;
   } else {
     badge.style.display = 'none';
@@ -8170,14 +8255,26 @@ function renderNotificationList() {
     return;
   }
 
+  // Lead/Admin sees all, QA sees only associated
+  const isLeadAdmin = currentUserRole === 'admin' || isCurrentUserLead();
+  const filtered = isLeadAdmin ? notifs : notifs.filter(n => {
+    if (!n.projectId) return true;
+    return isUserAssociatedWithProject(n.projectId);
+  });
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div style="padding:32px 16px;text-align:center;color:#64748b;font-size:12.5px;font-style:italic;">No notifications yet</div>`;
+    return;
+  }
+
   const TYPE_META = {
-    'review_done':    { icon:'✅', color:'#10b981', bg:'rgba(16,185,129,0.12)' },
-    'build_delay':    { icon:'⚠️', color:'#f59e0b', bg:'rgba(245,158,11,0.12)' },
-    'build_early':    { icon:'🎉', color:'#10b981', bg:'rgba(16,185,129,0.12)' },
-    'milestone':      { icon:'📅', color:'#3b82f6', bg:'rgba(59,130,246,0.12)' },
-    'assigned':       { icon:'👤', color:'#a855f7', bg:'rgba(168,85,247,0.12)' },
-    'review_request': { icon:'📋', color:'#f59e0b', bg:'rgba(245,158,11,0.12)' },
-    'review_reset':   { icon:'🔄', color:'#ef4444', bg:'rgba(239,68,68,0.12)' },
+    'review_done':    { icon:'✅', color:'#10b981', bg:'rgba(16,185,129,0.12)', tab:'testplan' },
+    'build_delay':    { icon:'⚠️', color:'#f59e0b', bg:'rgba(245,158,11,0.12)', tab:'projects' },
+    'build_early':    { icon:'🎉', color:'#10b981', bg:'rgba(16,185,129,0.12)', tab:'projects' },
+    'milestone':      { icon:'📅', color:'#3b82f6', bg:'rgba(59,130,246,0.12)', tab:'testplan' },
+    'assigned':       { icon:'👤', color:'#a855f7', bg:'rgba(168,85,247,0.12)', tab:'testplan' },
+    'review_request': { icon:'📋', color:'#f59e0b', bg:'rgba(245,158,11,0.12)', tab:'testplan' },
+    'review_reset':   { icon:'🔄', color:'#ef4444', bg:'rgba(239,68,68,0.12)',  tab:'testplan' },
   };
 
   function timeAgo(iso) {
@@ -8190,21 +8287,46 @@ function renderNotificationList() {
     return `${Math.floor(h/24)}d ago`;
   }
 
-  el.innerHTML = notifs.map(n => {
-    const meta = TYPE_META[n.type] || { icon:'🔔', color:'#64748b', bg:'rgba(100,116,139,0.1)' };
+  el.innerHTML = filtered.map(n => {
+    const meta = TYPE_META[n.type] || { icon:'🔔', color:'#64748b', bg:'rgba(100,116,139,0.1)', tab:'dashboard' };
     const safeTitle  = (n.title  || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const safeDetail = (n.detail || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return `<div onclick="markNotificationRead('${n.id}')" style="padding:11px 16px;border-bottom:1px solid #1e293b;cursor:pointer;background:${n.read?'transparent':meta.bg};transition:background 0.1s;display:flex;gap:10px;align-items:flex-start;"
-      onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${n.read?'transparent':meta.bg}'">
+    const hoverBg = 'rgba(255,255,255,0.06)';
+    const normalBg = n.read ? 'transparent' : meta.bg;
+    return `<div onclick="handleNotificationClick('${n.id}','${meta.tab}','${n.projectId||''}')"
+      style="padding:11px 16px;border-bottom:1px solid #1e293b;cursor:pointer;background:${normalBg};transition:background 0.1s;display:flex;gap:10px;align-items:flex-start;"
+      onmouseover="this.style.background='${hoverBg}'" onmouseout="this.style.background='${normalBg}'">
       <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${meta.icon}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:12.5px;font-weight:${n.read?'400':'600'};color:${n.read?'#94a3b8':'#e2e8f0'};line-height:1.4;">${safeTitle}</div>
         <div style="font-size:11px;color:#64748b;margin-top:2px;line-height:1.4;">${safeDetail}</div>
-        <div style="font-size:10px;color:#475569;margin-top:4px;">${timeAgo(n.createdAt)}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+          <span style="font-size:10px;color:#475569;">${timeAgo(n.createdAt)}</span>
+          <span style="font-size:10px;color:${meta.color};opacity:0.8;">→ ${meta.tab === 'testplan' ? 'Test Plan' : meta.tab === 'projects' ? 'Release' : 'Dashboard'}</span>
+        </div>
       </div>
       ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#7c3aed;flex-shrink:0;margin-top:4px;"></div>' : ''}
     </div>`;
   }).join('');
+}
+
+function handleNotificationClick(id, tab, projectId) {
+  // Mark as read
+  const n = (state.notifications||[]).find(x => x.id === id);
+  if (n) { n.read = true; saveState(); updateBellBadge(); }
+  // Close panel
+  const panel = document.getElementById('notificationPanel');
+  if (panel) panel.style.display = 'none';
+  // Navigate to tab
+  if (tab === 'testplan' && projectId) {
+    // Go directly to test plan with that project selected
+    goToTestPlanForReview(projectId);
+  } else if (tab === 'projects' && projectId) {
+    // Go to release tab
+    switchTabTo('projects');
+  } else {
+    switchTabTo(tab || 'dashboard');
+  }
 }
 
 function markNotificationRead(id) {
@@ -8213,6 +8335,26 @@ function markNotificationRead(id) {
 }
 
 // Check milestone approaching (within 2 days) — call on renderDashboard
+function checkBuildDelayNotifications() {
+  // Generate notifications from existing buildDelayNotifications state
+  (state.buildDelayNotifications || []).forEach(n => {
+    if (n.acknowledged) return;
+    if (n.type === 'late') {
+      addNotification('build_delay',
+        `Build delayed ${n.delayDays}d — ${n.projectName}`,
+        `Planned: ${formatDateDisplay(n.plannedDate)} · Actual: ${formatDateDisplay(n.actualDate)}`,
+        n.projectId
+      );
+    } else if (n.type === 'early') {
+      addNotification('build_early',
+        `Build arrived ${n.delayDays}d early — ${n.projectName}`,
+        `Milestones shifted earlier`,
+        n.projectId
+      );
+    }
+  });
+}
+
 function checkMilestoneNotifications() {
   const today = toDateKey(new Date());
   const currentPerson = state.people.find(p => p.email === currentUserEmail);
@@ -8225,7 +8367,7 @@ function checkMilestoneNotifications() {
     const isLeadOrAdmin = currentUserRole === 'admin' || isCurrentUserLead();
     if (!isLeadOrAdmin && currentPerson) {
       const associated =
-        proj.goAheadBy === currentPerson.id ||
+        proj.goAheadBy === currentPerson.name ||
         plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id)) ||
         (plan.testPrepAssigneeIds||[]).includes(currentPerson.id) ||
         (plan.testEnvAssigneeIds||[]).includes(currentPerson.id);
@@ -9107,11 +9249,25 @@ function renderSummary() {
   const pageItems = projects.slice(startIdx, startIdx + SUMMARY_PAGE_SIZE);
 
   tbody.innerHTML = pageItems.map(proj => {
-    // Working on it — from Daily Plan (last 30 days + next 30 days)
-    const workerNames = getWorkingOnIt(proj.name);
-    const members = workerNames.length > 0
-      ? workerNames.map(n => `<span style="display:inline-block; background:var(--accent-dim); color:var(--accent); border-radius:5px; padding:2px 8px; font-size:11px; font-weight:600; margin:1px;">${escapeHtml(n)}</span>`).join('')
-      : '<span style="color:var(--text-faint); font-size:12px;">—</span>';
+    // Working on it — from Daily Plan, grouped by Lead / QA
+    const grouped = getWorkingOnItGrouped(proj.name);
+    let members = '';
+    if (grouped.leads.length === 0 && grouped.qas.length === 0) {
+      members = '<span style="color:var(--text-faint); font-size:12px;">—</span>';
+    } else {
+      if (grouped.leads.length > 0) {
+        members += `<div style="margin-bottom:3px;">
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#7c3aed;display:block;margin-bottom:2px;">Lead</span>
+          ${grouped.leads.map(n => `<span style="display:inline-block;background:#ede9fe;color:#6d28d9;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600;margin:1px;">${escapeHtml(n)}</span>`).join('')}
+        </div>`;
+      }
+      if (grouped.qas.length > 0) {
+        members += `<div>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#0ea5e9;display:block;margin-bottom:2px;">QA</span>
+          ${grouped.qas.map(n => `<span style="display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600;margin:1px;">${escapeHtml(n)}</span>`).join('')}
+        </div>`;
+      }
+    }
 
     const jiraId = extractJiraId(proj.jiraUrl);
     const jiraCell = jiraId
