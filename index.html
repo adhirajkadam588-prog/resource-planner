@@ -209,19 +209,9 @@
     background: var(--bg);
   }
 
-  header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 28px; gap: 16px;
-  }
-  header h2.page-title {
-    font-family: 'Inter Tight', sans-serif;
-    font-size: 24px; font-weight: 800; margin: 0;
-    letter-spacing: -0.03em; color: var(--text);
-    background: linear-gradient(135deg, var(--text) 0%, var(--text-dim) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  header .page-desc { color: var(--text-faint); font-size: 12.5px; margin-top: 5px; max-width: 520px; line-height: 1.6; }
-  header .right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  header { margin-bottom: 0; }
+  header h2.page-title { display: none; }
+  header .page-desc { display: none; }
 
   /* ── Buttons ── */
   button.action {
@@ -742,10 +732,14 @@
   </aside>
 
   <div class="main">
-  <header>
-    <div>
-      <h2 class="page-title" id="pageTitle">People</h2>
-      <div class="page-desc" id="pageDesc">Team roster available for resource planning</div>
+  <header id="pageHeader" style="margin-bottom:24px;">
+    <div id="pageHeaderCard" style="width:100%;border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden;background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+      <div id="pageHeaderIcon" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;backdrop-filter:blur(4px);">👥</div>
+      <div style="flex:1;min-width:0;">
+        <h2 id="pageTitle" style="font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:800;margin:0;letter-spacing:-0.03em;color:white;">People</h2>
+        <div id="pageDesc" style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-top:3px;line-height:1.5;">Team roster available for resource planning</div>
+      </div>
+      <div style="position:absolute;right:-10px;top:-10px;font-size:100px;opacity:0.06;line-height:1;pointer-events:none;" id="pageHeaderBg">👥</div>
     </div>
   </header>
 
@@ -5405,20 +5399,48 @@ function renderAll() {
 }
 
 // Optimized tab switcher — only render if dirty
+const TAB_META = {
+  'dashboard':  { icon:'🏠', grad:'linear-gradient(135deg,#4f46e5,#7c3aed)' },
+  'people':     { icon:'👥', grad:'linear-gradient(135deg,#7c3aed,#a855f7)' },
+  'projects':   { icon:'📁', grad:'linear-gradient(135deg,#0ea5e9,#2563eb)' },
+  'testplan':   { icon:'✅', grad:'linear-gradient(135deg,#10b981,#059669)' },
+  'leave':      { icon:'🏖️', grad:'linear-gradient(135deg,#f59e0b,#d97706)' },
+  'holidays':   { icon:'🎉', grad:'linear-gradient(135deg,#ec4899,#db2777)' },
+  'dailyplan':  { icon:'📅', grad:'linear-gradient(135deg,#6366f1,#4f46e5)' },
+  'vmrepo':     { icon:'🖥️', grad:'linear-gradient(135deg,#06b6d4,#0891b2)' },
+  'admin':      { icon:'⚙️', grad:'linear-gradient(135deg,#64748b,#475569)' },
+  'summary':    { icon:'📊', grad:'linear-gradient(135deg,#22d3ee,#0ea5e9)' },
+  'archive':    { icon:'🔐', grad:'linear-gradient(135deg,#f59e0b,#b45309)' },
+  'knowledge':  { icon:'🚀', grad:'linear-gradient(135deg,#10b981,#3b82f6)' },
+  'help':       { icon:'💡', grad:'linear-gradient(135deg,#fbbf24,#f59e0b)' },
+};
+
+function updatePageHeader(tab, title, desc) {
+  const meta = TAB_META[tab] || { icon:'📋', grad:'linear-gradient(135deg,#4f46e5,#7c3aed)' };
+  const card = document.getElementById('pageHeaderCard');
+  const icon = document.getElementById('pageHeaderIcon');
+  const bg   = document.getElementById('pageHeaderBg');
+  const ttl  = document.getElementById('pageTitle');
+  const dsc  = document.getElementById('pageDesc');
+  if (card) card.style.background = meta.grad;
+  if (icon) icon.textContent = meta.icon;
+  if (bg)   bg.textContent   = meta.icon;
+  if (ttl)  ttl.textContent  = title;
+  if (dsc)  dsc.textContent  = desc;
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
     _activeTab = tab;
-    localStorage.setItem('tl_active_tab', tab); // remember last tab
+    localStorage.setItem('tl_active_tab', tab);
 
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
     document.getElementById('tab-' + tab).style.display = 'block';
-    document.getElementById('pageTitle').textContent = btn.dataset.title || btn.textContent.trim();
-    document.getElementById('pageDesc').textContent = btn.dataset.desc || '';
+    updatePageHeader(tab, btn.dataset.title || btn.textContent.trim(), btn.dataset.desc || '');
 
-    // Render if dirty or first visit
     if (_dirtyTabs.has(tab)) {
       _dirtyTabs.delete(tab);
       renderTab(tab);
@@ -6040,7 +6062,8 @@ function saveProject() {
       }
 
       // ---- Milestone shift logic ----
-      const plannedBuild = proj.buildDate;
+      // Use manually entered plannedBuildDate first, fallback to test-plan synced buildDate
+      const plannedBuild = proj.plannedBuildDate || proj.buildDate;
       if (actualBuildDate && plannedBuild && actualBuildDate !== prevActualBuild) {
         const isLateDate  = new Date(actualBuildDate+'T00:00:00') > new Date(plannedBuild+'T00:00:00');
         const isEarlyDate = new Date(actualBuildDate+'T00:00:00') < new Date(plannedBuild+'T00:00:00');
@@ -7528,7 +7551,7 @@ function exportSummaryReport() {
         <td style="padding:8px 10px; font-weight:600; color:#0f172a; font-size:12px; white-space:nowrap;">${escapeHtml(proj.name)}</td>
         <td style="padding:8px 10px; white-space:nowrap;">${proj.devPod ? `<span style="background:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[0]};color:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[1]};padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;">${escapeHtml(proj.devPod)}</span>` : '<span style="color:#94a3b8;">—</span>'}</td>
         <td style="padding:8px 10px; white-space:nowrap;">${jiraCell}</td>
-        <td style="padding:8px 10px; text-align:center; white-space:nowrap;">${buildDelayBadgeReport(proj.buildDate, proj.actualBuildDate)}</td>
+        <td style="padding:8px 10px; text-align:center; white-space:nowrap;">${buildDelayBadgeReport(proj.plannedBuildDate || proj.buildDate, proj.actualBuildDate)}</td>
         <td style="padding:8px 10px; text-align:center; white-space:nowrap;">
           ${proj.effort ? `<span style="font-weight:700; color:#1e3a8a; font-size:15px;">${proj.effort}</span><span style="font-size:11px; color:#94a3b8; margin-left:3px;">PDs</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
@@ -7734,7 +7757,12 @@ function renderProjects() {
       <td style="white-space:nowrap;">
         ${p.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 10px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(p.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
       </td>
-      <td style="font-weight:500;">${escapeHtml(p.name)}</td>
+      <td>
+        <span onclick="goToTestPlanForReview('${p.id}')" title="Click to open test plan"
+          style="font-weight:600;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:13px;">
+          ${escapeHtml(p.name)}<span style="font-size:10px;opacity:0.55;">↗</span>
+        </span>
+      </td>
       <td>${jiraCell}</td>
       <td>${podCell}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${(p.plannedBuildDate || p.buildDate) ? formatDateDisplay(p.plannedBuildDate || p.buildDate) : '—'}</td>
@@ -7744,7 +7772,7 @@ function renderProjects() {
           : `<span style="color:var(--text-faint);">—</span>`}
       </td>
       <td style="text-align:center; font-size:12px;">
-        ${buildDelayBadge(p.buildDate, p.actualBuildDate)}
+        ${buildDelayBadge(p.plannedBuildDate || p.buildDate, p.actualBuildDate)}
       </td>
       <td style="font-family:var(--mono);">${p.effort ? p.effort + ' PDs' : '—'}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
@@ -8744,7 +8772,7 @@ function renderSummary() {
         <td>${podCell}</td>
         <td>${jiraCell}</td>
         <td style="text-align:center;">
-          ${buildDelayBadge(proj.buildDate, proj.actualBuildDate)}
+          ${buildDelayBadge(proj.plannedBuildDate || proj.buildDate, proj.actualBuildDate)}
         </td>
         <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' PDs' : '—'}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.goAheadDate)}</td>
