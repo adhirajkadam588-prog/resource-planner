@@ -3563,7 +3563,8 @@ function renderDashboard() {
       const allNotifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
 
       const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
-        const proj = state.projects.find(p => p.name === n.projectName);
+        const proj = state.projects.find(p => p.id === n.projectId) ||
+                     state.projects.find(p => p.name === n.projectName);
         if (!proj) return false;
         return isUserAssociatedWithProject(proj.id);
       });
