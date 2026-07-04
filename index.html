@@ -4249,9 +4249,100 @@ function isCurrentUserQA() {
   return !title.includes('lead') && !title.includes('manager') && !title.includes('pm');
 }
 
+function showValidationErrors(title, errors) {
+  // Remove existing if any
+  document.getElementById('validationErrorPanel')?.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'validationErrorPanel';
+  panel.style.cssText = `
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:var(--panel);border:1px solid #fca5a5;border-radius:16px;
+    padding:24px 28px;z-index:1000;max-width:440px;width:90%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  `;
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="width:36px;height:36px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🚫</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);">${title}</div>
+        <div style="font-size:11.5px;color:var(--text-faint);margin-top:1px;">Please fix these before requesting review</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:20px;">
+      ${errors.map(e=>`
+        <div style="display:flex;align-items:flex-start;gap:8px;background:var(--panel-2);border-radius:8px;padding:8px 12px;border-left:3px solid #ef4444;">
+          <span style="font-size:12.5px;color:var(--text);line-height:1.5;">${e}</span>
+        </div>`).join('')}
+    </div>
+    <button onclick="document.getElementById('validationErrorPanel').remove()"
+      style="width:100%;padding:9px;border-radius:9px;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
+      Got it — I'll fix these
+    </button>
+  `;
+
+  // Backdrop
+  const backdrop = document.createElement('div');
+  backdrop.id = 'validationBackdrop';
+  backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:999;';
+  backdrop.onclick = () => { panel.remove(); backdrop.remove(); };
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(panel);
+}
+
 function requestReview(projectId) {
   const proj = state.projects.find(p => p.id === projectId);
   if (!proj) return;
+
+  const plan = state.testPlans?.[projectId];
+
+  // ── Validation ──
+  const errors = [];
+
+  // 1. At least one environment row
+  if (!plan || !plan.rows || plan.rows.length === 0) {
+    errors.push('📋 Add at least one test environment row');
+  }
+
+  // 2. Each row must have effort
+  if (plan && plan.rows) {
+    const missingEffort = plan.rows.filter(r => !r.effort || parseFloat(r.effort) <= 0);
+    if (missingEffort.length > 0) {
+      errors.push(`⏱ Missing effort in: ${missingEffort.map(r=>r.name||'row').join(', ')}`);
+    }
+    // 3. Each row must have assignee
+    const missingAssignee = plan.rows.filter(r => !r.assigneeId && (!r.assigneeIds || r.assigneeIds.length === 0));
+    if (missingAssignee.length > 0) {
+      errors.push(`👤 Missing assignee in: ${missingAssignee.map(r=>r.name||'row').join(', ')}`);
+    }
+  }
+
+  // 4. Milestone dates — all must be filled
+  const ms = plan?.milestones || {};
+  const milestoneChecks = [
+    [ms.buildPickup,         'Build pickup date'],
+    [ms.bvtCompletion,       'BVT completion date'],
+    [ms.execNoBuffer,        'Execution without buffer date'],
+    [ms.execWithBuffer,      'Execution with buffer date'],
+    [ms.mergedBuildGoAhead,  'Go ahead date'],
+  ];
+  const missingMs = milestoneChecks.filter(([val]) => !val).map(([,label]) => label);
+  if (missingMs.length > 0) {
+    errors.push(`📅 Missing milestone dates: ${missingMs.join(', ')}`);
+  }
+
+  // 5. Test prep effort
+  if (!plan?.testPrepEffort || parseFloat(plan.testPrepEffort) <= 0) {
+    errors.push('📋 Test prep effort is required');
+  }
+
+  if (errors.length > 0) {
+    // Show styled error modal
+    const msg = `Before requesting review, please fill in:\n\n${errors.map(e=>`• ${e}`).join('\n')}`;
+    showValidationErrors('Cannot Request Review', errors);
+    return;
+  }
 
   if (!state.reviewRequests) state.reviewRequests = [];
 
@@ -4275,6 +4366,7 @@ function requestReview(projectId) {
   markDirty('dashboard');
   renderTab('dashboard');
   renderReviewPanel(state.testPlans?.[projectId]);
+  addNotification('review_request', `Review requested — ${proj.name}`, `Requested by ${currentUserEmail}`, projectId);
   showToastMsg(`✅ Review requested for "${proj.name}" — Lead will see it on Dashboard`);
 }
 
