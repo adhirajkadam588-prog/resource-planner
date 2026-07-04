@@ -4341,9 +4341,8 @@ function showValidationErrors(title, errors) {
 }
 
 function requestReview(projectId) {
-  try {
   const proj = state.projects.find(p => p.id === projectId);
-  if (!proj) { showToastMsg('Project not found'); return; }
+  if (!proj) { showToastMsg('⚠ Project not found'); return; }
 
   const plan = (state.testPlans && state.testPlans[projectId]) || null;
   const ms   = (plan && plan.milestones) || {};
@@ -4351,18 +4350,13 @@ function requestReview(projectId) {
 
   const errors = [];
 
-  // 1. At least one environment row
-  if (rows.length === 0) {
+  if (rows.length === 0)
     errors.push('📋 Add at least one test environment row');
-  }
 
-  // 2. Each row must have effort > 0
   const missingEffort = rows.filter(r => !r.effort || parseFloat(r.effort) <= 0);
-  if (missingEffort.length > 0) {
+  if (missingEffort.length > 0)
     errors.push('⏱ Missing effort in: ' + missingEffort.map(r => r.name || 'row').join(', '));
-  }
 
-  // 4. Milestone dates
   const msChecks = [
     [ms.buildPickup,        'Build pickup date'],
     [ms.bvtCompletion,      'BVT completion date'],
@@ -4371,14 +4365,11 @@ function requestReview(projectId) {
     [ms.mergedBuildGoAhead, 'Go ahead date'],
   ];
   const missingMs = msChecks.filter(([v]) => !v).map(([,l]) => l);
-  if (missingMs.length > 0) {
-    errors.push('📅 Missing milestone dates: ' + missingMs.join(', '));
-  }
+  if (missingMs.length > 0)
+    errors.push('📅 Missing: ' + missingMs.join(', '));
 
-  // 5. Test prep effort
-  if (!plan || !plan.testPrepEffort || parseFloat(plan.testPrepEffort) <= 0) {
+  if (!plan || !plan.testPrepEffort || parseFloat(plan.testPrepEffort) <= 0)
     errors.push('📋 Test prep effort is required');
-  }
 
   if (errors.length > 0) {
     showValidationErrors('Cannot Request Review', errors);
@@ -4389,7 +4380,7 @@ function requestReview(projectId) {
 
   const existing = state.reviewRequests.find(r => r.projectId === projectId && r.status === 'pending');
   if (existing) {
-    showToastMsg('Review already requested for this item');
+    showToastMsg('⚠ Review already requested — waiting for lead');
     return;
   }
 
@@ -4402,25 +4393,11 @@ function requestReview(projectId) {
     status: 'pending'
   });
 
-  // Notify the QA Lead / Lead associated with this project
-  const qaLeadName = proj.qaLead || '';
-  const qaLeadPerson = state.people.find(p => p.name === qaLeadName);
-  if (qaLeadPerson && qaLeadPerson.email === currentUserEmail) {
-    // don't notify yourself
-  } else {
-    addNotification('review_request', 'Review requested — ' + proj.name, 'Requested by ' + (currentUserEmail.split('@')[0]) + ' · Please review the test plan', projectId);
-  }
-
   saveState();
   markDirty('dashboard');
   renderTab('dashboard');
   renderReviewPanel(state.testPlans[projectId]);
-  addNotification('review_request', 'Review requested — ' + proj.name, 'Requested by ' + currentUserEmail, projectId);
   showToastMsg('✅ Review requested for "' + proj.name + '" — Lead will see it on Dashboard');
-  } catch(e) {
-    console.error('requestReview error:', e);
-    showToastMsg('Error: ' + e.message);
-  }
 }
 
 function dismissReviewRequest(requestId) {
