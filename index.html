@@ -3324,7 +3324,26 @@ function renderDashboard() {
 
       <!-- Build Delay Notifications -->
     ${(() => {
-      const notifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
+      const isLeadOrAdmin = currentUserRole === 'admin' || isLead;
+      const allNotifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
+
+      // Filter based on role
+      const notifs = isLeadOrAdmin ? allNotifs : allNotifs.filter(n => {
+        const proj = state.projects.find(p => p.name === n.projectName);
+        if (!proj) return false;
+        const currentPerson = state.people.find(p => p.email === currentUserEmail);
+        if (!currentPerson) return false;
+        // Owner
+        if (proj.goAheadBy === currentPerson.id) return true;
+        // Test plan assigned
+        const plan = state.testPlans && state.testPlans[proj.id];
+        if (plan) {
+          if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds && r.assigneeIds.includes(currentPerson.id)))) return true;
+          if (plan.testPrepAssigneeIds && plan.testPrepAssigneeIds.includes(currentPerson.id)) return true;
+          if (plan.testEnvAssigneeIds  && plan.testEnvAssigneeIds.includes(currentPerson.id))  return true;
+        }
+        return false;
+      });
       if (notifs.length === 0) return '';
       return `<div class="panel" style="margin-bottom:18px;border:1.5px solid #fbbf24;background:linear-gradient(135deg,rgba(251,191,36,0.06),rgba(245,158,11,0.03));">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -5590,68 +5609,72 @@ function saveProject() {
       }
 
       // ---- Milestone shift logic ----
-      // Only run if actualBuildDate changed and there's a planned buildDate
-      const plannedBuild = proj.buildDate; // synced from test plan
+      const plannedBuild = proj.buildDate;
       if (actualBuildDate && plannedBuild && actualBuildDate !== prevActualBuild) {
-        const delayDays = getWorkingDaysBetween(plannedBuild, actualBuildDate);
+        const plan = state.testPlans && state.testPlans[proj.id];
+        if (plan && plan.milestones) {
+          const ms = plan.milestones;
 
-        if (delayDays > 0) {
-          const plan = state.testPlans && state.testPlans[proj.id];
-          if (plan && plan.milestones) {
-            const ms = plan.milestones;
+          // New build pickup = next working day after actual Dev to QA date
+          const newBuildPickup = nextWorkingDay(actualBuildDate);
 
-            // New build pickup = next working day after actual Dev to QA date
-            const newBuildPickup = nextWorkingDay(actualBuildDate);
+          // Preserve gaps (calendar days) from original build pickup
+          const origPickup = ms.buildPickup || plannedBuild;
 
-            // Calculate gaps from original build pickup (calendar days)
-            // New date = newBuildPickup + original gap
-            const origPickup = ms.buildPickup || plannedBuild;
+          function calDayGap(fromStr, toStr) {
+            if (!fromStr || !toStr) return null;
+            return Math.round((new Date(toStr+'T00:00:00') - new Date(fromStr+'T00:00:00')) / 86400000);
+          }
 
-            function calDayGap(fromStr, toStr) {
-              if (!fromStr || !toStr) return null;
-              return Math.round((new Date(toStr+'T00:00:00') - new Date(fromStr+'T00:00:00')) / 86400000);
-            }
+          const gapBvt      = calDayGap(origPickup, ms.bvtCompletion);
+          const gapNoBuffer = calDayGap(origPickup, ms.execNoBuffer);
+          const gapWithBuf  = calDayGap(origPickup, ms.execWithBuffer);
+          const gapGoAhead  = calDayGap(origPickup, ms.mergedBuildGoAhead);
 
-            const gapBvt     = calDayGap(origPickup, ms.bvtCompletion);
-            const gapNoBuffer= calDayGap(origPickup, ms.execNoBuffer);
-            const gapWithBuf = calDayGap(origPickup, ms.execWithBuffer);
-            const gapGoAhead = calDayGap(origPickup, ms.mergedBuildGoAhead);
+          ms.buildPickup = newBuildPickup;
+          if (gapBvt      !== null) ms.bvtCompletion      = shiftDate(newBuildPickup, gapBvt);
+          if (gapNoBuffer !== null) ms.execNoBuffer        = shiftDate(newBuildPickup, gapNoBuffer);
+          if (gapWithBuf  !== null) ms.execWithBuffer      = shiftDate(newBuildPickup, gapWithBuf);
+          if (gapGoAhead  !== null) ms.mergedBuildGoAhead  = shiftDate(newBuildPickup, gapGoAhead);
 
-            ms.buildPickup = newBuildPickup;
-            if (gapBvt      !== null) ms.bvtCompletion      = shiftDate(newBuildPickup, gapBvt);
-            if (gapNoBuffer !== null) ms.execNoBuffer        = shiftDate(newBuildPickup, gapNoBuffer);
-            if (gapWithBuf  !== null) ms.execWithBuffer      = shiftDate(newBuildPickup, gapWithBuf);
-            if (gapGoAhead  !== null) ms.mergedBuildGoAhead  = shiftDate(newBuildPickup, gapGoAhead);
+          // Sync to Release tab
+          if (ms.mergedBuildGoAhead) proj.goAheadDate    = ms.mergedBuildGoAhead;
+          if (ms.execWithBuffer)     proj.completionDate  = ms.execWithBuffer;
 
-            // Also update Release tab dates
-            if (ms.mergedBuildGoAhead) proj.goAheadDate    = ms.mergedBuildGoAhead;
-            if (ms.execWithBuffer)     proj.completionDate  = ms.execWithBuffer;
+          // Working days diff (positive = late, negative = early)
+          const earlyDays = getWorkingDaysBetween(actualBuildDate, plannedBuild);
+          const lateDays  = getWorkingDaysBetween(plannedBuild, actualBuildDate);
+          const isLate    = new Date(actualBuildDate+'T00:00:00') > new Date(plannedBuild+'T00:00:00');
+          const isEarly   = new Date(actualBuildDate+'T00:00:00') < new Date(plannedBuild+'T00:00:00');
 
-            // Store notification
+          if (isLate) {
+            // Delay notification
             if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
             state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
             state.buildDelayNotifications.push({
               projectId:    proj.id,
               projectName:  proj.name,
-              delayDays,
+              delayDays:    lateDays,
               plannedDate:  plannedBuild,
               actualDate:   actualBuildDate,
               shiftedAt:    new Date().toISOString(),
               acknowledged: false
             });
-
-            logActivity('Build delay — milestones shifted', {
-              name, delayDays,
-              planned: formatDateDisplay(plannedBuild),
-              actual:  formatDateDisplay(actualBuildDate)
-            });
-
-            showToastMsg(`⚠️ Build delayed by ${delayDays} day(s) — milestones shifted for "${name}"`);
-          }
-        } else {
-          // On time or early — clear notification
-          if (state.buildDelayNotifications) {
-            state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
+            logActivity('Build delay — milestones shifted', { name, delayDays: lateDays, planned: formatDateDisplay(plannedBuild), actual: formatDateDisplay(actualBuildDate) });
+            showToastMsg(`⚠️ Build delayed by ${lateDays} working day(s) — milestones shifted for "${name}"`);
+          } else if (isEarly) {
+            // Clear any old delay notification
+            if (state.buildDelayNotifications) {
+              state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
+            }
+            logActivity('Build early — milestones shifted earlier', { name, earlyDays, planned: formatDateDisplay(plannedBuild), actual: formatDateDisplay(actualBuildDate) });
+            showToastMsg(`🎉 Build arrived ${earlyDays} working day(s) early — milestones shifted earlier for "${name}"`);
+          } else {
+            // On time — clear notification
+            if (state.buildDelayNotifications) {
+              state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
+            }
+            showToastMsg(`✅ Build on time — milestones unchanged for "${name}"`);
           }
         }
       }
@@ -7011,6 +7034,12 @@ function exportSummaryReport() {
     ? `Release Summary — ${formatDateDisplay(selectedSummaryReleaseDate)}${selectedSummaryDevPod ? ` · ${selectedSummaryDevPod}` : ''}`
     : selectedSummaryDevPod ? `Release Summary — ${selectedSummaryDevPod}` : 'Release Summary — All Releases';
 
+  const POD_COLORS_RPT = {
+    'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
+    'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
+    'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
+  };
+
   const rowsHtml = projects.map(proj => {
     // Working on it — from Daily Plan
     const workerNames = getWorkingOnIt(proj.name);
@@ -7044,17 +7073,16 @@ function exportSummaryReport() {
           ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
         <td style="padding:12px 14px; font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(proj.name)}</td>
+        <td style="padding:12px 14px;">${proj.devPod ? `<span style="background:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[0]};color:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[1]};padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;">${escapeHtml(proj.devPod)}</span>` : '<span style="color:#94a3b8;">—</span>'}</td>
         <td style="padding:12px 14px;">${jiraCell}</td>
-        <td style="padding:12px 14px;">${members}</td>
-        <td style="padding:12px 14px;">${statusBadge}</td>
-        <td style="padding:12px 14px; font-family:'DM Mono',monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.goAheadDate)}</td>
-        <td style="padding:12px 14px; font-family:'DM Mono',monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
-        <td style="padding:12px 14px; text-align:center;">
-          ${buildDelayBadgeReport(proj.buildDate, proj.actualBuildDate)}
-        </td>
+        <td style="padding:12px 14px; text-align:center;">${buildDelayBadgeReport(proj.buildDate, proj.actualBuildDate)}</td>
         <td style="padding:12px 14px; text-align:center;">
           ${proj.effort ? `<span style="font-weight:700; color:#1e3a8a; font-size:15px;">${proj.effort}</span><span style="font-size:11px; color:#94a3b8; margin-left:3px;">PDs</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
+        <td style="padding:12px 14px; font-family:'DM Mono',monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.goAheadDate)}</td>
+        <td style="padding:12px 14px; font-family:'DM Mono',monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
+        <td style="padding:12px 14px;">${members}</td>
+        <td style="padding:12px 14px;">${statusBadge}</td>
       </tr>`;
   }).join('');
 
@@ -7090,13 +7118,14 @@ function exportSummaryReport() {
           <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release/GA date</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release item</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Dev POD</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">JIRA</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Working on it</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA Go ahead date</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA completion date</th>
             <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Build Delay</th>
             <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Total QA efforts</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA Go ahead date</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA completion date</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Working on it</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
