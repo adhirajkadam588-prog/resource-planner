@@ -177,6 +177,7 @@
   [data-tab="admin"] .nav-ico     { background: rgba(239,68,68,0.2);  color: #f87171; }
   [data-tab="summary"] .nav-ico   { background: rgba(52,211,153,0.2); color: #6ee7b7; }
   [data-tab="archive"] .nav-ico   { background: linear-gradient(135deg,rgba(251,191,36,0.3),rgba(245,158,11,0.2)); color: #fbbf24; }
+  [data-tab="knowledge"] .nav-ico { background: linear-gradient(135deg,rgba(16,185,129,0.2),rgba(59,130,246,0.2)); color: #10b981; }
   [data-tab="help"] .nav-ico      { background: linear-gradient(135deg,rgba(251,191,36,0.25),rgba(251,113,133,0.25)); color: #fbbf24; }
   [data-tab="vmrepo"] .nav-ico    { background: linear-gradient(135deg,rgba(6,182,212,0.2),rgba(99,102,241,0.2)); color: #22d3ee; }
 
@@ -645,6 +646,19 @@
           </svg>
         </span>
         Release Vault
+      </button>
+
+      <div class="nav-section-label">Resources</div>
+      <button class="tab-btn" data-tab="knowledge" data-title="Knowledge Bank" data-desc="Training docs, guides and resources for the QA team">
+        <span class="nav-ico">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="9" y1="7" x2="15" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        Knowledge Bank
       </button>
 
       <div class="nav-section-label">Help</div>
@@ -1221,6 +1235,55 @@
   </div>
 
   <!-- HELP TAB -->
+  <!-- Knowledge Bank Tab -->
+  <div class="tab-content" id="tab-knowledge" style="display:none;">
+    <div class="panel-head" style="margin-bottom:20px;">
+      <div>
+        <h3>📚 Knowledge Bank</h3>
+        <div class="desc">Training docs, guides and resources for the QA team</div>
+      </div>
+      <button id="addResourceBtn" class="action" onclick="openResourceModal()" style="display:none;">+ Add resource</button>
+    </div>
+
+    <!-- Search + Filter bar -->
+    <div style="display:flex; gap:10px; margin-bottom:18px; align-items:center; flex-wrap:wrap;">
+      <input id="kbSearch" type="text" placeholder="🔍  Search resources…" oninput="renderKnowledge()"
+        style="flex:1; min-width:200px; padding:8px 14px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:13px; font-family:inherit; outline:none;">
+      <div id="kbCategoryPills" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- Resource grid -->
+    <div id="kbGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px;"></div>
+    <div id="kbEmpty" style="display:none; text-align:center; padding:48px 24px; color:var(--text-faint); font-style:italic;">No resources found.</div>
+  </div>
+
+  <!-- Add/Edit Resource Modal -->
+  <div class="modal-overlay" id="resourceModal">
+    <div class="modal" style="max-width:480px;">
+      <h3 id="resourceModalTitle">Add resource</h3>
+      <div class="field"><label>Title</label><input id="resTitle" type="text" placeholder="e.g. BVT Testing Guide"></div>
+      <div class="field"><label>URL (Confluence / any link)</label><input id="resUrl" type="url" placeholder="https://confluence.company.com/..."></div>
+      <div class="field">
+        <label>Category</label>
+        <select id="resCategory">
+          <option value="Testing">Testing</option>
+          <option value="Onboarding">Onboarding</option>
+          <option value="Tools">Tools</option>
+          <option value="Process">Process</option>
+          <option value="Templates">Templates</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Description <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+        <input id="resDesc" type="text" placeholder="Short description of this resource">
+      </div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="closeModal('resourceModal')">Cancel</button>
+        <button class="action" id="resSaveBtn" onclick="saveResource()">Add resource</button>
+      </div>
+    </div>
+  </div>
+
   <div class="tab-content" id="tab-help" style="display:none;">
     <div id="helpContent"></div>
   </div>
@@ -1850,7 +1913,7 @@
 </div>
 
 <script>
-let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [], reviewRequests: [], buildDelayNotifications: [] };
+let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [], reviewRequests: [], buildDelayNotifications: [], knowledgeResources: [] };
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let dayMonth = new Date().getMonth();
@@ -2902,6 +2965,7 @@ async function loadState() {
         ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
       state.reviewRequests          = Array.isArray(parsed.reviewRequests) ? parsed.reviewRequests : [];
       state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
+      state.knowledgeResources      = Array.isArray(parsed.knowledgeResources)      ? parsed.knowledgeResources      : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
     } else {
       el.textContent = 'no data yet — start by adding people';
@@ -5229,7 +5293,7 @@ function markDirty(...tabs) {
 }
 
 function markAllDirty() {
-  ['people','projects','summary','archive','leave','dailyplan','holidays','testplan','admin','help','vmrepo','dashboard'].forEach(t => _dirtyTabs.add(t));
+  ['people','projects','summary','archive','leave','dailyplan','holidays','testplan','admin','help','vmrepo','dashboard','knowledge'].forEach(t => _dirtyTabs.add(t));
 }
 
 // Map tab name → render function
@@ -5246,7 +5310,7 @@ function renderTab(tab) {
     case 'dashboard':  renderDashboard(); break;
     case 'help':       renderHelp(); break;
     case 'vmrepo':     renderVMRepo(); break;
-    case 'admin':      if (currentUserRole === 'admin') renderAdminPanel(); break;
+    case 'knowledge':   renderKnowledge(); break;
   }
 }
 
@@ -5588,6 +5652,185 @@ function nextWorkingDay(dateStr) {
 function ceilHalf(n) {
   return Math.ceil(n * 2) / 2;
 }
+
+// ── Knowledge Bank ──────────────────────────────────────────
+const KB_CATEGORY_ICONS = {
+  'Testing':    '🧪',
+  'Onboarding': '🚀',
+  'Tools':      '🔧',
+  'Process':    '📋',
+  'Templates':  '📄',
+  'Other':      '📌',
+};
+const KB_CATEGORY_COLORS = {
+  'Testing':    ['#ede9fe','#7c3aed'],
+  'Onboarding': ['#dcfce7','#15803d'],
+  'Tools':      ['#fef3c7','#b45309'],
+  'Process':    ['#dbeafe','#1d4ed8'],
+  'Templates':  ['#fce7f3','#9d174d'],
+  'Other':      ['#f1f5f9','#475569'],
+};
+
+let _kbCategoryFilter = 'All';
+let _editingResourceId = null;
+
+function renderKnowledge() {
+  const grid    = document.getElementById('kbGrid');
+  const empty   = document.getElementById('kbEmpty');
+  const pillsEl = document.getElementById('kbCategoryPills');
+  const addBtn  = document.getElementById('addResourceBtn');
+  if (!grid) return;
+
+  // Show add button only for admin/lead
+  if (addBtn) addBtn.style.display = (currentUserRole === 'admin' || isCurrentUserLead()) ? 'flex' : 'none';
+
+  const resources = state.knowledgeResources || [];
+  const search    = (document.getElementById('kbSearch')?.value || '').toLowerCase();
+
+  // Category pills
+  const cats = ['All', ...new Set(resources.map(r => r.category).filter(Boolean))];
+  if (pillsEl) {
+    pillsEl.innerHTML = cats.map(c => {
+      const active = _kbCategoryFilter === c;
+      return `<button onclick="_kbCategoryFilter='${c}';renderKnowledge();"
+        style="padding:4px 12px;border-radius:20px;border:1.5px solid ${active?'#7c3aed':'var(--border)'};
+        background:${active?'#7c3aed':'var(--panel)'};color:${active?'white':'var(--text-dim)'};
+        font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.12s;">
+        ${c === 'All' ? '🗂 All' : (KB_CATEGORY_ICONS[c]||'📌')+' '+c}
+      </button>`;
+    }).join('');
+  }
+
+  // Filter
+  let filtered = resources.filter(r => {
+    const matchCat  = _kbCategoryFilter === 'All' || r.category === _kbCategoryFilter;
+    const matchSrch = !search ||
+      (r.title||'').toLowerCase().includes(search) ||
+      (r.desc||'').toLowerCase().includes(search) ||
+      (r.category||'').toLowerCase().includes(search);
+    return matchCat && matchSrch;
+  });
+
+  // Sort — pinned first, then newest
+  filtered.sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0) || (b.createdAt||'').localeCompare(a.createdAt||''));
+
+  const isEditor = currentUserRole === 'admin' || isCurrentUserLead();
+
+  if (filtered.length === 0) {
+    grid.style.display  = 'none';
+    empty.style.display = 'block';
+    empty.textContent   = resources.length === 0 ? 'No resources added yet. Click "+ Add resource" to get started.' : 'No resources match your search.';
+    return;
+  }
+
+  grid.style.display  = 'grid';
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(r => {
+    const [cbg, cfg] = KB_CATEGORY_COLORS[r.category] || ['#f1f5f9','#475569'];
+    const icon = KB_CATEGORY_ICONS[r.category] || '📌';
+    const domain = (() => { try { return new URL(r.url).hostname.replace('www.',''); } catch { return ''; } })();
+    return `
+      <div style="background:var(--panel);border:1px solid var(--border-soft);border-radius:14px;padding:16px 18px;
+        display:flex;flex-direction:column;gap:10px;transition:box-shadow 0.15s;position:relative;"
+        onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.08)'"
+        onmouseout="this.style.boxShadow=''">
+        ${r.pinned ? '<div style="position:absolute;top:12px;right:12px;font-size:13px;" title="Pinned">📌</div>' : ''}
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:${cbg};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13.5px;color:var(--text);line-height:1.3;margin-bottom:3px;">${escapeHtml(r.title)}</div>
+            <span style="background:${cbg};color:${cfg};padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:600;">${icon} ${escapeHtml(r.category)}</span>
+          </div>
+        </div>
+        ${r.desc ? `<div style="font-size:12px;color:var(--text-faint);line-height:1.5;">${escapeHtml(r.desc)}</div>` : ''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px;border-top:1px solid var(--border-soft);">
+          <span style="font-size:11px;color:var(--text-faint);font-family:var(--mono);">${escapeHtml(domain)}</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${isEditor ? `
+              <button onclick="togglePinResource('${r.id}')" title="${r.pinned?'Unpin':'Pin'}"
+                style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text-faint);font-family:inherit;">
+                ${r.pinned?'Unpin':'📌 Pin'}
+              </button>
+              <button onclick="openResourceModal('${r.id}')"
+                style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text-faint);font-family:inherit;">✎</button>
+              <button onclick="deleteResource('${r.id}')"
+                style="background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:#dc2626;font-family:inherit;">✕</button>
+            ` : ''}
+            <a href="${escapeHtml(r.url)}" target="_blank"
+              style="background:#7c3aed;color:white;padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+              Open ↗
+            </a>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openResourceModal(id) {
+  _editingResourceId = id || null;
+  const titleEl = document.getElementById('resourceModalTitle');
+  const saveBtn = document.getElementById('resSaveBtn');
+  if (id) {
+    const r = (state.knowledgeResources||[]).find(x => x.id === id);
+    if (!r) return;
+    titleEl.textContent = 'Edit resource';
+    saveBtn.textContent = 'Save changes';
+    document.getElementById('resTitle').value    = r.title    || '';
+    document.getElementById('resUrl').value      = r.url      || '';
+    document.getElementById('resCategory').value = r.category || 'Testing';
+    document.getElementById('resDesc').value     = r.desc     || '';
+  } else {
+    titleEl.textContent = 'Add resource';
+    saveBtn.textContent = 'Add resource';
+    document.getElementById('resTitle').value    = '';
+    document.getElementById('resUrl').value      = '';
+    document.getElementById('resCategory').value = 'Testing';
+    document.getElementById('resDesc').value     = '';
+  }
+  document.getElementById('resourceModal').classList.add('show');
+}
+
+function saveResource() {
+  const title    = document.getElementById('resTitle').value.trim();
+  const url      = document.getElementById('resUrl').value.trim();
+  const category = document.getElementById('resCategory').value;
+  const desc     = document.getElementById('resDesc').value.trim();
+  if (!title || !url) { showToastMsg('Title and URL are required'); return; }
+
+  if (!state.knowledgeResources) state.knowledgeResources = [];
+
+  if (_editingResourceId) {
+    const r = state.knowledgeResources.find(x => x.id === _editingResourceId);
+    if (r) { r.title = title; r.url = url; r.category = category; r.desc = desc; }
+  } else {
+    state.knowledgeResources.push({
+      id: uid(), title, url, category, desc,
+      pinned: false, createdAt: new Date().toISOString(),
+      addedBy: currentUserEmail || ''
+    });
+  }
+  _editingResourceId = null;
+  closeModal('resourceModal');
+  saveState();
+  renderKnowledge();
+}
+
+function deleteResource(id) {
+  if (!confirm('Remove this resource?')) return;
+  state.knowledgeResources = (state.knowledgeResources||[]).filter(r => r.id !== id);
+  saveState();
+  renderKnowledge();
+}
+
+function togglePinResource(id) {
+  const r = (state.knowledgeResources||[]).find(x => x.id === id);
+  if (r) r.pinned = !r.pinned;
+  saveState();
+  renderKnowledge();
+}
+
+// ── End Knowledge Bank ───────────────────────────────────────
 
 function acknowledgeBuildDelay(projectId) {
   if (!state.buildDelayNotifications) return;
@@ -7199,8 +7442,10 @@ function getWorkingDaysBetween_signed(fromDateStr, toDateStr) {
   if (!fromDateStr || !toDateStr) return 0;
   const from = new Date(fromDateStr + 'T00:00:00');
   const to   = new Date(toDateStr   + 'T00:00:00');
-  const abs  = getWorkingDaysBetween(fromDateStr, toDateStr);
-  return from < to ? abs : -abs;
+  if (from === to) return 0;
+  // Always pass smaller date first to getWorkingDaysBetween
+  if (from < to) return getWorkingDaysBetween(fromDateStr, toDateStr);
+  else return -getWorkingDaysBetween(toDateStr, fromDateStr);
 }
 
 function buildDelayBadge(plannedDate, actualDate) {
