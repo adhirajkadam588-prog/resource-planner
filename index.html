@@ -3486,13 +3486,14 @@ function renderDashboard() {
     return e.date === today;
   });
   // Today's assignments — filter by role
-  // Admin/Lead → all people (leads first), QA → only themselves
+  // Admin → all people, Lead → only people on their associated releases, QA → only themselves
   const isLead = isCurrentUserLead();
+  const isAdmin = currentUserRole === 'admin';
   const currentPersonObj = state.people.find(p => p.email === currentUserEmail);
 
   let assignmentPeople;
-  if (currentUserRole === 'admin' || isLead) {
-    // Sort — leads first, then rest alphabetically
+  if (isAdmin) {
+    // Admin sees everyone
     assignmentPeople = [...state.people].sort((a, b) => {
       const aLead = (a.title || '').toLowerCase().includes('lead');
       const bLead = (b.title || '').toLowerCase().includes('lead');
@@ -3500,8 +3501,41 @@ function renderDashboard() {
       if (!aLead && bLead) return 1;
       return a.name.localeCompare(b.name);
     });
+  } else if (isLead) {
+    // Lead sees people on their associated projects only
+    const associatedProjectIds = getActiveProjects()
+      .filter(proj => isUserAssociatedWithProject(proj.id))
+      .map(proj => proj.id);
+
+    const associatedPersonIds = new Set();
+    if (currentPersonObj) associatedPersonIds.add(currentPersonObj.id);
+    associatedProjectIds.forEach(projId => {
+      const proj = state.projects.find(p => p.id === projId);
+      const plan = state.testPlans && state.testPlans[projId];
+      if (proj && proj.goAheadBy) {
+        const owner = state.people.find(p => p.name === proj.goAheadBy);
+        if (owner) associatedPersonIds.add(owner.id);
+      }
+      if (plan) {
+        (plan.rows || []).forEach(r => {
+          if (r.assigneeId) associatedPersonIds.add(r.assigneeId);
+          (r.assigneeIds || []).forEach(id => associatedPersonIds.add(id));
+        });
+        (plan.testPrepAssigneeIds || []).forEach(id => associatedPersonIds.add(id));
+        (plan.testEnvAssigneeIds  || []).forEach(id => associatedPersonIds.add(id));
+      }
+    });
+    assignmentPeople = [...state.people]
+      .filter(p => associatedPersonIds.has(p.id))
+      .sort((a, b) => {
+        const aLead = (a.title || '').toLowerCase().includes('lead');
+        const bLead = (b.title || '').toLowerCase().includes('lead');
+        if (aLead && !bLead) return -1;
+        if (!aLead && bLead) return 1;
+        return a.name.localeCompare(b.name);
+      });
   } else {
-    // QA — only show themselves
+    // QA — only themselves
     assignmentPeople = currentPersonObj ? [currentPersonObj] : [];
   }
 
@@ -3559,15 +3593,17 @@ function renderDashboard() {
 
       <!-- Build Delay Notifications -->
     ${(() => {
-      const isLeadOrAdmin = currentUserRole === 'admin' || isLead;
+      const isAdmin = currentUserRole === 'admin';
+      const isLead2 = isCurrentUserLead();
       const allNotifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
 
-      const notifs = isLeadOrAdmin ? allNotifs : allNotifs.filter(n => {
+      const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
         const proj = state.projects.find(p => p.name === n.projectName);
         if (!proj) return false;
         const currentPerson = state.people.find(p => p.email === currentUserEmail);
         if (!currentPerson) return false;
         if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
+        if (proj.qaLead && proj.qaLead === currentPerson.name) return true;
         const plan = state.testPlans && state.testPlans[proj.id];
         if (plan) {
           if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds && r.assigneeIds.includes(currentPerson.id)))) return true;
@@ -3730,14 +3766,23 @@ function renderDashboard() {
 function renderAlertsHtml() {
   const today = toDateKey(new Date());
   const alerts = [];
-  const isLeadOrAdmin = currentUserRole === 'admin' || isCurrentUserLead();
+  const isAdmin = currentUserRole === 'admin';
+  const isLead  = isCurrentUserLead();
   const currentPerson = state.people.find(p => p.email === currentUserEmail);
 
-  // VM alerts — Lead/Admin sees all, QA sees only their own VMs
+  // Helper — is this project visible to current user?
+  function canSeeProject(proj) {
+    if (isAdmin) return true;
+    if (!isLead && !isAdmin) return isUserAssociatedWithProject(proj.id); // QA
+    // Lead — only associated projects
+    return isUserAssociatedWithProject(proj.id);
+  }
+
+  // VM alerts — Admin sees all, Lead/QA sees only their own VMs
   (state.vms || []).forEach(vm => {
     if (!vm.expiry) return;
-    const isMyVM = vm.usedBy === (currentPerson?.name || currentUserEmail);
-    if (!isLeadOrAdmin && !isMyVM) return;
+    const isMyVM = vm.usedBy === (currentPerson ? currentPerson.name : currentUserEmail);
+    if (!isAdmin && !isMyVM) return;
     const daysLeft = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
     const vmName = vm.details.split('-')[0].trim();
     if (daysLeft < 0) {
@@ -3749,34 +3794,22 @@ function renderAlertsHtml() {
 
   (state.vms || []).forEach(vm => {
     if (!vm.inUse || !vm.endDate) return;
-    const isMyVM = vm.usedBy === (currentPerson?.name || currentUserEmail);
-    if (!isLeadOrAdmin && !isMyVM) return;
+    const isMyVM = vm.usedBy === (currentPerson ? currentPerson.name : currentUserEmail);
+    if (!isAdmin && !isMyVM) return;
     const daysOver = Math.round((new Date(today+'T00:00:00') - new Date(vm.endDate+'T00:00:00')) / 86400000);
     if (daysOver > 0) {
       alerts.push({ icon:'🔓', level:'amber', title:'VM usage ended ' + daysOver + 'd ago — still marked in use', detail: vm.details.split('-')[0].trim() + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
     }
   });
 
-  // QA overdue + Release soon — Lead/Admin sees all, QA sees only associated releases
+  // QA overdue + Release soon — filtered by role
   getActiveProjects().forEach(proj => {
     if (proj.status === 'Completed') return;
+    if (!canSeeProject(proj)) return;
+
     const plan = state.testPlans && state.testPlans[proj.id];
-    const qaCompletion = (plan?.milestones?.execWithBuffer) || proj.completionDate || '';
+    const qaCompletion = (plan && plan.milestones && plan.milestones.execWithBuffer) || proj.completionDate || '';
     const releaseDate  = proj.releaseDate || '';
-
-    // Check if current user is associated with this project
-    const isAssociated = isLeadOrAdmin || (() => {
-      if (!currentPerson) return false;
-      if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
-      if (plan) {
-        if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
-        if ((plan.testPrepAssigneeIds||[]).includes(currentPerson.id)) return true;
-        if ((plan.testEnvAssigneeIds||[]).includes(currentPerson.id))  return true;
-      }
-      return false;
-    })();
-
-    if (!isAssociated) return;
 
     if (qaCompletion && qaCompletion < today) {
       const d = Math.round((new Date(today+'T00:00:00') - new Date(qaCompletion+'T00:00:00')) / 86400000);
@@ -6869,12 +6902,38 @@ function updateFixedRowStatusStyle(id) {
 function saveBufferValues() {
   const plan     = getTestPlanForProject(selectedTestPlanProjectId);
   const reviewed = plan.reviewed === true;
+  const proj     = state.projects.find(p => p.id === selectedTestPlanProjectId);
+
+  // Capture old assignees before update — to detect new ones
+  const oldPrepIds = [...(plan.testPrepAssigneeIds || [])];
+  const oldEnvIds  = [...(plan.testEnvAssigneeIds  || [])];
 
   plan.testPrepEffort       = parseFloat(document.getElementById('testPrepEffort').value) || 0;
   plan.testEnvEffort        = parseFloat(document.getElementById('testEnvEffort').value) || 0;
   plan.buffer.effort        = parseFloat(document.getElementById('testBufferEffort').value) || 0;
   plan.testPrepAssigneeIds  = getFixedAssigneeIds('testPrep');
   plan.testEnvAssigneeIds   = getFixedAssigneeIds('testEnv');
+
+  // Notify newly assigned people
+  const currentPersonId = state.people.find(p => p.email === currentUserEmail)?.id;
+
+  plan.testPrepAssigneeIds.forEach(id => {
+    if (oldPrepIds.includes(id)) return; // already assigned before
+    if (id === currentPersonId) return;  // don't notify yourself
+    const assignee = state.people.find(p => p.id === id);
+    if (assignee && assignee.email === currentUserEmail) {
+      addNotification('assigned', 'You were assigned to Test prep', (proj ? proj.name : '') + ' — by ' + currentUserEmail, selectedTestPlanProjectId);
+    }
+  });
+
+  plan.testEnvAssigneeIds.forEach(id => {
+    if (oldEnvIds.includes(id)) return;
+    if (id === currentPersonId) return;
+    const assignee = state.people.find(p => p.id === id);
+    if (assignee && assignee.email === currentUserEmail) {
+      addNotification('assigned', 'You were assigned to Test env & Data prep', (proj ? proj.name : '') + ' — by ' + currentUserEmail, selectedTestPlanProjectId);
+    }
+  });
 
   if (reviewed) {
     plan.testPrepStatus = document.getElementById('testPrepStatus').value;
