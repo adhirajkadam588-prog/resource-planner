@@ -4255,7 +4255,7 @@ function showValidationErrors(title, errors) {
 
   const backdrop = document.createElement('div');
   backdrop.id = 'validationBackdrop';
-  backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9998;';
+  backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:9998;';
 
   const panel = document.createElement('div');
   panel.id = 'validationErrorPanel';
@@ -4288,8 +4288,9 @@ function showValidationErrors(title, errors) {
 }
 
 function requestReview(projectId) {
+  try {
   const proj = state.projects.find(p => p.id === projectId);
-  if (!proj) return;
+  if (!proj) { showToastMsg('Project not found'); return; }
 
   const plan = (state.testPlans && state.testPlans[projectId]) || null;
   const ms   = (plan && plan.milestones) || {};
@@ -4354,6 +4355,10 @@ function requestReview(projectId) {
   renderReviewPanel(state.testPlans[projectId]);
   addNotification('review_request', 'Review requested — ' + proj.name, 'Requested by ' + currentUserEmail, projectId);
   showToastMsg('✅ Review requested for "' + proj.name + '" — Lead will see it on Dashboard');
+  } catch(e) {
+    console.error('requestReview error:', e);
+    showToastMsg('Error: ' + e.message);
+  }
 }
 
 function dismissReviewRequest(requestId) {
@@ -4705,7 +4710,7 @@ function renderReviewPanel(plan) {
   const statusEl   = document.getElementById('reviewStatus');
   if (!panel) return;
 
-  const reviewed   = plan?.reviewed === true;
+  const reviewed   = plan && plan.reviewed === true;
   const isLead     = isCurrentUserLead();
   // Show Request Review to everyone who is not a lead
   // (no email match needed — all non-leads can request)
