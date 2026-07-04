@@ -5947,12 +5947,11 @@ function syncTestPlanToProjects() {
         changed = true;
       }
     } else {
-      // Not reviewed — clear synced fields so Release tab shows blank
-      // But keep plannedBuildDate/actualBuildDate (manually entered, not synced)
-      if (proj.effort)         { proj.effort         = ''; changed = true; }
-      if (proj.goAheadDate)    { proj.goAheadDate    = ''; changed = true; }
-      if (proj.completionDate) { proj.completionDate = ''; changed = true; }
-      // Keep buildDate only if manually set
+      // Not reviewed — ALWAYS clear synced fields so Release tab shows blank
+      if (proj.effort !== '')         { proj.effort         = ''; changed = true; }
+      if (proj.goAheadDate !== '')    { proj.goAheadDate    = ''; changed = true; }
+      if (proj.completionDate !== '') { proj.completionDate = ''; changed = true; }
+      // Keep buildDate only if manually set via plannedBuildDate
       if (proj.buildDate && !proj.plannedBuildDate) { proj.buildDate = ''; changed = true; }
     }
 
