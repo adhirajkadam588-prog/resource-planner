@@ -1116,11 +1116,11 @@
                 <td style="padding:4px 6px;">
                   <div style="position:relative;" id="testPrepAssigneeWrap">
                     <div onclick="toggleFixedAssigneeDD('testPrep')" id="testPrepAssigneeDisplay"
-                      style="padding:3px 8px; background:var(--panel); border:1px solid var(--border); border-radius:7px; cursor:pointer; font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; min-width:110px; gap:4px; white-space:nowrap; overflow:hidden;">
+                      style="padding:3px 8px; background:var(--panel); border:1px solid var(--border); border-radius:7px; cursor:pointer; font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; width:100%; max-width:200px; gap:4px; white-space:nowrap; overflow:hidden;">
                       <span id="testPrepAssigneeLabel" style="overflow:hidden; text-overflow:ellipsis;">— Select —</span>
                       <span style="font-size:9px; flex-shrink:0;">▼</span>
                     </div>
-                    <div id="testPrepAssigneeDD" style="display:none; position:absolute; top:calc(100% + 2px); left:0; min-width:180px; background:var(--panel); border:1px solid var(--border); border-radius:10px; z-index:999; box-shadow:0 8px 24px rgba(0,0,0,0.15); max-height:180px; overflow-y:auto; padding:5px;" onclick="event.stopPropagation()"></div>
+                    <div id="testPrepAssigneeDD" style="display:none; position:absolute; top:calc(100% + 2px); left:0; width:220px; background:var(--panel); border:1px solid var(--border); border-radius:10px; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,0.12); max-height:160px; overflow-y:auto; padding:5px;" onclick="event.stopPropagation()"></div>
                   </div>
                 </td>
                 <td style="text-align:center;">
@@ -1143,11 +1143,11 @@
                 <td style="padding:4px 6px;">
                   <div style="position:relative;" id="testEnvAssigneeWrap">
                     <div onclick="toggleFixedAssigneeDD('testEnv')" id="testEnvAssigneeDisplay"
-                      style="padding:3px 8px; background:var(--panel); border:1px solid var(--border); border-radius:7px; cursor:pointer; font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; min-width:110px; gap:4px; white-space:nowrap; overflow:hidden;">
+                      style="padding:3px 8px; background:var(--panel); border:1px solid var(--border); border-radius:7px; cursor:pointer; font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; width:100%; max-width:200px; gap:4px; white-space:nowrap; overflow:hidden;">
                       <span id="testEnvAssigneeLabel" style="overflow:hidden; text-overflow:ellipsis;">— Select —</span>
                       <span style="font-size:9px; flex-shrink:0;">▼</span>
                     </div>
-                    <div id="testEnvAssigneeDD" style="display:none; position:absolute; top:calc(100% + 2px); left:0; min-width:180px; background:var(--panel); border:1px solid var(--border); border-radius:10px; z-index:999; box-shadow:0 8px 24px rgba(0,0,0,0.15); max-height:180px; overflow-y:auto; padding:5px;" onclick="event.stopPropagation()"></div>
+                    <div id="testEnvAssigneeDD" style="display:none; position:absolute; top:calc(100% + 2px); left:0; width:220px; background:var(--panel); border:1px solid var(--border); border-radius:10px; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,0.12); max-height:160px; overflow-y:auto; padding:5px;" onclick="event.stopPropagation()"></div>
                   </div>
                 </td>
                 <td style="text-align:center;">
@@ -3034,6 +3034,8 @@ async function loadState() {
       state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
       state.notifications           = Array.isArray(parsed.notifications)           ? parsed.notifications           : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
+      // Update bell badge after state loads
+      setTimeout(() => updateBellBadge(), 100);
     } else {
       el.textContent = 'no data yet — start by adding people';
     }
@@ -8121,6 +8123,9 @@ function addNotification(type, title, detail, projectId) {
   if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
   saveState();
   updateBellBadge();
+  // If panel is open, refresh it
+  const panel = document.getElementById('notificationPanel');
+  if (panel && panel.style.display === 'flex') renderNotificationList();
 }
 
 function updateBellBadge() {
@@ -8139,8 +8144,13 @@ function toggleNotificationPanel() {
   const panel = document.getElementById('notificationPanel');
   if (!panel) return;
   const isOpen = panel.style.display === 'flex';
-  panel.style.display = isOpen ? 'none' : 'flex';
-  if (!isOpen) renderNotificationList();
+  if (isOpen) {
+    panel.style.display = 'none';
+  } else {
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'column';
+    renderNotificationList();
+  }
 }
 
 function markAllNotificationsRead() {
@@ -8182,12 +8192,14 @@ function renderNotificationList() {
 
   el.innerHTML = notifs.map(n => {
     const meta = TYPE_META[n.type] || { icon:'🔔', color:'#64748b', bg:'rgba(100,116,139,0.1)' };
+    const safeTitle  = (n.title  || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const safeDetail = (n.detail || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     return `<div onclick="markNotificationRead('${n.id}')" style="padding:11px 16px;border-bottom:1px solid #1e293b;cursor:pointer;background:${n.read?'transparent':meta.bg};transition:background 0.1s;display:flex;gap:10px;align-items:flex-start;"
       onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${n.read?'transparent':meta.bg}'">
       <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${meta.icon}</span>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12.5px;font-weight:${n.read?'400':'600'};color:${n.read?'#94a3b8':'#e2e8f0'};line-height:1.4;">${escapeHtml(n.title)}</div>
-        <div style="font-size:11px;color:#64748b;margin-top:2px;line-height:1.4;">${escapeHtml(n.detail||'')}</div>
+        <div style="font-size:12.5px;font-weight:${n.read?'400':'600'};color:${n.read?'#94a3b8':'#e2e8f0'};line-height:1.4;">${safeTitle}</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px;line-height:1.4;">${safeDetail}</div>
         <div style="font-size:10px;color:#475569;margin-top:4px;">${timeAgo(n.createdAt)}</div>
       </div>
       ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#7c3aed;flex-shrink:0;margin-top:4px;"></div>' : ''}
