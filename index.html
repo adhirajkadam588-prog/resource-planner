@@ -211,7 +211,18 @@
     background: var(--bg);
   }
 
-  header { margin-bottom: 0; }
+  /* ── Performance & Transitions ── */
+  .modal-overlay { transition: opacity 0.15s ease; }
+  .modal { transition: transform 0.15s ease, opacity 0.15s ease; transform: translateY(8px); opacity: 0; }
+  .modal-overlay.show .modal { transform: translateY(0); opacity: 1; }
+  .tab-content { will-change: auto; }
+  .tab-content[style*="display: none"] { content-visibility: hidden; }
+  .panel { contain: layout style; }
+  .tab-btn { transition: background 0.1s, color 0.1s; }
+  .tab-btn:active { transform: scale(0.98); }
+  button.action { transition: opacity 0.1s, transform 0.1s, box-shadow 0.1s; }
+  button.action:active { transform: scale(0.97); }
+  button.ghost:active { transform: scale(0.97); }
   header h2.page-title { display: none; }
   header .page-desc { display: none; }
 
@@ -5491,6 +5502,7 @@ function markAllDirty() {
 
 // Map tab name → render function
 function renderTab(tab) {
+  clearRenderCache();
   switch(tab) {
     case 'people':     renderPeople(); break;
     case 'projects':   renderProjects(); break;
@@ -5509,15 +5521,20 @@ function renderTab(tab) {
 
 // Called after any data change — renders active tab immediately,
 // marks others dirty so they re-render when user switches to them
+let _syncPending = false;
 function renderAll() {
-  syncTestPlanToProjects();
-  checkVMAutoFree(); // auto-free VMs past end date
+  // Debounce syncTestPlanToProjects — expensive, run max once per frame
+  if (!_syncPending) {
+    _syncPending = true;
+    requestAnimationFrame(() => {
+      syncTestPlanToProjects();
+      checkVMAutoFree();
+      _syncPending = false;
+    });
+  }
   markAllDirty();
   _dirtyTabs.delete(_activeTab);
   renderTab(_activeTab);
-  if (_activeTab !== 'summary') {
-    _dirtyTabs.add('summary');
-  }
 }
 
 // Optimized tab switcher — only render if dirty
@@ -5565,7 +5582,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
     if (_dirtyTabs.has(tab)) {
       _dirtyTabs.delete(tab);
-      renderTab(tab);
+      requestAnimationFrame(() => renderTab(tab));
     }
   });
 });
@@ -7651,7 +7668,7 @@ function exportDailyPlanReport() {
 }
 
 // ====================== SUMMARY REPORT ======================
-function exportSummaryReport() {
+async function exportSummaryReport() {
   let projects = state.projects;
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
@@ -7661,6 +7678,19 @@ function exportSummaryReport() {
     alert('No items to include in this report for the selected filter.');
     return;
   }
+
+  // Fetch all notes for these projects upfront
+  const notesMap = {};
+  try {
+    const ids = projects.map(p => p.id);
+    const { data } = await sbClient.from('release_notes').select('*').in('project_id', ids).order('created_at', { ascending: false });
+    if (data) {
+      data.forEach(n => {
+        if (!notesMap[n.project_id]) notesMap[n.project_id] = [];
+        notesMap[n.project_id].push(n);
+      });
+    }
+  } catch(e) { /* silently skip */ }
 
   const reportTitle = selectedSummaryReleaseDate
     ? `Release Summary — ${formatDateDisplay(selectedSummaryReleaseDate)}${selectedSummaryDevPod ? ` · ${selectedSummaryDevPod}` : ''}`
@@ -7723,6 +7753,13 @@ function exportSummaryReport() {
         <td style="padding:8px 10px; font-family:'DM Mono',monospace; font-size:11.5px; color:#475569; white-space:nowrap;">${formatDateDisplay(proj.completionDate)}</td>
         <td style="padding:8px 10px; white-space:nowrap;">${members}</td>
         <td style="padding:8px 10px; white-space:nowrap;">${statusBadge}</td>
+        <td style="padding:8px 10px; min-width:160px; font-size:11.5px; color:#475569;">
+          ${(notesMap[proj.id] || []).slice(0,2).map(n =>
+            `<div style="margin-bottom:4px;">
+              <div style="color:#1e293b;line-height:1.4;">${escapeHtml(n.note.slice(0,100))}${n.note.length>100?'…':''}</div>
+              <div style="font-size:10px;color:#94a3b8;">— ${escapeHtml(n.created_by?.split('@')[0]||'?')} · ${new Date(n.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</div>
+            </div>`).join('') || '<span style="color:#94a3b8;">—</span>'}
+        </td>
       </tr>`;
   }).join('');
 
@@ -7766,6 +7803,7 @@ function exportSummaryReport() {
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA completion date</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Working on it</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
+            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">💬 Comments</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -9195,7 +9233,7 @@ function openArchiveReportInTab() {
   window.open(URL.createObjectURL(blob), '_blank');
 }
 
-function downloadArchiveReport() {
+async function downloadArchiveReport() {
   const items = getArchiveItems();
   if (items.length === 0) { showToastMsg('No items to export'); return; }
 
@@ -9203,7 +9241,14 @@ function downloadArchiveReport() {
   if (archiveReleaseFilter) title = 'Archive — ' + formatDateDisplay(archiveReleaseFilter);
   if (archivePodFilter)     title += ' · ' + archivePodFilter;
 
-  const fullHtml = buildArchiveReportHtml(title, items);
+  // Fetch notes for all items
+  const notesMap = {};
+  try {
+    const { data } = await sbClient.from('release_notes').select('*').in('project_id', items.map(p=>p.id)).order('created_at', { ascending: false });
+    if (data) data.forEach(n => { if (!notesMap[n.project_id]) notesMap[n.project_id]=[]; notesMap[n.project_id].push(n); });
+  } catch(e) {}
+
+  const fullHtml = buildArchiveReportHtml(title, items, notesMap);
   const blob = new Blob([fullHtml], { type: 'text/html' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -9212,7 +9257,7 @@ function downloadArchiveReport() {
   showToastMsg('✅ Release Vault report downloaded!');
 }
 
-function buildArchiveReportHtml(title, items) {
+function buildArchiveReportHtml(title, items, notesMap = {}) {
   const generatedOn = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
   const POD_COLORS = {
     'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
@@ -9293,6 +9338,16 @@ function buildArchiveReportHtml(title, items) {
         '</tr></tfoot>'+
       '</table>'+
       msHtml+
+      ((notesMap[proj.id]||[]).length > 0 ?
+        '<div style="padding:12px 16px;border-top:1px solid #f1f5f9;">'+
+          '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;margin-bottom:8px;">💬 Comments</div>'+
+          (notesMap[proj.id]||[]).map(n=>
+            '<div style="margin-bottom:8px;padding:8px 12px;background:#f8fafc;border-radius:8px;border-left:3px solid #e2e8f0;">'+
+              '<div style="font-size:12.5px;color:#334155;line-height:1.5;">'+escapeHtml(n.note)+'</div>'+
+              '<div style="font-size:10.5px;color:#94a3b8;margin-top:4px;">by '+escapeHtml(n.created_by||'?')+' · '+new Date(n.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+'</div>'+
+            '</div>'
+          ).join('')+
+        '</div>' : '')+
     '</div>';
   }).join('');
 
@@ -9555,18 +9610,26 @@ function toggleLeave(personId, dateKey) {
   renderLeaveCalendar();
 }
 
+// Memoization cache — cleared on each renderAll
+let _leaveMapCache = {};
+let _freeCache = {};
+
+function clearRenderCache() {
+  _leaveMapCache = {};
+  _freeCache = {};
+}
+
 function getLeaveMap(personId) {
-  // Always return object format {dateKey: 'PL'|'UPL'}
+  if (_leaveMapCache[personId]) return _leaveMapCache[personId];
   const raw = state.leaves[personId];
-  if (!raw) return {};
+  if (!raw) return (_leaveMapCache[personId] = {});
   if (Array.isArray(raw)) {
-    // migrate
     const obj = {};
     raw.forEach(d => { obj[d] = 'PL'; });
     state.leaves[personId] = obj;
-    return obj;
+    return (_leaveMapCache[personId] = obj);
   }
-  return raw;
+  return (_leaveMapCache[personId] = raw);
 }
 
 function renderLeaveCalendar() {
