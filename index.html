@@ -3567,6 +3567,8 @@ function renderDashboard() {
       const isAdmin = currentUserRole === 'admin';
       const isLead2 = isCurrentUserLead();
       const allNotifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
+      console.log('[BuildDelay] All notifications:', state.buildDelayNotifications);
+      console.log('[BuildDelay] Unacknowledged:', allNotifs.length, '| currentUserEmail:', currentUserEmail, '| people:', state.people.length);
 
       const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
         const proj = state.projects.find(p => p.id === n.projectId) ||
