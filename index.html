@@ -3391,6 +3391,12 @@ function renderDashboard() {
   const el = document.getElementById('dashboardContent');
   if (!el) return;
 
+  // Wait for state to fully load
+  if (!state.people || state.people.length === 0) {
+    setTimeout(() => renderDashboard(), 300);
+    return;
+  }
+
   // Null safety
   if (!state.reviewRequests) state.reviewRequests = [];
   if (!state.vms) state.vms = [];
