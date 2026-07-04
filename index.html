@@ -1240,9 +1240,28 @@
     <div class="panel-head" style="margin-bottom:20px;">
       <div>
         <h3>📚 Knowledge Bank</h3>
-        <div class="desc">Training docs, guides and resources for the QA team</div>
+        <div class="desc">Training docs, quick links and resources for the QA team</div>
       </div>
-      <button id="addResourceBtn" class="action" onclick="openResourceModal()" style="display:none;">+ Add resource</button>
+      <div style="display:flex;gap:8px;">
+        <button id="addLinkBtn" class="ghost" onclick="openLinkModal()" style="display:none;">🔗 Add link</button>
+        <button id="addResourceBtn" class="action" onclick="openResourceModal()" style="display:none;">+ Add resource</button>
+      </div>
+    </div>
+
+    <!-- Important Links section -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        🔗 Important Links
+        <span style="flex:1;height:1px;background:var(--border-soft);display:block;"></span>
+      </div>
+      <div id="kbLinksGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      <div id="kbLinksEmpty" style="display:none;font-size:12.5px;color:var(--text-faint);font-style:italic;">No links added yet.</div>
+    </div>
+
+    <!-- Training Resources section -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+      📘 Training Resources
+      <span style="flex:1;height:1px;background:var(--border-soft);display:block;"></span>
     </div>
 
     <!-- Search + Filter bar -->
@@ -1255,6 +1274,23 @@
     <!-- Resource grid -->
     <div id="kbGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px;"></div>
     <div id="kbEmpty" style="display:none; text-align:center; padding:48px 24px; color:var(--text-faint); font-style:italic;">No resources found.</div>
+  </div>
+
+  <!-- Add/Edit Link Modal -->
+  <div class="modal-overlay" id="linkModal">
+    <div class="modal" style="max-width:440px;">
+      <h3 id="linkModalTitle">Add important link</h3>
+      <div class="field"><label>Label</label><input id="linkLabel" type="text" placeholder="e.g. JIRA Board, Jenkins, TestRail…"></div>
+      <div class="field"><label>URL</label><input id="linkUrl" type="url" placeholder="https://…"></div>
+      <div class="field">
+        <label>Icon / Emoji <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+        <input id="linkIcon" type="text" placeholder="e.g. 🎫 or 🔧" maxlength="4" style="width:80px;">
+      </div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="closeModal('linkModal')">Cancel</button>
+        <button class="action" id="linkSaveBtn" onclick="saveLink()">Add link</button>
+      </div>
+    </div>
   </div>
 
   <!-- Add/Edit Resource Modal -->
@@ -1913,7 +1949,7 @@
 </div>
 
 <script>
-let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [], reviewRequests: [], buildDelayNotifications: [], knowledgeResources: [] };
+let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [], reviewRequests: [], buildDelayNotifications: [], knowledgeResources: [], importantLinks: [] };
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let dayMonth = new Date().getMonth();
@@ -2966,6 +3002,7 @@ async function loadState() {
       state.reviewRequests          = Array.isArray(parsed.reviewRequests) ? parsed.reviewRequests : [];
       state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
       state.knowledgeResources      = Array.isArray(parsed.knowledgeResources)      ? parsed.knowledgeResources      : [];
+      state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
     } else {
       el.textContent = 'no data yet — start by adding people';
@@ -3557,9 +3594,14 @@ function renderDashboard() {
 function renderAlertsHtml() {
   const today = toDateKey(new Date());
   const alerts = [];
+  const isLeadOrAdmin = currentUserRole === 'admin' || isCurrentUserLead();
+  const currentPerson = state.people.find(p => p.email === currentUserEmail);
 
+  // VM alerts — Lead/Admin sees all, QA sees only their own VMs
   (state.vms || []).forEach(vm => {
     if (!vm.expiry) return;
+    const isMyVM = vm.usedBy === (currentPerson?.name || currentUserEmail);
+    if (!isLeadOrAdmin && !isMyVM) return;
     const daysLeft = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
     const vmName = vm.details.split('-')[0].trim();
     if (daysLeft < 0) {
@@ -3571,30 +3613,41 @@ function renderAlertsHtml() {
 
   (state.vms || []).forEach(vm => {
     if (!vm.inUse || !vm.endDate) return;
+    const isMyVM = vm.usedBy === (currentPerson?.name || currentUserEmail);
+    if (!isLeadOrAdmin && !isMyVM) return;
     const daysOver = Math.round((new Date(today+'T00:00:00') - new Date(vm.endDate+'T00:00:00')) / 86400000);
     if (daysOver > 0) {
       alerts.push({ icon:'🔓', level:'amber', title:'VM usage ended ' + daysOver + 'd ago — still marked in use', detail: vm.details.split('-')[0].trim() + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
     }
   });
 
+  // QA overdue + Release soon — Lead/Admin sees all, QA sees only associated releases
   getActiveProjects().forEach(proj => {
     if (proj.status === 'Completed') return;
     const plan = state.testPlans && state.testPlans[proj.id];
     const qaCompletion = (plan?.milestones?.execWithBuffer) || proj.completionDate || '';
-    const buildPickup  = (plan?.milestones?.buildPickup) || proj.buildDate || '';
     const releaseDate  = proj.releaseDate || '';
 
-    // Alert: QA completion date past and not completed
+    // Check if current user is associated with this project
+    const isAssociated = isLeadOrAdmin || (() => {
+      if (!currentPerson) return false;
+      if (proj.goAheadBy === currentPerson.id) return true;
+      if (plan) {
+        if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
+        if ((plan.testPrepAssigneeIds||[]).includes(currentPerson.id)) return true;
+        if ((plan.testEnvAssigneeIds||[]).includes(currentPerson.id))  return true;
+      }
+      return false;
+    })();
+
+    if (!isAssociated) return;
+
     if (qaCompletion && qaCompletion < today) {
       const d = Math.round((new Date(today+'T00:00:00') - new Date(qaCompletion+'T00:00:00')) / 86400000);
       alerts.push({ icon:'⚠️', level:'red', title:'QA overdue: ' + escapeHtml(proj.name), detail:'QA was due ' + formatDateDisplay(qaCompletion) + ' (' + d + 'd ago)', action:'summary' });
     }
 
-    // Alert: Dev to QA date past but all envs still Not yet started = build not received
-    // NOTE: Removed — QA team picks up work on their own schedule, not necessarily on Dev to QA date
-
-    // Alert: release within 7 days and not started
-    if (releaseDate && (proj.status === 'Not started')) {
+    if (releaseDate && proj.status === 'Not started') {
       const daysToRelease = Math.round((new Date(releaseDate+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
       if (daysToRelease >= 0 && daysToRelease <= 7) {
         alerts.push({ icon:'🚨', level:'red', title:'Release soon: ' + escapeHtml(proj.name), detail:'Releases in ' + daysToRelease + ' day(s) — not yet started', action:'summary' });
@@ -5673,8 +5726,93 @@ const KB_CATEGORY_COLORS = {
 
 let _kbCategoryFilter = 'All';
 let _editingResourceId = null;
+let _editingLinkId = null;
+
+// ── Important Links ──
+function renderImportantLinks() {
+  const grid  = document.getElementById('kbLinksGrid');
+  const empty = document.getElementById('kbLinksEmpty');
+  const addBtn = document.getElementById('addLinkBtn');
+  if (!grid) return;
+
+  const isEditor = currentUserRole === 'admin' || isCurrentUserLead();
+  if (addBtn) addBtn.style.display = isEditor ? 'flex' : 'none';
+
+  const links = state.importantLinks || [];
+  if (links.length === 0) {
+    grid.style.display  = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  grid.style.display  = 'flex';
+  empty.style.display = 'none';
+
+  grid.innerHTML = links.map(l => `
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border-soft);border-radius:10px;padding:7px 12px;position:relative;group">
+      <a href="${escapeHtml(l.url)}" target="_blank"
+        style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--text);font-size:13px;font-weight:600;">
+        <span style="font-size:16px;">${escapeHtml(l.icon||'🔗')}</span>
+        <span>${escapeHtml(l.label)}</span>
+        <span style="font-size:10px;color:var(--text-faint);">↗</span>
+      </a>
+      ${isEditor ? `
+        <button onclick="openLinkModal('${l.id}')" title="Edit"
+          style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:11px;padding:0 2px;font-family:inherit;margin-left:4px;">✎</button>
+        <button onclick="deleteLink('${l.id}')" title="Remove"
+          style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:11px;padding:0 2px;font-family:inherit;">✕</button>
+      ` : ''}
+    </div>`).join('');
+}
+
+function openLinkModal(id) {
+  _editingLinkId = id || null;
+  const titleEl = document.getElementById('linkModalTitle');
+  const saveBtn = document.getElementById('linkSaveBtn');
+  if (id) {
+    const l = (state.importantLinks||[]).find(x => x.id === id);
+    if (!l) return;
+    titleEl.textContent = 'Edit link';
+    saveBtn.textContent = 'Save changes';
+    document.getElementById('linkLabel').value = l.label || '';
+    document.getElementById('linkUrl').value   = l.url   || '';
+    document.getElementById('linkIcon').value  = l.icon  || '';
+  } else {
+    titleEl.textContent = 'Add important link';
+    saveBtn.textContent = 'Add link';
+    document.getElementById('linkLabel').value = '';
+    document.getElementById('linkUrl').value   = '';
+    document.getElementById('linkIcon').value  = '';
+  }
+  document.getElementById('linkModal').classList.add('show');
+}
+
+function saveLink() {
+  const label = document.getElementById('linkLabel').value.trim();
+  const url   = document.getElementById('linkUrl').value.trim();
+  const icon  = document.getElementById('linkIcon').value.trim();
+  if (!label || !url) { showToastMsg('Label and URL are required'); return; }
+  if (!state.importantLinks) state.importantLinks = [];
+  if (_editingLinkId) {
+    const l = state.importantLinks.find(x => x.id === _editingLinkId);
+    if (l) { l.label = label; l.url = url; l.icon = icon; }
+  } else {
+    state.importantLinks.push({ id: uid(), label, url, icon });
+  }
+  _editingLinkId = null;
+  closeModal('linkModal');
+  saveState();
+  renderImportantLinks();
+}
+
+function deleteLink(id) {
+  if (!confirm('Remove this link?')) return;
+  state.importantLinks = (state.importantLinks||[]).filter(l => l.id !== id);
+  saveState();
+  renderImportantLinks();
+}
 
 function renderKnowledge() {
+  renderImportantLinks();
   const grid    = document.getElementById('kbGrid');
   const empty   = document.getElementById('kbEmpty');
   const pillsEl = document.getElementById('kbCategoryPills');
