@@ -846,6 +846,7 @@
           <tbody id="projectTableBody"></tbody>
         </table>
       </div>
+      <div id="projectsPagination" style="margin-top:14px; padding:12px 16px; background:var(--panel); border:1px solid var(--border-soft); border-radius:12px;"></div>
       <div class="empty-state" id="projectEmpty" style="display:none;">No release items added yet. Click "+ Add release item" to start.</div>
     </div>
   </div>
@@ -1556,10 +1557,10 @@
                 </select>
               </th>
               <th style="white-space:nowrap;">JIRA</th>
+              <th style="white-space:nowrap;">Build Delay</th>
               <th style="white-space:nowrap;">Total QA efforts</th>
               <th style="white-space:nowrap;">QA Go ahead date</th>
               <th style="white-space:nowrap;">QA completion date</th>
-              <th style="white-space:nowrap;">Build Delay</th>
               <th style="white-space:nowrap;">Working on it</th>
               <th style="white-space:nowrap; min-width:110px;">
                 Status
@@ -4212,11 +4213,11 @@ function shareAllPlansReport() {
     return '<div class="project-card">'+
       '<div class="project-card-header">'+
         '<div style="flex:1;min-width:0;">'+
-          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'+
+          '<div style="margin-bottom:8px;">'+
             '<h2 style="margin:0;font-size:17px;">'+escapeHtml(proj.name)+'</h2>'+
-            (proj.jiraUrl?'<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>':'')+
           '</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'+
+            (proj.jiraUrl?'<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>':'')+
             (proj.devPod?'<span style="background:'+podC[0]+';color:'+podC[1]+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+escapeHtml(proj.devPod)+'</span>':'')+
             '<span style="background:'+sbg+';color:'+sfg+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+(proj.status||'Not started')+'</span>'+
             (reviewed?'<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">✅ Reviewed</span>':
@@ -5530,6 +5531,21 @@ function updateJiraPreview() {
 }
 
 // Round UP to nearest 0.5 — e.g. 1.43→1.5, 2.75→3, 0.89→1, 1.5→1.5
+// Next working day after a given date (skips weekends + holidays)
+function nextWorkingDay(dateStr) {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  while (true) {
+    const day = d.getDay();
+    const dk  = toDateKey(d);
+    const isHol = state.holidays.some(h => h.date === dk);
+    if (day !== 0 && day !== 6 && !isHol) break;
+    d.setDate(d.getDate() + 1);
+  }
+  return toDateKey(d);
+}
+
 function ceilHalf(n) {
   return Math.ceil(n * 2) / 2;
 }
@@ -5577,27 +5593,39 @@ function saveProject() {
       // Only run if actualBuildDate changed and there's a planned buildDate
       const plannedBuild = proj.buildDate; // synced from test plan
       if (actualBuildDate && plannedBuild && actualBuildDate !== prevActualBuild) {
-        const delayDays = Math.round(
-          (new Date(actualBuildDate+'T00:00:00') - new Date(plannedBuild+'T00:00:00')) / 86400000
-        );
+        const delayDays = getWorkingDaysBetween(plannedBuild, actualBuildDate);
 
         if (delayDays > 0) {
           const plan = state.testPlans && state.testPlans[proj.id];
           if (plan && plan.milestones) {
             const ms = plan.milestones;
 
-            // Actual date becomes new buildPickup
-            // Baki dates proportionally shift by same delayDays
-            // (actual → bvt gap same, bvt → exec gap same, etc.)
-            if (ms.buildPickup)        ms.buildPickup        = actualBuildDate;
-            if (ms.bvtCompletion)      ms.bvtCompletion      = shiftDate(ms.bvtCompletion, delayDays);
-            if (ms.execNoBuffer)       ms.execNoBuffer       = shiftDate(ms.execNoBuffer, delayDays);
-            if (ms.execWithBuffer)     ms.execWithBuffer     = shiftDate(ms.execWithBuffer, delayDays);
-            if (ms.mergedBuildGoAhead) ms.mergedBuildGoAhead = shiftDate(ms.mergedBuildGoAhead, delayDays);
+            // New build pickup = next working day after actual Dev to QA date
+            const newBuildPickup = nextWorkingDay(actualBuildDate);
 
-            // Also update Release tab dates (goAheadDate + completionDate)
-            if (ms.mergedBuildGoAhead) { proj.goAheadDate    = ms.mergedBuildGoAhead; }
-            if (ms.execWithBuffer)     { proj.completionDate = ms.execWithBuffer; }
+            // Calculate gaps from original build pickup (calendar days)
+            // New date = newBuildPickup + original gap
+            const origPickup = ms.buildPickup || plannedBuild;
+
+            function calDayGap(fromStr, toStr) {
+              if (!fromStr || !toStr) return null;
+              return Math.round((new Date(toStr+'T00:00:00') - new Date(fromStr+'T00:00:00')) / 86400000);
+            }
+
+            const gapBvt     = calDayGap(origPickup, ms.bvtCompletion);
+            const gapNoBuffer= calDayGap(origPickup, ms.execNoBuffer);
+            const gapWithBuf = calDayGap(origPickup, ms.execWithBuffer);
+            const gapGoAhead = calDayGap(origPickup, ms.mergedBuildGoAhead);
+
+            ms.buildPickup = newBuildPickup;
+            if (gapBvt      !== null) ms.bvtCompletion      = shiftDate(newBuildPickup, gapBvt);
+            if (gapNoBuffer !== null) ms.execNoBuffer        = shiftDate(newBuildPickup, gapNoBuffer);
+            if (gapWithBuf  !== null) ms.execWithBuffer      = shiftDate(newBuildPickup, gapWithBuf);
+            if (gapGoAhead  !== null) ms.mergedBuildGoAhead  = shiftDate(newBuildPickup, gapGoAhead);
+
+            // Also update Release tab dates
+            if (ms.mergedBuildGoAhead) proj.goAheadDate    = ms.mergedBuildGoAhead;
+            if (ms.execWithBuffer)     proj.completionDate  = ms.execWithBuffer;
 
             // Store notification
             if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
@@ -6189,11 +6217,11 @@ function renderTestPlan() {
 
   // Summary stats
   const executableCases = rowsCases;
-  const requiredPDs = Math.round((testPrepEffort + testEnvEffort + rowsEffort) * 100) / 100;
-  const totalPDsWithBuffer = Math.round(totalEffort * 100) / 100;
+  const requiredPDs      = ceilHalf(testPrepEffort + testEnvEffort + rowsEffort);
+  const totalPDsWithBuffer = ceilHalf(totalEffort);
   const assignedPeopleIds = new Set(plan.rows.map(r => r.assigneeId).filter(Boolean));
   const noOfPeople = assignedPeopleIds.size;
-  const totalCD = noOfPeople > 0 ? Math.round((totalPDsWithBuffer / noOfPeople) * 100) / 100 : 0;
+  const totalCD = noOfPeople > 0 ? ceilHalf(totalPDsWithBuffer / noOfPeople) : 0;
 
   const statsEl = document.getElementById('testPlanSummaryStats');
   statsEl.innerHTML = `
@@ -7019,8 +7047,11 @@ function exportSummaryReport() {
         <td style="padding:12px 14px;">${jiraCell}</td>
         <td style="padding:12px 14px;">${members}</td>
         <td style="padding:12px 14px;">${statusBadge}</td>
-        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.goAheadDate)}</td>
-        <td style="padding:12px 14px; font-family:'SF Mono',Consolas,monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
+        <td style="padding:12px 14px; font-family:'DM Mono',monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.goAheadDate)}</td>
+        <td style="padding:12px 14px; font-family:'DM Mono',monospace; font-size:12px; color:#475569;">${formatDateDisplay(proj.completionDate)}</td>
+        <td style="padding:12px 14px; text-align:center;">
+          ${buildDelayBadgeReport(proj.buildDate, proj.actualBuildDate)}
+        </td>
         <td style="padding:12px 14px; text-align:center;">
           ${proj.effort ? `<span style="font-weight:700; color:#1e3a8a; font-size:15px;">${proj.effort}</span><span style="font-size:11px; color:#94a3b8; margin-left:3px;">PDs</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
@@ -7031,7 +7062,7 @@ function exportSummaryReport() {
   const totalProjects = projects.length;
   const inProgress = projects.filter(p => (p.status || '').toLowerCase() === 'in progress').length;
   const completed = projects.filter(p => (p.status || '').toLowerCase() === 'completed').length;
-  const totalPDs = projects.reduce((s, p) => s + (parseFloat(p.effort) || 0), 0);
+  const totalPDs = ceilHalf(projects.reduce((s, p) => s + (parseFloat(p.effort) || 0), 0));
 
   const bodyHtml = `
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px;">
@@ -7064,8 +7095,8 @@ function exportSummaryReport() {
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Status</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA Go ahead date</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">QA completion date</th>
-            <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Total QA efforts</th>
             <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Build Delay</th>
+            <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Total QA efforts</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -7094,6 +7125,49 @@ function getWorkingDaysInMonth(year, month) {
     if (isWorkingDay(dateObj, dateKey)) count++;
   }
   return count;
+}
+
+// Working days between two date strings (excludes Sat, Sun, public holidays)
+function getWorkingDaysBetween(fromDateStr, toDateStr) {
+  if (!fromDateStr || !toDateStr) return 0;
+  const from = new Date(fromDateStr + 'T00:00:00');
+  const to   = new Date(toDateStr   + 'T00:00:00');
+  if (from >= to) return 0;
+  let count = 0;
+  const cur = new Date(from);
+  cur.setDate(cur.getDate() + 1); // start from day after planned
+  while (cur <= to) {
+    const day = cur.getDay();
+    const dateKey = toDateKey(cur);
+    const isHoliday = state.holidays.some(h => h.date === dateKey);
+    if (day !== 0 && day !== 6 && !isHoliday) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+function getWorkingDaysBetween_signed(fromDateStr, toDateStr) {
+  if (!fromDateStr || !toDateStr) return 0;
+  const from = new Date(fromDateStr + 'T00:00:00');
+  const to   = new Date(toDateStr   + 'T00:00:00');
+  const abs  = getWorkingDaysBetween(fromDateStr, toDateStr);
+  return from < to ? abs : -abs;
+}
+
+function buildDelayBadge(plannedDate, actualDate) {
+  if (!plannedDate || !actualDate) return '<span style="color:var(--text-faint);">—</span>';
+  const delay = getWorkingDaysBetween_signed(plannedDate, actualDate);
+  if (delay > 0) return `<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">+${delay}d late</span>`;
+  if (delay < 0) return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">${Math.abs(delay)}d early</span>`;
+  return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">On time</span>`;
+}
+
+function buildDelayBadgeReport(plannedDate, actualDate) {
+  if (!plannedDate || !actualDate) return '<span style="color:#94a3b8;">—</span>';
+  const delay = getWorkingDaysBetween_signed(plannedDate, actualDate);
+  if (delay > 0) return `<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">+${delay}d late</span>`;
+  if (delay < 0) return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">${Math.abs(delay)}d early</span>`;
+  return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">On time</span>`;
 }
 
 function renderProjects() {
@@ -7142,10 +7216,20 @@ function renderProjects() {
 
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-faint); padding:24px; font-style:italic;">No release items match the selected filters.</td></tr>`;
+    const pgEl = document.getElementById('projectsPagination');
+    if (pgEl) pgEl.innerHTML = '';
     return;
   }
 
-  tbody.innerHTML = filtered.map(p => {
+  // Pagination
+  const PROJ_PAGE_SIZE = 15;
+  const totalItems  = filtered.length;
+  const totalPages  = Math.max(1, Math.ceil(totalItems / PROJ_PAGE_SIZE));
+  if (projectsPage > totalPages) projectsPage = totalPages;
+  const startIdx    = (projectsPage - 1) * PROJ_PAGE_SIZE;
+  const pageItems   = filtered.slice(startIdx, startIdx + PROJ_PAGE_SIZE);
+
+  tbody.innerHTML = pageItems.map(p => {
     const jiraId = extractJiraId(p.jiraUrl);
     const jiraCell = jiraId
       ? (p.jiraUrl && p.jiraUrl.startsWith('http')
@@ -7176,15 +7260,7 @@ function renderProjects() {
           : `<span style="color:var(--text-faint);">—</span>`}
       </td>
       <td style="text-align:center; font-size:12px;">
-        ${(p.buildDate && p.actualBuildDate)
-          ? (() => {
-              const delay = Math.round((new Date(p.actualBuildDate+'T00:00:00') - new Date(p.buildDate+'T00:00:00')) / 86400000);
-              if (delay > 0) return `<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">+${delay}d late</span>`;
-              if (delay < 0) return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">${Math.abs(delay)}d early</span>`;
-              return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">On time</span>`;
-            })()
-          : '<span style="color:var(--text-faint);">—</span>'
-        }
+        ${buildDelayBadge(p.buildDate, p.actualBuildDate)}
       </td>
       <td style="font-family:var(--mono);">${p.effort ? p.effort + ' PDs' : '—'}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
@@ -7198,10 +7274,48 @@ function renderProjects() {
       </td>
     </tr>`;
   }).join('');
+
+  // Pagination controls
+  const pgEl = document.getElementById('projectsPagination');
+  if (pgEl) {
+    if (totalPages <= 1) { pgEl.innerHTML = ''; }
+    else {
+      const from = startIdx + 1;
+      const to   = Math.min(startIdx + PROJ_PAGE_SIZE, totalItems);
+      let pg = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
+        '<div style="font-size:12.5px;color:var(--text-faint);">Showing <strong style="color:var(--text);">' + from + '–' + to + '</strong> of <strong style="color:var(--text);">' + totalItems + '</strong> releases</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;">';
+      pg += '<button onclick="setProjectsPage(' + (projectsPage-1) + ')" ' +
+        (projectsPage === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;' : 'style="cursor:pointer;') +
+        'padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text-dim);font-size:12px;font-family:inherit;">← Prev</button>';
+      for (let p = 1; p <= totalPages; p++) {
+        const isActive = p === projectsPage;
+        pg += '<button onclick="setProjectsPage(' + p + ')" style="padding:5px 11px;border-radius:8px;border:1px solid ' +
+          (isActive ? '#0f172a' : 'var(--border)') + ';background:' + (isActive ? '#0f172a' : 'var(--panel)') +
+          ';color:' + (isActive ? 'white' : 'var(--text-dim)') + ';font-size:12px;font-weight:' + (isActive ? '700' : '400') +
+          ';cursor:pointer;font-family:inherit;">' + p + '</button>';
+      }
+      pg += '<button onclick="setProjectsPage(' + (projectsPage+1) + ')" ' +
+        (projectsPage === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;' : 'style="cursor:pointer;') +
+        'padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text-dim);font-size:12px;font-family:inherit;">Next →</button>';
+      pg += '</div></div>';
+      pgEl.innerHTML = pg;
+    }
+  }
+}
+
+let projectsPage = 1;
+
+function setProjectsPage(page) {
+  projectsPage = page;
+  renderProjects();
+  const el = document.querySelector('#tab-projects .panel');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function setReleaseDateFilter(date) {
   selectedReleaseDate = date || null;
+  projectsPage = 1;
   renderProjects();
 }
 
@@ -7237,11 +7351,13 @@ function getWorkingOnIt(projectName) {
 
 function setDevPodFilter(pod) {
   selectedDevPod = pod || null;
+  projectsPage = 1;
   renderProjects();
 }
 
 function setReleaseStatusFilter(status) {
   selectedReleaseStatus = status || null;
+  projectsPage = 1;
   renderProjects();
 }
 
@@ -7690,7 +7806,7 @@ function setHealthReleaseFilter(date) {
 let archiveReleaseFilter = null;
 let archivePodFilter     = null;
 let archivePage          = 1;
-const ARCHIVE_PAGE_SIZE  = 10;
+const ARCHIVE_PAGE_SIZE  = 15;
 
 function setArchiveReleaseFilter(date) {
   archiveReleaseFilter = date;
@@ -8143,19 +8259,12 @@ function renderSummary() {
         <td style="font-weight:500;">${escapeHtml(proj.name)}</td>
         <td>${podCell}</td>
         <td>${jiraCell}</td>
+        <td style="text-align:center;">
+          ${buildDelayBadge(proj.buildDate, proj.actualBuildDate)}
+        </td>
         <td style="font-family:var(--mono);">${proj.effort ? proj.effort + ' PDs' : '—'}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.goAheadDate)}</td>
         <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(proj.completionDate)}</td>
-        <td style="text-align:center;">
-          ${(proj.buildDate && proj.actualBuildDate)
-            ? (() => {
-                const delay = Math.round((new Date(proj.actualBuildDate+'T00:00:00') - new Date(proj.buildDate+'T00:00:00')) / 86400000);
-                if (delay > 0) return `<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">+${delay}d late</span>`;
-                if (delay < 0) return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">${Math.abs(delay)}d early</span>`;
-                return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">On time</span>`;
-              })()
-            : '<span style="color:var(--text-faint);">—</span>'}
-        </td>
         <td style="color:var(--text-dim); font-size:12px;">${members}</td>
         <td>${proj.status ? `<span class="badge ${statusBadgeClass(proj.status)}">${escapeHtml(proj.status)}</span>` : '—'}</td>
       </tr>`;
