@@ -813,7 +813,9 @@
                   <option>Evil Inc.</option>
                 </select>
               </th>
-              <th style="white-space:nowrap;">Dev to QA date</th>
+              <th style="white-space:nowrap;">Planned Dev to QA</th>
+              <th style="white-space:nowrap;">Actual Dev to QA</th>
+              <th style="white-space:nowrap;">Build Delay</th>
               <th style="white-space:nowrap;">Total QA efforts</th>
               <th style="white-space:nowrap;">QA Go ahead date</th>
               <th style="white-space:nowrap;">QA completion date</th>
@@ -1643,7 +1645,11 @@
       <select id="projGoAheadBy"></select>
     </div>
     <div style="background:var(--panel-2); border:1px solid var(--border-soft); border-radius:8px; padding:10px 12px; font-size:11.5px; color:var(--text-faint); margin-bottom:14px; line-height:1.7;">
-      ℹ️ <strong style="color:var(--text-dim);">Dev to QA date, Total QA efforts & Status</strong> are auto-filled from the Test plan — no need to enter manually.
+      ℹ️ <strong style="color:var(--text-dim);">Dev to QA date (Planned), Total QA efforts & Status</strong> are auto-filled from the Test plan — no need to enter manually.
+    </div>
+    <div class="field">
+      <label>Actual Dev to QA date <span style="font-size:10.5px;color:var(--text-faint);font-weight:400;">(when build was actually received)</span></label>
+      <input type="date" id="projActualBuildDate">
     </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal('projectModal')">Cancel</button>
@@ -1832,7 +1838,7 @@
 </div>
 
 <script>
-let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [], reviewRequests: [] };
+let state = { people: [], projects: [], allocations: [], leaves: {}, dailyPlan: [], holidays: [], testPlans: {}, vms: [], vmPods: [], reviewRequests: [], buildDelayNotifications: [] };
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let dayMonth = new Date().getMonth();
@@ -2882,7 +2888,8 @@ async function loadState() {
       state.vms       = Array.isArray(parsed.vms) ? parsed.vms : [];
       state.vmPods    = Array.isArray(parsed.vmPods) ? parsed.vmPods :
         ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
-      state.reviewRequests = Array.isArray(parsed.reviewRequests) ? parsed.reviewRequests : [];
+      state.reviewRequests          = Array.isArray(parsed.reviewRequests) ? parsed.reviewRequests : [];
+      state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
     } else {
       el.textContent = 'no data yet — start by adding people';
@@ -3197,16 +3204,29 @@ function renderDashboard() {
   });
 
   // 2. At-risk releases
-  const atRisk = state.projects.filter(proj => {
-    if (proj.status === 'Completed') return false;
+  const atRisk = getActiveProjects().filter(proj => {
     const plan = state.testPlans?.[proj.id];
-    const effectiveBuild = plan?.milestones?.buildPickup || proj.buildDate || '';
-    const effectiveGoAhead = plan?.milestones?.mergedBuildGoAhead || proj.goAheadDate || '';
-    const effectiveQADone = plan?.milestones?.execWithBuffer || proj.completionDate || '';
-    return (effectiveBuild && effectiveBuild < today) ||
-           (effectiveGoAhead && effectiveGoAhead < today) ||
-           (effectiveQADone && effectiveQADone < today) ||
-           (effectiveQADone && proj.releaseDate && effectiveQADone > proj.releaseDate);
+    const qaCompletion = plan?.milestones?.execWithBuffer || proj.completionDate || '';
+    const goAhead      = plan?.milestones?.mergedBuildGoAhead || proj.goAheadDate || '';
+    const releaseDate  = proj.releaseDate || '';
+    const status       = proj.status || 'Not started';
+
+    // 1. QA completion date already past and not completed
+    if (qaCompletion && qaCompletion < today) return true;
+
+    // 2. QA completion date is after release date (won't be ready in time)
+    if (qaCompletion && releaseDate && qaCompletion > releaseDate) return true;
+
+    // 3. Go ahead date already past and not completed
+    if (goAhead && goAhead < today) return true;
+
+    // 4. Release date is within 7 days and status is Not started
+    if (releaseDate) {
+      const daysToRelease = Math.round((new Date(releaseDate+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+      if (daysToRelease >= 0 && daysToRelease <= 7 && status === 'Not started') return true;
+    }
+
+    return false;
   });
 
   // 3. Expiring VMs (next 14 days)
@@ -3218,12 +3238,34 @@ function renderDashboard() {
 
   // 4. Today's daily plan
   const todayEntries = state.dailyPlan.filter(e => e.date === today);
+  // Today's assignments — filter by role
+  // Admin/Lead → all people (leads first), QA → only themselves
+  const isLead = isCurrentUserLead();
+  const currentPersonObj = state.people.find(p => p.email === currentUserEmail);
+
+  let assignmentPeople;
+  if (currentUserRole === 'admin' || isLead) {
+    // Sort — leads first, then rest alphabetically
+    assignmentPeople = [...state.people].sort((a, b) => {
+      const aLead = (a.title || '').toLowerCase().includes('lead');
+      const bLead = (b.title || '').toLowerCase().includes('lead');
+      if (aLead && !bLead) return -1;
+      if (!aLead && bLead) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  } else {
+    // QA — only show themselves
+    assignmentPeople = currentPersonObj ? [currentPersonObj] : [];
+  }
+
+  // Build todayByPerson only for visible people
   const todayByPerson = {};
   todayEntries.forEach(e => {
     const p = state.people.find(x => x.id === e.personId);
     if (!p) return;
-    if (!todayByPerson[p.name]) todayByPerson[p.name] = [];
-    todayByPerson[p.name].push(e.project);
+    if (!assignmentPeople.find(x => x.id === p.id)) return;
+    if (!todayByPerson[p.id]) todayByPerson[p.id] = { name: p.name, title: p.title || '', projects: [] };
+    todayByPerson[p.id].projects.push({ project: e.project, task: e.task || '' });
   });
 
   // 5. Recently auto-freed VMs
@@ -3262,27 +3304,96 @@ function renderDashboard() {
       <div class="stat-card">
         <div class="label">Assigned today</div>
         <div class="value">${todayEntries.length}</div>
-        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${todayEntries.length === 0 ? 'No assignments' : Object.keys(todayByPerson).slice(0,3).join(', ')}</div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${todayEntries.length === 0 ? 'No assignments' : Object.values(todayByPerson).slice(0,3).map(x=>escapeHtml(x.name)).join(', ')}</div>
       </div>
     </div>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
 
-      <!-- Today's plan -->
+      <!-- Build Delay Notifications -->
+    ${(() => {
+      const notifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
+      if (notifs.length === 0) return '';
+      return `<div class="panel" style="margin-bottom:18px;border:1.5px solid #fbbf24;background:linear-gradient(135deg,rgba(251,191,36,0.06),rgba(245,158,11,0.03));">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <span style="font-size:20px;">⚠️</span>
+          <div style="font-weight:700;font-size:14px;color:var(--text);">Build Delay Alerts</div>
+          <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">${notifs.length} release${notifs.length>1?'s':''}</span>
+        </div>
+        ${notifs.map(n => `
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 12px;background:var(--panel-2);border-radius:10px;border:1px solid #fde68a;margin-bottom:8px;">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px;">📦 ${escapeHtml(n.projectName)}</div>
+              <div style="font-size:12px;color:var(--text-faint);">
+                Build delayed by <strong style="color:#b45309;">${n.delayDays} day${n.delayDays>1?'s':''}</strong>
+                &nbsp;·&nbsp; Planned: ${formatDateDisplay(n.plannedDate)}
+                &nbsp;·&nbsp; Actual: ${formatDateDisplay(n.actualDate)}
+              </div>
+              <div style="font-size:11.5px;color:#059669;margin-top:4px;">✅ All test plan milestones automatically shifted by ${n.delayDays} day${n.delayDays>1?'s':''}</div>
+            </div>
+            <button onclick="acknowledgeBuildDelay('${n.projectId}')"
+              style="flex-shrink:0;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:5px 12px;font-size:11.5px;font-weight:600;color:#b45309;cursor:pointer;font-family:inherit;white-space:nowrap;">
+              Got it ✓
+            </button>
+          </div>`).join('')}
+      </div>`;
+    })()}
       <div class="panel" style="margin:0;">
         <div style="font-weight:700; font-size:14px; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
           <span style="font-size:18px;">📅</span> Today's assignments
+          ${!(currentUserRole === 'admin' || isLead) ? '<span style="background:#ede9fe;color:#7c3aed;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:600;">My tasks</span>' : ''}
         </div>
         ${Object.keys(todayByPerson).length === 0
-          ? `<div style="color:var(--text-faint); font-size:12.5px; font-style:italic; padding:8px 0;">No one assigned today</div>`
-          : Object.entries(todayByPerson).map(([name, projects]) => `
-            <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border-soft);">
-              <div style="width:28px; height:28px; border-radius:7px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white; flex-shrink:0;">${escapeHtml(name.slice(0,2).toUpperCase())}</div>
-              <div>
-                <div style="font-size:12.5px; font-weight:600; color:var(--text);">${escapeHtml(name)}</div>
-                <div style="font-size:11px; color:var(--text-faint);">${projects.map(p=>escapeHtml(p)).join(', ')}</div>
-              </div>
-            </div>`).join('')
+          ? `<div style="color:var(--text-faint); font-size:12.5px; font-style:italic; padding:8px 0;">${(currentUserRole === 'admin' || isLead) ? 'No one assigned today' : 'You have no assignments today'}</div>`
+          : assignmentPeople.map(person => {
+              const entry = todayByPerson[person.id];
+              if (!entry) return '';
+              const isPersonLead = (person.title || '').toLowerCase().includes('lead');
+              const TASK_ICONS = {'Test Scenario Writing':'📝','Test Case Writing':'✍️','Test Data Prep':'🗂️','BVT':'🔬','Execution':'▶️'};
+              const taskBadges = entry.projects.map(x =>
+                `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--panel-2);border:1px solid var(--border-soft);border-radius:5px;padding:1px 7px;font-size:10.5px;color:var(--text-dim);margin-right:4px;margin-top:2px;">
+                  ${x.task ? (TASK_ICONS[x.task]||'🏷️')+' ' : ''}${escapeHtml(x.project)}${x.task ? ' · <strong>'+escapeHtml(x.task)+'</strong>' : ''}
+                </span>`
+              ).join('');
+              return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-soft);">
+                <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,${isPersonLead?'#f59e0b,#d97706':'#7c3aed,#a855f7'});display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;">${escapeHtml(person.name.slice(0,2).toUpperCase())}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:12.5px;font-weight:700;color:var(--text);">${escapeHtml(person.name)}</span>
+                    ${isPersonLead ? '<span style="background:#fef3c7;color:#b45309;padding:1px 6px;border-radius:20px;font-size:9.5px;font-weight:700;">Lead</span>' : ''}
+                  </div>
+                  <div style="margin-top:3px;display:flex;flex-wrap:wrap;">${taskBadges}</div>
+                  ${(() => {
+                    const isLeadOrAdmin = currentUserRole === 'admin' || isLead;
+                    const delayNotifs = (state.buildDelayNotifications || []).filter(n => {
+                      if (n.acknowledged) return false;
+                      if (isLeadOrAdmin) return true; // Lead/Admin sees all
+                      // QA — only if owner or assigned in test plan
+                      const proj = state.projects.find(p => p.name === n.projectName);
+                      if (!proj) return false;
+                      if (proj.goAheadBy === person.id) return true;
+                      const plan = state.testPlans && state.testPlans[proj.id];
+                      if (plan) {
+                        const inRows = plan.rows.some(r =>
+                          r.assigneeId === person.id ||
+                          (r.assigneeIds && r.assigneeIds.includes(person.id))
+                        );
+                        const inPrep = plan.testPrepAssigneeIds && plan.testPrepAssigneeIds.includes(person.id);
+                        const inEnv  = plan.testEnvAssigneeIds  && plan.testEnvAssigneeIds.includes(person.id);
+                        if (inRows || inPrep || inEnv) return true;
+                      }
+                      return false;
+                    });
+                    if (delayNotifs.length === 0) return '';
+                    return delayNotifs.map(n => `
+                      <div style="margin-top:4px;display:flex;align-items:center;gap:5px;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:3px 8px;">
+                        <span style="font-size:12px;">⚠️</span>
+                        <span style="font-size:11px;color:#b45309;font-weight:600;">Build delayed ${n.delayDays}d — milestones shifted · ${escapeHtml(n.projectName)}</span>
+                      </div>`).join('');
+                  })()}
+                </div>
+              </div>`;
+            }).join('')
         }
       </div>
 
@@ -3354,10 +3465,25 @@ function renderAlertsHtml() {
   getActiveProjects().forEach(proj => {
     if (proj.status === 'Completed') return;
     const plan = state.testPlans && state.testPlans[proj.id];
-    const effectiveBuild = (plan && plan.milestones && plan.milestones.buildPickup) || proj.buildDate || '';
-    if (effectiveBuild && effectiveBuild < today) {
-      const d = Math.round((new Date(today+'T00:00:00') - new Date(effectiveBuild+'T00:00:00')) / 86400000);
-      alerts.push({ icon:'📁', level:'red', title:'Build delay: ' + escapeHtml(proj.name), detail:'Dev to QA was ' + formatDateDisplay(effectiveBuild) + ' (' + d + 'd ago)', action:'summary' });
+    const qaCompletion = (plan?.milestones?.execWithBuffer) || proj.completionDate || '';
+    const buildPickup  = (plan?.milestones?.buildPickup) || proj.buildDate || '';
+    const releaseDate  = proj.releaseDate || '';
+
+    // Alert: QA completion date past and not completed
+    if (qaCompletion && qaCompletion < today) {
+      const d = Math.round((new Date(today+'T00:00:00') - new Date(qaCompletion+'T00:00:00')) / 86400000);
+      alerts.push({ icon:'⚠️', level:'red', title:'QA overdue: ' + escapeHtml(proj.name), detail:'QA was due ' + formatDateDisplay(qaCompletion) + ' (' + d + 'd ago)', action:'summary' });
+    }
+
+    // Alert: Dev to QA date past but all envs still Not yet started = build not received
+    // NOTE: Removed — QA team picks up work on their own schedule, not necessarily on Dev to QA date
+
+    // Alert: release within 7 days and not started
+    if (releaseDate && (proj.status === 'Not started')) {
+      const daysToRelease = Math.round((new Date(releaseDate+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+      if (daysToRelease >= 0 && daysToRelease <= 7) {
+        alerts.push({ icon:'🚨', level:'red', title:'Release soon: ' + escapeHtml(proj.name), detail:'Releases in ' + daysToRelease + ' day(s) — not yet started', action:'summary' });
+      }
     }
   });
 
@@ -3943,7 +4069,7 @@ function buildAllPlansHtml(projects) {
       '<tr style="background:#f0f4ff;font-weight:700;color:#1e3a8a;border-top:2px solid #c7d7fe;">' +
         '<td style="padding:7px 10px;font-size:12.5px;">Total</td>' +
         '<td style="padding:7px 10px;text-align:center;font-family:var(--mono);">' + totalCases + '</td>' +
-        '<td style="padding:7px 10px;text-align:center;font-family:var(--mono);">' + totalEffort.toFixed(1) + ' PD</td>' +
+        '<td style="padding:7px 10px;text-align:center;font-family:var(--mono);">' + Math.round(totalEffort) + ' PD</td>' +
         '<td colspan="2"></td>' +
       '</tr>';
 
@@ -4113,7 +4239,7 @@ function shareAllPlansReport() {
               '<th style="width:17%;">Status</th>'+
             '</tr></thead>'+
             '<tbody>'+rowsHtml+'</tbody>'+
-            '<tfoot><tr class="row-total"><td><strong>Total</strong></td><td class="r"><strong>'+totalCases+'</strong></td><td class="r"><strong>'+totalEffort.toFixed(1)+'</strong></td><td colspan="2"></td></tr></tfoot>'+
+            '<tfoot><tr class="row-total"><td><strong>Total</strong></td><td class="r"><strong>'+totalCases+'</strong></td><td class="r"><strong>'+Math.round(totalEffort)+'</strong></td><td colspan="2"></td></tr></tfoot>'+
           '</table>'+
         '</div>'+
         msHtml+
@@ -5273,6 +5399,7 @@ function openProjectModal(id) {
     document.getElementById('projJiraUrl').value = proj.jiraUrl || '';
     document.getElementById('projReleaseDate').value = proj.releaseDate || '';
     document.getElementById('projDevPod').value = proj.devPod || '';
+    document.getElementById('projActualBuildDate').value = proj.actualBuildDate || '';
     populateGoAheadBySelect(proj.goAheadBy || '');
     updateJiraPreview();
   } else {
@@ -5283,6 +5410,7 @@ function openProjectModal(id) {
     document.getElementById('projReleaseDate').value = '';
     document.getElementById('projDevPod').value = '';
     document.getElementById('projJiraPreview').textContent = '';
+    document.getElementById('projActualBuildDate').value = '';
   }
   document.getElementById('projectModal').classList.add('show');
 }
@@ -5389,37 +5517,109 @@ function updateJiraPreview() {
   }
 }
 
+function acknowledgeBuildDelay(projectId) {
+  if (!state.buildDelayNotifications) return;
+  const n = state.buildDelayNotifications.find(x => x.projectId === projectId);
+  if (n) n.acknowledged = true;
+  saveState();
+  renderDashboard();
+}
+
+function shiftDate(dateStr, days) {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return toDateKey(d);
+}
+
 function saveProject() {
-  const name = document.getElementById('projName').value.trim();
-  const jiraUrl = document.getElementById('projJiraUrl').value.trim();
-  const releaseDate = document.getElementById('projReleaseDate').value;
-  const devPod = document.getElementById('projDevPod').value;
-  const goAheadBy = document.getElementById('projGoAheadBy').value;
+  const name            = document.getElementById('projName').value.trim();
+  const jiraUrl         = document.getElementById('projJiraUrl').value.trim();
+  const releaseDate     = document.getElementById('projReleaseDate').value;
+  const devPod          = document.getElementById('projDevPod').value;
+  const goAheadBy       = document.getElementById('projGoAheadBy').value;
+  const actualBuildDate = document.getElementById('projActualBuildDate').value;
   if (!name) return;
 
   if (editingProjectId) {
     snapshotState(`Edit release item: ${name}`);
     const proj = state.projects.find(p => p.id === editingProjectId);
     if (proj) {
-      const oldName = proj.name;
+      const oldName           = proj.name;
+      const prevActualBuild   = proj.actualBuildDate || '';
       proj.name = name; proj.jiraUrl = jiraUrl;
       proj.releaseDate = releaseDate; proj.devPod = devPod; proj.goAheadBy = goAheadBy;
+      proj.actualBuildDate = actualBuildDate;
+
       if (oldName !== name) {
         state.allocations.forEach(a => { if (a.project === oldName) a.project = name; });
         state.dailyPlan.forEach(d => { if (d.project === oldName) d.project = name; });
+      }
+
+      // ---- Milestone shift logic ----
+      // Only run if actualBuildDate changed and there's a planned buildDate
+      const plannedBuild = proj.buildDate; // synced from test plan
+      if (actualBuildDate && plannedBuild && actualBuildDate !== prevActualBuild) {
+        const delayDays = Math.round(
+          (new Date(actualBuildDate+'T00:00:00') - new Date(plannedBuild+'T00:00:00')) / 86400000
+        );
+
+        if (delayDays > 0) {
+          // Build is late — shift all milestone dates by delayDays
+          const plan = state.testPlans && state.testPlans[proj.id];
+          if (plan && plan.milestones) {
+            const ms = plan.milestones;
+            const shifted = {};
+            if (ms.buildPickup)        shifted.buildPickup        = shiftDate(ms.buildPickup, delayDays);
+            if (ms.bvtCompletion)      shifted.bvtCompletion      = shiftDate(ms.bvtCompletion, delayDays);
+            if (ms.execNoBuffer)       shifted.execNoBuffer       = shiftDate(ms.execNoBuffer, delayDays);
+            if (ms.execWithBuffer)     shifted.execWithBuffer     = shiftDate(ms.execWithBuffer, delayDays);
+            if (ms.mergedBuildGoAhead) shifted.mergedBuildGoAhead = shiftDate(ms.mergedBuildGoAhead, delayDays);
+
+            Object.assign(ms, shifted);
+
+            // Store notification for QA
+            if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
+            state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
+            state.buildDelayNotifications.push({
+              projectId:    proj.id,
+              projectName:  proj.name,
+              delayDays,
+              plannedDate:  plannedBuild,
+              actualDate:   actualBuildDate,
+              shiftedAt:    new Date().toISOString(),
+              acknowledged: false
+            });
+
+            logActivity('Build delay — milestones shifted', {
+              name, delayDays,
+              planned: formatDateDisplay(plannedBuild),
+              actual:  formatDateDisplay(actualBuildDate)
+            });
+
+            // Show toast immediately
+            showToastMsg(`⚠️ Build delayed by ${delayDays} day(s) — Test plan milestones shifted for "${name}"`);
+          }
+        } else if (delayDays <= 0) {
+          // On time or early — no shift needed, clear any previous notification
+          if (state.buildDelayNotifications) {
+            state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
+          }
+        }
       }
     }
     logActivity('Release item edited', { name, devPod, releaseDate });
   } else {
     snapshotState(`Add release item: ${name}`);
     state.projects.push({
-      id: uid(), name, jiraUrl, releaseDate, devPod, goAheadBy,
+      id: uid(), name, jiraUrl, releaseDate, devPod, goAheadBy, actualBuildDate,
       buildDate: '', effort: '', status: 'Not started'
     });
     logActivity('Release item added', { name, devPod, releaseDate });
   }
   editingProjectId = null;
   closeModal('projectModal');
+  syncTestPlanToProjects();
   saveState();
   renderAll();
 }
@@ -5965,7 +6165,7 @@ function renderTestPlan() {
   const totalEffort = testPrepEffort + testEnvEffort + rowsEffort + bufferEffort;
 
   document.getElementById('testTotalCases').textContent = totalCases;
-  document.getElementById('testTotalEffort').textContent = Math.round(totalEffort * 100) / 100;
+  document.getElementById('testTotalEffort').textContent = Math.round(totalEffort);
 
   // Summary stats
   const executableCases = rowsCases;
@@ -6064,8 +6264,8 @@ function computeTestPlanMetrics(plan) {
   const testPrepEffort = plan.testPrepEffort || 0;
   const testEnvEffort = plan.testEnvEffort || 0;
   const bufferEffort = plan.buffer.effort || 0;
-  const totalEffort = Math.round((testPrepEffort + testEnvEffort + rowsEffort + bufferEffort) * 100) / 100;
-  const requiredPDs = Math.round((testPrepEffort + testEnvEffort + rowsEffort) * 100) / 100;
+  const totalEffort = Math.round(testPrepEffort + testEnvEffort + rowsEffort + bufferEffort);
+  const requiredPDs = Math.round(testPrepEffort + testEnvEffort + rowsEffort);
   const assignedPeopleIds = new Set(plan.rows.map(r => r.assigneeId).filter(Boolean));
   const noOfPeople = assignedPeopleIds.size;
   const totalCD = noOfPeople > 0 ? Math.round((totalEffort / noOfPeople) * 100) / 100 : 0;
@@ -6384,7 +6584,7 @@ function buildTestPlanProjectSectionHtml(proj) {
                 <td>Total</td>
                 <td class="r">—</td>
                 <td class="r">${metrics.rowsCases}</td>
-                <td class="r">${metrics.totalEffort}</td>
+                <td class="r">${Math.round(metrics.totalEffort)}</td>
                 <td>—</td><td>—</td>
               </tr>
             </tbody>
@@ -6404,7 +6604,7 @@ function buildTestPlanProjectSectionHtml(proj) {
           </div>
           <div class="stat-card">
             <div class="stat-label">Total PDs with buffer</div>
-            <div class="stat-value accent">${metrics.totalEffort}</div>
+            <div class="stat-value accent">${Math.round(metrics.totalEffort)}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">People / Total CD</div>
@@ -6948,7 +7148,23 @@ function renderProjects() {
       <td style="font-weight:500;">${escapeHtml(p.name)}</td>
       <td>${jiraCell}</td>
       <td>${podCell}</td>
-      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.buildDate)}</td>
+      <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${p.buildDate ? formatDateDisplay(p.buildDate) : '—'}</td>
+      <td style="font-family:var(--mono); font-size:12px;">
+        ${p.actualBuildDate
+          ? `<span style="color:#059669; font-weight:600;">${formatDateDisplay(p.actualBuildDate)}</span>`
+          : `<span style="color:var(--text-faint);">—</span>`}
+      </td>
+      <td style="text-align:center; font-size:12px;">
+        ${(p.buildDate && p.actualBuildDate)
+          ? (() => {
+              const delay = Math.round((new Date(p.actualBuildDate+'T00:00:00') - new Date(p.buildDate+'T00:00:00')) / 86400000);
+              if (delay > 0) return `<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">+${delay}d late</span>`;
+              if (delay < 0) return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">${Math.abs(delay)}d early</span>`;
+              return `<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">On time</span>`;
+            })()
+          : '<span style="color:var(--text-faint);">—</span>'
+        }
+      </td>
       <td style="font-family:var(--mono);">${p.effort ? p.effort + ' PDs' : '—'}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.goAheadDate)}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${formatDateDisplay(p.completionDate)}</td>
@@ -7314,17 +7530,7 @@ function renderReleaseHealth() {
     // ---- Risk checks ----
     const risks = [];
 
-    // 1. Dev to QA (Build pickup) date has passed today — build delayed
-    if (effectiveBuild && effectiveBuild < today && proj.status !== 'Completed') {
-      const daysLate = Math.round((new Date(today + 'T00:00:00') - new Date(effectiveBuild + 'T00:00:00')) / 86400000);
-      risks.push({
-        level: 'critical', icon: '🔴',
-        text: `Dev to QA build delayed by ${daysLate} day${daysLate > 1 ? 's' : ''}`,
-        detail: `Expected: ${formatDateDisplay(effectiveBuild)} · Today: ${formatDateDisplay(today)}`
-      });
-    }
-
-    // 2. QA completion date already past today and status not Completed
+    // 1. QA completion date already past today and status not Completed
     if (effectiveQADone && effectiveQADone < today && proj.status !== 'Completed') {
       const daysLate = Math.round((new Date(today + 'T00:00:00') - new Date(effectiveQADone + 'T00:00:00')) / 86400000);
       risks.push({
@@ -7806,7 +8012,7 @@ function buildArchiveReportHtml(title, items) {
         '<tfoot><tr style="background:#f0f4ff;font-weight:700;color:#1e3a8a;border-top:2px solid #c7d7fe;">'+
           '<td style="padding:8px 12px;">Total</td>'+
           '<td style="text-align:center;padding:8px 12px;">'+totalCases+'</td>'+
-          '<td style="text-align:center;padding:8px 12px;">'+totalEffort.toFixed(1)+' PD</td>'+
+          '<td style="text-align:center;padding:8px 12px;">'+Math.round(totalEffort)+' PD</td>'+
           '<td colspan="2"></td>'+
         '</tr></tfoot>'+
       '</table>'+
