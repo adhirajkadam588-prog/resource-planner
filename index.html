@@ -3565,15 +3565,8 @@ function renderDashboard() {
       const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
         const proj = state.projects.find(p => p.id === n.projectId) ||
                      state.projects.find(p => p.name === n.projectName);
-        if (!proj) {
-          console.log('[BuildAlert] Project not found for:', n.projectName, n.projectId);
-          return false;
-        }
-        const currentPerson = state.people.find(p => p.email === currentUserEmail);
-        console.log('[BuildAlert] Project:', proj.name, '| goAheadBy:', proj.goAheadBy, '| qaLead:', proj.qaLead, '| currentPerson:', currentPerson?.name);
-        const result = isUserAssociatedWithProject(proj.id);
-        console.log('[BuildAlert] isUserAssociated:', result);
-        return result;
+        if (!proj) return false;
+        return isUserAssociatedWithProject(proj.id);
       });
 
       if (notifs.length === 0) return '';
@@ -8446,30 +8439,33 @@ function switchTimelineView(view) {
 
 // ── Notification System ─────────────────────────────────────
 function isUserAssociatedWithProject(projectId) {
-  // Admin sees everything
   if (currentUserRole === 'admin') return true;
 
   const proj = state.projects.find(p => p.id === projectId);
   if (!proj) return false;
-  const currentPerson = state.people.find(p => p.email === currentUserEmail);
-  if (!currentPerson) return false;
 
-  // Lead — check if they are the QA Lead or goAheadBy for this project
-  // Also check test plan assignments
-  // QA — check if they are owner or assigned in test plan
+  const currentPerson = state.people.find(p =>
+    p.email && currentUserEmail &&
+    p.email.toLowerCase().trim() === currentUserEmail.toLowerCase().trim()
+  );
 
-  // 1. goAheadBy = owner (stores NAME) — case insensitive
-  if (proj.goAheadBy && proj.goAheadBy.trim().toLowerCase() === currentPerson.name.trim().toLowerCase()) return true;
+  // If person not found in people list yet — fallback to email match on goAheadBy
+  const myName = currentPerson ? currentPerson.name : '';
 
-  // 2. qaLead field (stores NAME) — case insensitive
-  if (proj.qaLead && proj.qaLead.trim().toLowerCase() === currentPerson.name.trim().toLowerCase()) return true;
+  // 1. goAheadBy = owner (NAME match)
+  if (myName && proj.goAheadBy && proj.goAheadBy.trim().toLowerCase() === myName.trim().toLowerCase()) return true;
 
-  // 3. Test plan assignments
-  const plan = state.testPlans && state.testPlans[projectId];
-  if (plan) {
-    if ((plan.rows || []).some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
-    if ((plan.testPrepAssigneeIds||[]).includes(currentPerson.id)) return true;
-    if ((plan.testEnvAssigneeIds||[]).includes(currentPerson.id))  return true;
+  // 2. qaLead field (NAME match)
+  if (myName && proj.qaLead && proj.qaLead.trim().toLowerCase() === myName.trim().toLowerCase()) return true;
+
+  // 3. Test plan assignments (ID match)
+  if (currentPerson) {
+    const plan = state.testPlans && state.testPlans[projectId];
+    if (plan) {
+      if ((plan.rows || []).some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
+      if ((plan.testPrepAssigneeIds||[]).includes(currentPerson.id)) return true;
+      if ((plan.testEnvAssigneeIds||[]).includes(currentPerson.id))  return true;
+    }
   }
 
   return false;
