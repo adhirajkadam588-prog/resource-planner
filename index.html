@@ -733,13 +733,21 @@
 
   <div class="main">
   <header id="pageHeader" style="margin-bottom:24px;">
-    <div id="pageHeaderCard" style="width:100%;border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden;background:linear-gradient(135deg,#4f46e5,#7c3aed);">
-      <div id="pageHeaderIcon" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;backdrop-filter:blur(4px);">👥</div>
-      <div style="flex:1;min-width:0;">
-        <h2 id="pageTitle" style="font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:800;margin:0;letter-spacing:-0.03em;color:white;">People</h2>
-        <div id="pageDesc" style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-top:3px;line-height:1.5;">Team roster available for resource planning</div>
+    <div id="pageHeaderCard" style="width:100%;border-radius:20px;padding:22px 28px;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden;background:linear-gradient(135deg,#4f46e5,#7c3aed);transition:background 0.3s ease;">
+      <!-- Dot pattern overlay -->
+      <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.12) 1px,transparent 1px);background-size:20px 20px;pointer-events:none;"></div>
+      <!-- Shine orb -->
+      <div style="position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.08);pointer-events:none;"></div>
+      <div style="position:absolute;right:60px;bottom:-60px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none;"></div>
+      <!-- Icon box -->
+      <div id="pageHeaderIcon" style="width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;position:relative;z-index:1;">👥</div>
+      <!-- Text -->
+      <div style="flex:1;min-width:0;position:relative;z-index:1;">
+        <h2 id="pageTitle" style="font-family:'Inter Tight',sans-serif;font-size:20px;font-weight:800;margin:0 0 3px;letter-spacing:-0.03em;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.15);">People</h2>
+        <div id="pageDesc" style="font-size:12px;color:rgba(255,255,255,0.72);line-height:1.5;letter-spacing:0.01em;">Team roster available for resource planning</div>
       </div>
-      <div style="position:absolute;right:-10px;top:-10px;font-size:100px;opacity:0.06;line-height:1;pointer-events:none;" id="pageHeaderBg">👥</div>
+      <!-- Right badge -->
+      <div id="pageHeaderBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:6px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.05em;text-transform:uppercase;flex-shrink:0;position:relative;z-index:1;">TeamLens</div>
     </div>
   </header>
 
@@ -5400,33 +5408,33 @@ function renderAll() {
 
 // Optimized tab switcher — only render if dirty
 const TAB_META = {
-  'dashboard':  { icon:'🏠', grad:'linear-gradient(135deg,#4f46e5,#7c3aed)' },
-  'people':     { icon:'👥', grad:'linear-gradient(135deg,#7c3aed,#a855f7)' },
-  'projects':   { icon:'📁', grad:'linear-gradient(135deg,#0ea5e9,#2563eb)' },
-  'testplan':   { icon:'✅', grad:'linear-gradient(135deg,#10b981,#059669)' },
-  'leave':      { icon:'🏖️', grad:'linear-gradient(135deg,#f59e0b,#d97706)' },
-  'holidays':   { icon:'🎉', grad:'linear-gradient(135deg,#ec4899,#db2777)' },
-  'dailyplan':  { icon:'📅', grad:'linear-gradient(135deg,#6366f1,#4f46e5)' },
-  'vmrepo':     { icon:'🖥️', grad:'linear-gradient(135deg,#06b6d4,#0891b2)' },
-  'admin':      { icon:'⚙️', grad:'linear-gradient(135deg,#64748b,#475569)' },
-  'summary':    { icon:'📊', grad:'linear-gradient(135deg,#22d3ee,#0ea5e9)' },
-  'archive':    { icon:'🔐', grad:'linear-gradient(135deg,#f59e0b,#b45309)' },
-  'knowledge':  { icon:'🚀', grad:'linear-gradient(135deg,#10b981,#3b82f6)' },
-  'help':       { icon:'💡', grad:'linear-gradient(135deg,#fbbf24,#f59e0b)' },
+  'dashboard':  { icon:'🏠', grad:'linear-gradient(135deg,#1e1b4b 0%,#4f46e5 50%,#7c3aed 100%)', badge:'Home' },
+  'people':     { icon:'👥', grad:'linear-gradient(135deg,#581c87 0%,#7c3aed 50%,#a855f7 100%)', badge:'People' },
+  'projects':   { icon:'📁', grad:'linear-gradient(135deg,#0c4a6e 0%,#0284c7 50%,#38bdf8 100%)', badge:'Release' },
+  'testplan':   { icon:'✅', grad:'linear-gradient(135deg,#064e3b 0%,#059669 50%,#34d399 100%)', badge:'Test Plan' },
+  'leave':      { icon:'🏖️', grad:'linear-gradient(135deg,#78350f 0%,#d97706 50%,#fbbf24 100%)', badge:'Leave' },
+  'holidays':   { icon:'🎉', grad:'linear-gradient(135deg,#831843 0%,#db2777 50%,#f472b6 100%)', badge:'Holidays' },
+  'dailyplan':  { icon:'📅', grad:'linear-gradient(135deg,#1e1b4b 0%,#4338ca 50%,#818cf8 100%)', badge:'Daily Plan' },
+  'vmrepo':     { icon:'🖥️', grad:'linear-gradient(135deg,#083344 0%,#0891b2 50%,#22d3ee 100%)', badge:'Infra Hub' },
+  'admin':      { icon:'⚙️', grad:'linear-gradient(135deg,#0f172a 0%,#334155 50%,#64748b 100%)', badge:'Admin' },
+  'summary':    { icon:'📊', grad:'linear-gradient(135deg,#0e7490 0%,#0284c7 50%,#38bdf8 100%)', badge:'Summary' },
+  'archive':    { icon:'🔐', grad:'linear-gradient(135deg,#451a03 0%,#b45309 50%,#f59e0b 100%)', badge:'Vault' },
+  'knowledge':  { icon:'🚀', grad:'linear-gradient(135deg,#064e3b 0%,#0d9488 50%,#2dd4bf 100%)', badge:'Launchpad' },
+  'help':       { icon:'💡', grad:'linear-gradient(135deg,#78350f 0%,#b45309 50%,#fbbf24 100%)', badge:'Help' },
 };
 
 function updatePageHeader(tab, title, desc) {
-  const meta = TAB_META[tab] || { icon:'📋', grad:'linear-gradient(135deg,#4f46e5,#7c3aed)' };
-  const card = document.getElementById('pageHeaderCard');
-  const icon = document.getElementById('pageHeaderIcon');
-  const bg   = document.getElementById('pageHeaderBg');
-  const ttl  = document.getElementById('pageTitle');
-  const dsc  = document.getElementById('pageDesc');
-  if (card) card.style.background = meta.grad;
-  if (icon) icon.textContent = meta.icon;
-  if (bg)   bg.textContent   = meta.icon;
-  if (ttl)  ttl.textContent  = title;
-  if (dsc)  dsc.textContent  = desc;
+  const meta = TAB_META[tab] || { icon:'📋', grad:'linear-gradient(135deg,#1e1b4b,#4f46e5,#7c3aed)', badge:'TeamLens' };
+  const card  = document.getElementById('pageHeaderCard');
+  const icon  = document.getElementById('pageHeaderIcon');
+  const ttl   = document.getElementById('pageTitle');
+  const dsc   = document.getElementById('pageDesc');
+  const badge = document.getElementById('pageHeaderBadge');
+  if (card)  card.style.background  = meta.grad;
+  if (icon)  icon.textContent = meta.icon;
+  if (ttl)   ttl.textContent  = title;
+  if (dsc)   dsc.textContent  = desc;
+  if (badge) badge.textContent = meta.badge;
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
