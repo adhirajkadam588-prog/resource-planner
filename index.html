@@ -3439,11 +3439,11 @@ function renderDashboard() {
     const leaveMap   = getLeaveMap(p.id);
     const onLeave    = !!leaveMap[today];
     const isHoliday  = state.holidays.some(h => h.date === today);
-    const assigned   = state.dailyPlan.some(e => e.personId === p.id && e.date === today);
+    const assigned   = state.dailyPlan.some(e => e.personId === p.id && (e.startDate && e.endDate ? today >= e.startDate && today <= e.endDate : e.date === today));
     return !onLeave && !isHoliday && !assigned;
   });
   const busyToday = dpPeople.filter(p => {
-    const assigned = state.dailyPlan.some(e => e.personId === p.id && e.date === today);
+    const assigned = state.dailyPlan.some(e => e.personId === p.id && (e.startDate && e.endDate ? today >= e.startDate && today <= e.endDate : e.date === today));
     return assigned;
   });
 
@@ -3481,7 +3481,10 @@ function renderDashboard() {
   }).sort((a,b) => a.expiry.localeCompare(b.expiry));
 
   // 4. Today's daily plan
-  const todayEntries = state.dailyPlan.filter(e => e.date === today);
+  const todayEntries = state.dailyPlan.filter(e => {
+    if (e.startDate && e.endDate) return today >= e.startDate && today <= e.endDate;
+    return e.date === today;
+  });
   // Today's assignments — filter by role
   // Admin/Lead → all people (leads first), QA → only themselves
   const isLead = isCurrentUserLead();
@@ -3691,7 +3694,7 @@ function renderDashboard() {
             const leaveMap   = getLeaveMap(p.id);
             const leaveToday = leaveMap[today];
             const isHoliday  = state.holidays.some(h => h.date === today);
-            const assigned   = state.dailyPlan.some(e => e.personId === p.id && e.date === today);
+            const assigned   = state.dailyPlan.some(e => e.personId === p.id && (e.startDate && e.endDate ? today >= e.startDate && today <= e.endDate : e.date === today));
 
             let badge;
             if (isHoliday) {
@@ -4078,7 +4081,7 @@ function buildTeamLensContext() {
       }
       return 'Busy 60+ days';
     })();
-    const todayAssign = state.dailyPlan.filter(e => e.personId === p.id && e.date === today).map(e => e.project);
+    const todayAssign = state.dailyPlan.filter(e => e.personId === p.id && (e.startDate && e.endDate ? today >= e.startDate && today <= e.endDate : e.date === today)).map(e => e.project);
     return `${p.name} (${p.devPod||'No POD'}): ${free ? 'FREE today' : `BUSY today${leaveToday?' ('+leaveToday+')':''}`}, next free: ${nextFree}${todayAssign.length ? ', on: '+todayAssign.join(', ') : ''}`;
   }).join('\n');
 
