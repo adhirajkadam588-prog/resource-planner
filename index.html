@@ -3565,15 +3565,18 @@ function renderDashboard() {
       <!-- Build Delay Notifications -->
     ${(() => {
       const isAdmin = currentUserRole === 'admin';
-      const isLead2 = isCurrentUserLead();
       const allNotifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
-      console.log('[BuildDelay] All notifications:', state.buildDelayNotifications);
-      console.log('[BuildDelay] Unacknowledged:', allNotifs.length, '| currentUserEmail:', currentUserEmail, '| people:', state.people.length);
 
       const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
         const proj = state.projects.find(p => p.id === n.projectId) ||
                      state.projects.find(p => p.name === n.projectName);
         if (!proj) return false;
+        // Direct name check — no dependency on currentPerson
+        const myEmail = (currentUserEmail || '').toLowerCase().trim();
+        const myPerson = state.people.find(p => (p.email||'').toLowerCase().trim() === myEmail);
+        const myName = myPerson ? myPerson.name.toLowerCase().trim() : '';
+        if (myName && proj.goAheadBy && proj.goAheadBy.toLowerCase().trim() === myName) return true;
+        if (myName && proj.qaLead && proj.qaLead.toLowerCase().trim() === myName) return true;
         return isUserAssociatedWithProject(proj.id);
       });
 
@@ -3737,7 +3740,11 @@ function renderAlertsHtml() {
   // Helper — is this project visible to current user?
   function canSeeProject(proj) {
     if (isAdmin) return true;
-    // Both Lead and QA — only associated projects
+    const myEmail = (currentUserEmail || '').toLowerCase().trim();
+    const myPerson = state.people.find(p => (p.email||'').toLowerCase().trim() === myEmail);
+    const myName = myPerson ? myPerson.name.toLowerCase().trim() : '';
+    if (myName && proj.goAheadBy && proj.goAheadBy.toLowerCase().trim() === myName) return true;
+    if (myName && proj.qaLead && proj.qaLead.toLowerCase().trim() === myName) return true;
     return isUserAssociatedWithProject(proj.id);
   }
 
@@ -8452,19 +8459,31 @@ function isUserAssociatedWithProject(projectId) {
   const proj = state.projects.find(p => p.id === projectId);
   if (!proj) return false;
 
-  const currentPerson = state.people.find(p =>
-    p.email && currentUserEmail &&
-    p.email.toLowerCase().trim() === currentUserEmail.toLowerCase().trim()
+  const myEmail = (currentUserEmail || '').toLowerCase().trim();
+
+  // Find person — by full email match first
+  let currentPerson = state.people.find(p =>
+    p.email && p.email.toLowerCase().trim() === myEmail
   );
 
-  // If person not found in people list yet — fallback to email match on goAheadBy
-  const myName = currentPerson ? currentPerson.name : '';
+  // Fallback — match by email username (before @)
+  if (!currentPerson && myEmail) {
+    const myUsername = myEmail.split('@')[0].toLowerCase();
+    currentPerson = state.people.find(p => {
+      if (p.email) return false; // skip if has email (already tried above)
+      // Match by name initials or username pattern
+      const nameKey = (p.name || '').toLowerCase().replace(/\s+/g, '.');
+      return nameKey === myUsername || nameKey.replace('.','') === myUsername.replace('.','');
+    });
+  }
 
-  // 1. goAheadBy = owner (NAME match)
-  if (myName && proj.goAheadBy && proj.goAheadBy.trim().toLowerCase() === myName.trim().toLowerCase()) return true;
+  const myName = currentPerson ? currentPerson.name.toLowerCase().trim() : '';
+
+  // 1. goAheadBy = Owner (NAME match)
+  if (myName && proj.goAheadBy && proj.goAheadBy.toLowerCase().trim() === myName) return true;
 
   // 2. qaLead field (NAME match)
-  if (myName && proj.qaLead && proj.qaLead.trim().toLowerCase() === myName.trim().toLowerCase()) return true;
+  if (myName && proj.qaLead && proj.qaLead.toLowerCase().trim() === myName) return true;
 
   // 3. Test plan assignments (ID match)
   if (currentPerson) {
