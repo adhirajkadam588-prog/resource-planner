@@ -3565,8 +3565,15 @@ function renderDashboard() {
       const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
         const proj = state.projects.find(p => p.id === n.projectId) ||
                      state.projects.find(p => p.name === n.projectName);
-        if (!proj) return false;
-        return isUserAssociatedWithProject(proj.id);
+        if (!proj) {
+          console.log('[BuildAlert] Project not found for:', n.projectName, n.projectId);
+          return false;
+        }
+        const currentPerson = state.people.find(p => p.email === currentUserEmail);
+        console.log('[BuildAlert] Project:', proj.name, '| goAheadBy:', proj.goAheadBy, '| qaLead:', proj.qaLead, '| currentPerson:', currentPerson?.name);
+        const result = isUserAssociatedWithProject(proj.id);
+        console.log('[BuildAlert] isUserAssociated:', result);
+        return result;
       });
 
       if (notifs.length === 0) return '';
@@ -8451,11 +8458,11 @@ function isUserAssociatedWithProject(projectId) {
   // Also check test plan assignments
   // QA — check if they are owner or assigned in test plan
 
-  // 1. goAheadBy = owner (stores NAME)
-  if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
+  // 1. goAheadBy = owner (stores NAME) — case insensitive
+  if (proj.goAheadBy && proj.goAheadBy.trim().toLowerCase() === currentPerson.name.trim().toLowerCase()) return true;
 
-  // 2. qaLead field (stores NAME)
-  if (proj.qaLead && proj.qaLead === currentPerson.name) return true;
+  // 2. qaLead field (stores NAME) — case insensitive
+  if (proj.qaLead && proj.qaLead.trim().toLowerCase() === currentPerson.name.trim().toLowerCase()) return true;
 
   // 3. Test plan assignments
   const plan = state.testPlans && state.testPlans[projectId];
