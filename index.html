@@ -835,18 +835,10 @@
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <!-- Bulk action bar (hidden until selection) -->
-          <div id="bulkActionBar" style="display:none; align-items:center; gap:8px; background:var(--accent-dim); border:1px solid var(--accent); border-radius:9px; padding:6px 12px;">
-            <span id="bulkCount" style="font-size:12px; font-weight:600; color:var(--accent);">0 selected</span>
-            <select id="bulkStatusSelect" style="font-size:12px; padding:4px 8px; border-radius:6px; width:140px;">
-              <option value="">Set status…</option>
-              <option>Not started</option>
-              <option>In progress</option>
-              <option>Completed</option>
-              <option>Blocked</option>
-            </select>
-            <button class="action" style="padding:5px 12px; font-size:12px;" onclick="applyBulkStatus()">Apply</button>
-            <button class="action" style="padding:5px 12px; font-size:12px; background:linear-gradient(135deg,#dc2626,#b91c1c); box-shadow:0 2px 6px rgba(220,38,38,0.35);" onclick="bulkDelete()">🗑 Delete</button>
-            <button class="ghost" style="padding:5px 10px; font-size:12px;" onclick="clearBulkSelection()">✕</button>
+          <div id="bulkActionBar" style="display:none; align-items:center; gap:8px; background:#fee2e2; border:1px solid #fca5a5; border-radius:9px; padding:6px 12px;">
+            <span id="bulkCount" style="font-size:12px; font-weight:600; color:#dc2626;">0 selected</span>
+            <button class="action" style="padding:5px 12px; font-size:12px; background:linear-gradient(135deg,#dc2626,#b91c1c); box-shadow:0 2px 6px rgba(220,38,38,0.35);" onclick="bulkDelete()">🗑 Delete selected</button>
+            <button class="ghost" style="padding:5px 10px; font-size:12px;" onclick="clearBulkSelection()">✕ Cancel</button>
           </div>
           <button id="addReleaseBtn" class="action" onclick="openProjectModal()">+ Add release item</button>
         </div>
@@ -3603,17 +3595,7 @@ function renderDashboard() {
       const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
         const proj = state.projects.find(p => p.name === n.projectName);
         if (!proj) return false;
-        const currentPerson = state.people.find(p => p.email === currentUserEmail);
-        if (!currentPerson) return false;
-        if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
-        if (proj.qaLead && proj.qaLead === currentPerson.name) return true;
-        const plan = state.testPlans && state.testPlans[proj.id];
-        if (plan) {
-          if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds && r.assigneeIds.includes(currentPerson.id)))) return true;
-          if (plan.testPrepAssigneeIds && plan.testPrepAssigneeIds.includes(currentPerson.id)) return true;
-          if (plan.testEnvAssigneeIds  && plan.testEnvAssigneeIds.includes(currentPerson.id))  return true;
-        }
-        return false;
+        return isUserAssociatedWithProject(proj.id);
       });
 
       if (notifs.length === 0) return '';
@@ -3776,8 +3758,7 @@ function renderAlertsHtml() {
   // Helper — is this project visible to current user?
   function canSeeProject(proj) {
     if (isAdmin) return true;
-    if (!isLead && !isAdmin) return isUserAssociatedWithProject(proj.id); // QA
-    // Lead — only associated projects
+    // Both Lead and QA — only associated projects
     return isUserAssociatedWithProject(proj.id);
   }
 
@@ -8496,19 +8477,32 @@ function switchTimelineView(view) {
 
 // ── Notification System ─────────────────────────────────────
 function isUserAssociatedWithProject(projectId) {
-  if (currentUserRole === 'admin' || isCurrentUserLead()) return true;
+  // Admin sees everything
+  if (currentUserRole === 'admin') return true;
+
   const proj = state.projects.find(p => p.id === projectId);
   if (!proj) return false;
   const currentPerson = state.people.find(p => p.email === currentUserEmail);
   if (!currentPerson) return false;
-  // goAheadBy stores person NAME (not ID)
+
+  // Lead — check if they are the QA Lead or goAheadBy for this project
+  // Also check test plan assignments
+  // QA — check if they are owner or assigned in test plan
+
+  // 1. goAheadBy = owner (stores NAME)
   if (proj.goAheadBy && proj.goAheadBy === currentPerson.name) return true;
+
+  // 2. qaLead field (stores NAME)
+  if (proj.qaLead && proj.qaLead === currentPerson.name) return true;
+
+  // 3. Test plan assignments
   const plan = state.testPlans && state.testPlans[projectId];
   if (plan) {
-    if (plan.rows.some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
+    if ((plan.rows || []).some(r => r.assigneeId === currentPerson.id || (r.assigneeIds||[]).includes(currentPerson.id))) return true;
     if ((plan.testPrepAssigneeIds||[]).includes(currentPerson.id)) return true;
     if ((plan.testEnvAssigneeIds||[]).includes(currentPerson.id))  return true;
   }
+
   return false;
 }
 
@@ -8540,9 +8534,10 @@ function checkPendingReviewNotifications() {
 function addNotification(type, title, detail, projectId) {
   if (!state.notifications) state.notifications = [];
 
-  // Role-based filter — QA only gets notifications for their associated projects
+  // Filter by association — but never block admin or lead from project notifications
   if (projectId && type !== 'assigned') {
-    if (!isUserAssociatedWithProject(projectId)) return;
+    const isAdminOrLead = currentUserRole === 'admin' || isCurrentUserLead();
+    if (!isAdminOrLead && !isUserAssociatedWithProject(projectId)) return;
   }
 
   // Avoid duplicates for same type+project today
@@ -9330,7 +9325,8 @@ function renderArchive() {
     const done    = allStatuses.filter(s => s === 'Done').length;
     const donePct = total > 0 ? Math.round(done/total*100) : 0;
 
-    // Env rows
+    // Env rows — including Buffer
+    const bufferEffort = (plan.buffer && plan.buffer.effort) || 0;
     const envRows = [
       {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started', effort:plan.testPrepEffort||0, assignee:getFixedAssigneeNames(plan.testPrepAssigneeIds), cases:'—'},
       {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started',  effort:plan.testEnvEffort||0,  assignee:getFixedAssigneeNames(plan.testEnvAssigneeIds), cases:'—'},
@@ -9338,6 +9334,9 @@ function renderArchive() {
         return {name:r.name, status:r.status||'Not yet started', effort:r.effort||0, assignee:getAssigneeNames(r), cases:r.cases||0};
       })
     ];
+    const totalCasesUI  = plan.rows.reduce((s,r) => s+(r.cases||0), 0);
+    const subtotalEffort = envRows.reduce((s,r) => s+(parseFloat(r.effort)||0), 0);
+    const totalEffortUI  = ceilHalf(subtotalEffort + (parseFloat(bufferEffort)||0));
 
     const rowsHtml = envRows.length > 2 || plan.rows.length > 0
       ? envRows.map(r => {
@@ -9349,7 +9348,21 @@ function renderArchive() {
             '<td style="padding:7px 10px;font-size:12px;color:var(--text-dim);">' + escapeHtml(r.assignee) + '</td>' +
             '<td style="padding:7px 10px;text-align:center;"><span style="background:' + bg + ';color:' + fg + ';padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">' + escapeHtml(r.status) + '</span></td>' +
           '</tr>';
-        }).join('')
+        }).join('') +
+        // Buffer row
+        '<tr style="background:var(--panel-2);border-top:1px dashed var(--border-soft);">' +
+          '<td style="padding:7px 10px;font-size:12px;color:var(--text-faint);font-style:italic;">🔲 Buffer</td>' +
+          '<td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--text-faint);">—</td>' +
+          '<td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--text-faint);">' + bufferEffort + ' PD</td>' +
+          '<td colspan="2"></td>' +
+        '</tr>' +
+        // Total row
+        '<tr style="background:#f0f4ff;font-weight:700;color:#1e3a8a;border-top:2px solid #c7d7fe;">' +
+          '<td style="padding:8px 10px;font-size:13px;">📊 Total</td>' +
+          '<td style="padding:8px 10px;text-align:center;font-size:13px;">' + totalCasesUI + '</td>' +
+          '<td style="padding:8px 10px;text-align:center;font-size:13px;">' + totalEffortUI + ' PD</td>' +
+          '<td colspan="2"></td>' +
+        '</tr>'
       : '<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:14px;font-style:italic;font-size:12.5px;">No environments in test plan</td></tr>';
 
     const ms = plan.milestones || {};
@@ -9535,9 +9548,9 @@ function buildArchiveReportHtml(title, items, notesMap = {}) {
       {name:'📋 Test prep',            status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:getFixedAssigneeNames(plan.testPrepAssigneeIds),cases:'—'},
       {name:'🔧 Test env & data prep', status:plan.testEnvStatus||'Not yet started', effort:plan.testEnvEffort||0, assignee:getFixedAssigneeNames(plan.testEnvAssigneeIds),cases:'—'},
       ...plan.rows.map(r=>{return{name:r.name,status:r.status||'Not yet started',effort:r.effort||0,assignee:getAssigneeNames(r),cases:r.cases||0};}),
-      {name:'Buffer',status:'',effort:plan.buffer&&plan.buffer.effort||0,assignee:'—',cases:'—'},
     ];
-    const totalEffort = envRows.reduce((s,r)=>s+(parseFloat(r.effort)||0),0);
+    const bufferEff  = (plan.buffer && plan.buffer.effort) || 0;
+    const totalEffort = ceilHalf(envRows.reduce((s,r)=>s+(parseFloat(r.effort)||0),0) + (parseFloat(bufferEff)||0));
     const totalCases  = plan.rows.reduce((s,r)=>s+(r.cases||0),0);
     const ms = plan.milestones||{};
 
@@ -9583,11 +9596,18 @@ function buildArchiveReportHtml(title, items, notesMap = {}) {
           '<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;padding:7px 12px;border-bottom:1px solid #f1f5f9;">Assigned</th>'+
           '<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;padding:7px 12px;border-bottom:1px solid #f1f5f9;">Status</th>'+
         '</tr></thead>'+
-        '<tbody style="font-size:13px;color:#475569;">'+rowsHtml+'</tbody>'+
+        '<tbody style="font-size:13px;color:#475569;">'+rowsHtml+
+        '<tr style="background:#f8fafc;border-top:1px dashed #e2e8f0;">'+
+          '<td style="padding:7px 12px;font-style:italic;color:#94a3b8;">🔲 Buffer</td>'+
+          '<td style="text-align:center;padding:7px 12px;color:#94a3b8;">—</td>'+
+          '<td style="text-align:center;padding:7px 12px;color:#94a3b8;">'+bufferEff+' PD</td>'+
+          '<td colspan="2"></td>'+
+        '</tr>'+
+        '</tbody>'+
         '<tfoot><tr style="background:#f0f4ff;font-weight:700;color:#1e3a8a;border-top:2px solid #c7d7fe;">'+
-          '<td style="padding:8px 12px;">Total</td>'+
+          '<td style="padding:8px 12px;">📊 Total</td>'+
           '<td style="text-align:center;padding:8px 12px;">'+totalCases+'</td>'+
-          '<td style="text-align:center;padding:8px 12px;">'+ceilHalf(totalEffort)+' PD</td>'+
+          '<td style="text-align:center;padding:8px 12px;">'+totalEffort+' PD</td>'+
           '<td colspan="2"></td>'+
         '</tr></tfoot>'+
       '</table>'+
