@@ -3949,12 +3949,23 @@ function renderGlobalSearch(query) {
       action: () => switchTabTo('people')
     }));
 
-  // Release items
+  // Release items — active → projects tab, completed → Release Vault
   state.projects.filter(p => p.name.toLowerCase().includes(q) || (p.jiraUrl||'').toLowerCase().includes(q))
-    .slice(0,4).forEach(p => results.push({
-      icon:'📁', label: p.name, sub: `${p.devPod||''} · ${p.status||''}`,
-      action: () => switchTabTo('projects')
-    }));
+    .slice(0,5).forEach(p => {
+      const isCompleted = p.status === 'Completed';
+      results.push({
+        icon: isCompleted ? '🔐' : '📁',
+        label: p.name,
+        sub: (p.devPod||'') + ' · ' + (p.status||'') + (isCompleted ? ' · Release Vault' : ''),
+        action: () => {
+          if (isCompleted) {
+            switchTabTo('archive');
+          } else {
+            switchTabTo('projects');
+          }
+        }
+      });
+    });
 
   // VMs
   (state.vms||[]).filter(v => v.details.toLowerCase().includes(q) || (v.usedBy||'').toLowerCase().includes(q) || (v.pod||'').toLowerCase().includes(q))
