@@ -6070,8 +6070,31 @@ function saveProject() {
             if (ms.mergedBuildGoAhead) proj.goAheadDate    = ms.mergedBuildGoAhead;
             if (ms.execWithBuffer)     proj.completionDate  = ms.execWithBuffer;
 
+            // Calculate days for notifications and review reason
+            const lateDays  = isLateDate  ? getWorkingDaysBetween(plannedBuild, actualBuildDate) : 0;
+            const earlyDays = isEarlyDate ? getWorkingDaysBetween(actualBuildDate, plannedBuild)  : 0;
+
+            // Auto-reset review — dates changed, QA must re-review
+            if (plan.reviewed) {
+              plan.reviewed   = false;
+              plan.reviewedBy = '';
+              plan.reviewedAt = '';
+              state.reviewRequests = (state.reviewRequests || []).filter(r => r.projectId !== proj.id);
+              state.reviewRequests.push({
+                id: uid(),
+                projectId:   proj.id,
+                projectName: proj.name,
+                requestedBy: currentUserEmail || '',
+                requestedAt: new Date().toISOString(),
+                status:      'pending',
+                reason:      isLateDate
+                  ? `Build delayed by ${lateDays} working day(s) — milestones shifted, re-review required`
+                  : `Build arrived ${earlyDays} working day(s) early — milestones shifted earlier, re-review required`
+              });
+              showToastMsg(`🔄 Review reset — milestone dates changed. QA lead must re-review the test plan for "${name}"`);
+            }
+
             if (isLateDate) {
-              const lateDays = getWorkingDaysBetween(plannedBuild, actualBuildDate);
               if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
               state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
               state.buildDelayNotifications.push({
@@ -6083,10 +6106,8 @@ function saveProject() {
               logActivity('Build delay — milestones shifted', { name, delayDays: lateDays, planned: formatDateDisplay(plannedBuild), actual: formatDateDisplay(actualBuildDate) });
               showToastMsg(`⚠️ Build delayed by ${lateDays} working day(s) — milestones shifted for "${name}"`);
             } else {
-              const earlyDays = getWorkingDaysBetween(actualBuildDate, plannedBuild);
-              if (state.buildDelayNotifications) {
-                state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
-              } else { state.buildDelayNotifications = []; }
+              if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
+              state.buildDelayNotifications = state.buildDelayNotifications.filter(n => n.projectId !== proj.id);
               state.buildDelayNotifications.push({
                 projectId: proj.id, projectName: proj.name,
                 type: 'early', delayDays: earlyDays,
