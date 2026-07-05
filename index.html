@@ -4703,6 +4703,28 @@ function shareAllPlansReport() {
   showToastMsg('✅ Report downloaded!');
 }
 
+function openAllPlansInTab() {
+  let projects = getActiveProjects();
+  if (selectedTestPlanReleaseDate) projects = projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
+  if (selectedTestPlanDevPod)      projects = projects.filter(p => p.devPod === selectedTestPlanDevPod);
+  if (projects.length === 0) { showToastMsg('No items to export'); return; }
+
+  let title = 'Test Plan Report';
+  if (selectedTestPlanReleaseDate) title = 'Test Plan — ' + formatDateDisplay(selectedTestPlanReleaseDate);
+  if (selectedTestPlanDevPod)      title += ' · ' + selectedTestPlanDevPod;
+
+  const POD_COLORS = {
+    'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
+    'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
+    'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
+  };
+
+  const cardsHtml = projects.map(proj => buildTestPlanProjectSectionHtml(proj)).join('');
+  const fullHtml  = buildFullReportHtml(title, cardsHtml);
+  const blob = new Blob([fullHtml], { type: 'text/html' });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
 function toggleReviewApproval() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   const checkbox = document.getElementById('reviewCheckbox');
@@ -10440,6 +10462,7 @@ function renderDailyPlan() {
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
         <button class="action" onclick="shareAllPlansReport()" style="font-size:12px; padding:7px 14px; display:flex; align-items:center; gap:6px;">⬇ Download Report</button>
+        <button class="ghost" onclick="openAllPlansInTab()" style="font-size:12px; padding:7px 14px; display:flex; align-items:center; gap:6px;">🔗 Open in new tab</button>
         <button class="ghost" onclick="closeModal('allPlansModal')">✕ Close</button>
       </div>
     </div>
