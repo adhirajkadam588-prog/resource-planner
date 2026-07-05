@@ -226,7 +226,8 @@
   .modal { transition: transform 0.15s ease, opacity 0.15s ease; transform: translateY(8px); opacity: 0; }
   .modal-overlay.show .modal { transform: translateY(0); opacity: 1; }
   .tab-content { will-change: auto; }
-  .tab-content[style*="display: none"] { content-visibility: hidden; }
+  .main { transition: margin-right 0.2s ease; }
+  .notif-open .main { margin-right: 300px; }
   .panel { contain: layout style; }
   .tab-btn { transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease; }
   .tab-btn:active { transform: scale(0.98); }
@@ -568,6 +569,27 @@
         <h1>TeamLens</h1>
         <div class="tagline" style="background:linear-gradient(90deg,#a78bfa,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;letter-spacing:0.01em;">One lens. Full picture.</div>
       </div>
+      <button onclick="toggleNotificationPanel()" id="bellBtn" title="Notifications"
+        style="position:relative;width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.15s;"
+        onmouseover="this.style.background='rgba(255,255,255,0.15)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span id="bellBadge" style="display:none;position:absolute;top:-5px;right:-5px;background:#ef4444;color:white;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;border:2px solid #0b1120;"></span>
+      </button>
+    </div>
+
+    <!-- Notification Panel -->
+    <div id="notificationPanel" style="display:none;position:fixed;top:0;right:0;width:300px;height:100vh;background:#1e293b;border-left:1px solid #334155;z-index:400;box-shadow:-4px 0 20px rgba(0,0,0,0.3);flex-direction:column;">
+      <div style="padding:14px 16px 10px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;">🔔 Notifications</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="markAllNotificationsRead()" style="font-size:10.5px;color:#94a3b8;background:transparent;border:none;cursor:pointer;font-family:inherit;padding:2px 6px;">Mark all read</button>
+          <button onclick="toggleNotificationPanel()" style="background:rgba(255,255,255,0.08);border:none;border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#94a3b8;font-size:14px;line-height:1;">✕</button>
+        </div>
+      </div>
+      <div id="notificationList" style="flex:1;overflow-y:auto;padding:4px 0;"></div>
     </div>
 
     <nav class="tabs">
@@ -3097,7 +3119,9 @@ async function loadState() {
       state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
       state.knowledgeResources      = Array.isArray(parsed.knowledgeResources)      ? parsed.knowledgeResources      : [];
       state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
+      state.notifications           = Array.isArray(parsed.notifications)           ? parsed.notifications           : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
+      setTimeout(() => { updateBellBadge(); checkPendingReviewNotifications(); }, 400);
       setTimeout(() => {
       }, 300);
     } else {
@@ -3396,6 +3420,10 @@ function renderDashboard() {
     setTimeout(() => renderDashboard(), 300);
     return;
   }
+  checkMilestoneNotifications();
+  checkBuildDelayNotifications();
+  checkPendingReviewNotifications();
+  updateBellBadge();
 
   // Null safety
   if (!state.reviewRequests) state.reviewRequests = [];
@@ -5707,6 +5735,7 @@ document.addEventListener('click', (e) => {
   if (panel && bell && panel.style.display === 'flex' && !panel.contains(e.target) && !bell.contains(e.target)) {
     panel.style.display = 'none';
     panel.style.flexDirection = '';
+    document.body.classList.remove('notif-open');
   }
   // Close fixed row assignee dropdowns
   ['testPrep','testEnv'].forEach(type => {
@@ -8453,6 +8482,139 @@ function switchTimelineView(view) {
 }
 
 // ── Notification System ─────────────────────────────────────
+function addNotification(type, title, detail, projectId) {
+  if (!state.notifications) state.notifications = [];
+  if (projectId && type !== 'assigned') {
+    const isAdminOrLead = currentUserRole === 'admin' || isCurrentUserLead();
+    if (!isAdminOrLead && !isUserAssociatedWithProject(projectId)) return;
+  }
+  const today = toDateKey(new Date());
+  const exists = state.notifications.some(n =>
+    n.type === type && n.projectId === projectId &&
+    n.createdAt && n.createdAt.startsWith(today) && n.title === title
+  );
+  if (exists) return;
+  state.notifications.unshift({ id: uid(), type, title, detail, projectId: projectId||null, read: false, createdAt: new Date().toISOString() });
+  if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
+  saveState();
+  updateBellBadge();
+  const panel = document.getElementById('notificationPanel');
+  if (panel && panel.style.display === 'flex') renderNotificationList();
+}
+
+function updateBellBadge() {
+  const badge = document.getElementById('bellBadge');
+  if (!badge) return;
+  const unread = (state.notifications || []).filter(n => !n.read).length;
+  if (unread > 0) { badge.style.display = 'flex'; badge.textContent = unread > 9 ? '9+' : unread; }
+  else badge.style.display = 'none';
+}
+
+function toggleNotificationPanel() {
+  const panel = document.getElementById('notificationPanel');
+  if (!panel) return;
+  const isOpen = panel.style.display === 'flex';
+  if (isOpen) { panel.style.display = 'none'; document.body.classList.remove('notif-open'); }
+  else { panel.style.display = 'flex'; panel.style.flexDirection = 'column'; document.body.classList.add('notif-open'); renderNotificationList(); }
+}
+
+function markAllNotificationsRead() {
+  (state.notifications || []).forEach(n => n.read = true);
+  saveState(); updateBellBadge(); renderNotificationList();
+}
+
+function markNotificationRead(id) {
+  const n = (state.notifications||[]).find(x => x.id === id);
+  if (n) { n.read = true; saveState(); updateBellBadge(); renderNotificationList(); }
+}
+
+function clearAllNotifications() {
+  if (!confirm('Clear all notifications?')) return;
+  state.notifications = [];
+  saveState(); updateBellBadge(); renderNotificationList();
+}
+
+function handleNotificationClick(id, tab, projectId) {
+  const n = (state.notifications||[]).find(x => x.id === id);
+  if (n) { n.read = true; saveState(); updateBellBadge(); }
+  const panel = document.getElementById('notificationPanel');
+  if (panel) { panel.style.display = 'none'; document.body.classList.remove('notif-open'); }
+  if (tab === 'testplan' && projectId) goToTestPlanForReview(projectId);
+  else if (tab === 'projects' && projectId) switchTabTo('projects');
+  else switchTabTo(tab || 'dashboard');
+}
+
+function checkPendingReviewNotifications() {
+  if (!isCurrentUserLead()) return;
+  const isAdmin = currentUserRole === 'admin';
+  const allPending = (state.reviewRequests || []).filter(r => r.status === 'pending');
+  const pending = isAdmin ? allPending : allPending.filter(r => isUserAssociatedWithProject(r.projectId));
+  pending.forEach(req => {
+    if (!state.notifications) state.notifications = [];
+    const exists = state.notifications.some(n => n.type === 'review_request' && n.projectId === req.projectId && n.title === 'Review requested — ' + req.projectName);
+    if (exists) return;
+    state.notifications.unshift({ id: uid(), type: 'review_request', title: 'Review requested — ' + req.projectName, detail: 'Requested by ' + (req.requestedBy ? req.requestedBy.split('@')[0] : ''), projectId: req.projectId, read: false, createdAt: req.requestedAt || new Date().toISOString() });
+  });
+  updateBellBadge();
+}
+
+function checkMilestoneNotifications() {
+  const today = toDateKey(new Date());
+  const myEmail = (currentUserEmail || '').toLowerCase().trim();
+  const currentPerson = state.people.find(p => p.email && p.email.toLowerCase().trim() === myEmail);
+  getActiveProjects().forEach(proj => {
+    const plan = state.testPlans && state.testPlans[proj.id];
+    if (!plan) return;
+    if (!isUserAssociatedWithProject(proj.id)) return;
+    const ms = plan.milestones || {};
+    [[ms.bvtCompletion,'BVT due'],[ms.execWithBuffer,'QA completion due'],[ms.mergedBuildGoAhead,'Go ahead date']].forEach(([date, label]) => {
+      if (!date) return;
+      const diff = Math.round((new Date(date+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+      if (diff === 1) addNotification('milestone', label + ' tomorrow — ' + proj.name, formatDateDisplay(date), proj.id);
+      else if (diff === 0) addNotification('milestone', label + ' today — ' + proj.name, 'Due: ' + formatDateDisplay(date), proj.id);
+    });
+  });
+}
+
+function checkBuildDelayNotifications() {
+  (state.buildDelayNotifications || []).forEach(n => {
+    if (n.acknowledged) return;
+    if (n.type === 'late') addNotification('build_delay', 'Build delayed ' + n.delayDays + 'd — ' + n.projectName, 'Planned: ' + formatDateDisplay(n.plannedDate) + ' · Actual: ' + formatDateDisplay(n.actualDate), n.projectId);
+    else if (n.type === 'early') addNotification('build_early', 'Build arrived ' + n.delayDays + 'd early — ' + n.projectName, 'Milestones shifted earlier', n.projectId);
+  });
+}
+
+function renderNotificationList() {
+  const el = document.getElementById('notificationList');
+  if (!el) return;
+  const allNotifs = state.notifications || [];
+  const isLeadAdmin = currentUserRole === 'admin' || isCurrentUserLead();
+  const notifs = isLeadAdmin ? allNotifs : allNotifs.filter(n => !n.projectId || isUserAssociatedWithProject(n.projectId));
+  const unread = notifs.filter(n => !n.read).length;
+  if (notifs.length === 0) { el.innerHTML = '<div style="padding:40px 16px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;">🔔</div><div style="color:#94a3b8;font-size:12.5px;">No notifications yet</div></div>'; return; }
+  const TYPE_META = { 'review_done':{icon:'✅',color:'#10b981',bg:'rgba(16,185,129,0.12)',tab:'testplan'}, 'build_delay':{icon:'⚠️',color:'#f59e0b',bg:'rgba(245,158,11,0.12)',tab:'projects'}, 'build_early':{icon:'🎉',color:'#10b981',bg:'rgba(16,185,129,0.12)',tab:'projects'}, 'milestone':{icon:'📅',color:'#3b82f6',bg:'rgba(59,130,246,0.12)',tab:'testplan'}, 'assigned':{icon:'👤',color:'#a855f7',bg:'rgba(168,85,247,0.12)',tab:'testplan'}, 'review_request':{icon:'📋',color:'#f59e0b',bg:'rgba(245,158,11,0.12)',tab:'testplan'}, 'review_reset':{icon:'🔄',color:'#ef4444',bg:'rgba(239,68,68,0.12)',tab:'testplan'} };
+  function timeAgo(iso) { if (!iso) return ''; const diff = Date.now() - new Date(iso).getTime(); const m = Math.floor(diff/60000); if (m<1) return 'just now'; if (m<60) return m+'m ago'; const h = Math.floor(m/60); if (h<24) return h+'h ago'; const d = Math.floor(h/24); return d<7?d+'d ago':new Date(iso).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+  const todayKey = toDateKey(new Date()); const yest = new Date(); yest.setDate(yest.getDate()-1); const yestKey = toDateKey(yest);
+  const groups = {Today:[],Yesterday:[],Earlier:[]};
+  notifs.forEach(n => { const d = n.createdAt?n.createdAt.slice(0,10):''; if(d===todayKey) groups.Today.push(n); else if(d===yestKey) groups.Yesterday.push(n); else groups.Earlier.push(n); });
+  let html = '<div style="padding:8px 16px 6px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="font-size:11px;color:#64748b;">'+(unread>0?'<span style="color:#a78bfa;font-weight:600;">'+unread+' unread</span> · ':'')+notifs.length+' total</div><div style="display:flex;gap:5px;">'+(unread>0?'<button onclick="markAllNotificationsRead()" style="font-size:10px;color:#94a3b8;background:rgba(255,255,255,0.06);border:1px solid #334155;border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit;">✓ All read</button>':'')+' <button onclick="clearAllNotifications()" style="font-size:10px;color:#ef4444;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit;">🗑 Clear</button></div></div>';
+  ['Today','Yesterday','Earlier'].forEach(g => {
+    const items = groups[g]; if (!items.length) return;
+    html += '<div style="padding:8px 16px 3px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#475569;">'+g+'</div>';
+    items.forEach(n => {
+      const meta = TYPE_META[n.type]||{icon:'🔔',color:'#64748b',bg:'rgba(100,116,139,0.1)',tab:'dashboard'};
+      const safeT = (n.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const safeD = (n.detail||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const navLabel = meta.tab==='testplan'?'Test Plan':meta.tab==='projects'?'Release':'Dashboard';
+      const bg = n.read?'transparent':meta.bg;
+      html += '<div onclick="handleNotificationClick(\''+n.id+'\',\''+meta.tab+'\',\''+(n.projectId||'')+'\')" style="padding:10px 16px;border-bottom:1px solid #1e293b;cursor:pointer;background:'+bg+';display:flex;gap:10px;align-items:flex-start;" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\''+bg+'\'">'+'<span style="font-size:15px;flex-shrink:0;margin-top:1px;">'+meta.icon+'</span><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:'+(n.read?'400':'600')+';color:'+(n.read?'#94a3b8':'#e2e8f0')+';line-height:1.4;">'+safeT+'</div>'+(safeD?'<div style="font-size:10.5px;color:#64748b;margin-top:1px;line-height:1.4;">'+safeD+'</div>':'')+'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px;"><span style="font-size:10px;color:#475569;">'+timeAgo(n.createdAt)+'</span><span style="font-size:9.5px;color:'+meta.color+';opacity:0.75;">→ '+navLabel+'</span></div></div>'+(!n.read?'<div style="width:6px;height:6px;border-radius:50%;background:#7c3aed;flex-shrink:0;margin-top:5px;"></div>':'')+'</div>';
+    });
+  });
+  el.innerHTML = html;
+}
+
+// ── End Notification System ──────────────────────────────────
+
 function isUserAssociatedWithProject(projectId) {
   if (currentUserRole === 'admin') return true;
 
