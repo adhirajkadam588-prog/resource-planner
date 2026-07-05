@@ -3758,6 +3758,19 @@ function renderDashboard() {
   `;
 }
 
+function dismissAlert(rowId) {
+  const row = document.getElementById(rowId);
+  if (row) row.remove();
+  // Update count
+  const container = document.getElementById('alertsRows');
+  const countEl   = document.getElementById('alertsCount');
+  const panel     = document.getElementById('alertsPanel');
+  if (!container) return;
+  const remaining = container.querySelectorAll('[id^="alert-row-"]').length;
+  if (countEl) countEl.textContent = remaining;
+  if (panel && remaining === 0) panel.style.display = 'none';
+}
+
 function renderAlertsHtml() {
   const today = toDateKey(new Date());
   const alerts = [];
@@ -3838,16 +3851,16 @@ function renderAlertsHtml() {
         '<div style="font-size:11px;color:' + fg + ';opacity:0.8;margin-top:1px;">' + a.detail + '</div>' +
       '</div>' +
       '<button onclick="switchTabTo(\'' + a.action + '\')" style="background:' + fg + ';color:white;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;">→</button>' +
-      '<button onclick="document.getElementById(\'alert-row-' + idx + '\').remove()" title="Dismiss" style="background:transparent;border:none;color:' + fg + ';opacity:0.5;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✕</button>' +
+      '<button onclick="dismissAlert(\'alert-row-' + idx + '\')" title="Dismiss" style="background:transparent;border:none;color:' + fg + ';opacity:0.5;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✕</button>' +
     '</div>';
   }).join('');
 
-  return '<div class="panel" style="margin-bottom:18px;border-color:#fca5a5;">' +
+  return '<div class="panel" id="alertsPanel" style="margin-bottom:18px;border-color:#fca5a5;">' +
     '<div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px;">' +
       '<span style="font-size:18px;">🚨</span> Alerts ' +
-      '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;">' + alerts.length + '</span>' +
+      '<span id="alertsCount" style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;">' + alerts.length + '</span>' +
     '</div>' +
-    '<div style="display:flex;flex-direction:column;gap:7px;">' + rows + '</div>' +
+    '<div id="alertsRows" style="display:flex;flex-direction:column;gap:7px;">' + rows + '</div>' +
   '</div>';
 }
 
@@ -5660,7 +5673,6 @@ function renderTab(tab) {
 // marks others dirty so they re-render when user switches to them
 let _syncPending = false;
 function renderAll() {
-  // Debounce syncTestPlanToProjects — expensive, run max once per frame
   if (!_syncPending) {
     _syncPending = true;
     requestAnimationFrame(() => {
@@ -5672,6 +5684,10 @@ function renderAll() {
   markAllDirty();
   _dirtyTabs.delete(_activeTab);
   renderTab(_activeTab);
+  // Auto-refresh notification panel if open
+  const panel = document.getElementById('notificationPanel');
+  if (panel && panel.style.display === 'flex') renderNotificationList();
+  updateBellBadge();
 }
 
 // Optimized tab switcher — only render if dirty
@@ -9113,6 +9129,32 @@ function setArchivePage(page) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function revertFromVault(projectId) {
+  const proj = state.projects.find(p => p.id === projectId);
+  if (!proj) return;
+  if (!confirm('"' + proj.name + '" ko Release Vault se wapas Active releases mein move karein?\n\nStatus "In progress" ho jaayega.')) return;
+
+  snapshotState('Revert from vault: ' + proj.name);
+
+  // Reset status
+  proj.status = 'In progress';
+
+  // Reset all test plan environment statuses to "In progress" if Done
+  const plan = state.testPlans && state.testPlans[projectId];
+  if (plan) {
+    if (plan.testPrepStatus === 'Done') plan.testPrepStatus = 'In progress';
+    if (plan.testEnvStatus  === 'Done') plan.testEnvStatus  = 'In progress';
+    (plan.rows || []).forEach(r => {
+      if (r.status === 'Done') r.status = 'In progress';
+    });
+  }
+
+  saveState();
+  markDirty('projects', 'summary', 'archive', 'dashboard');
+  renderTab('archive');
+  showToastMsg('↩ "' + proj.name + '" moved back to active releases');
+}
+
 function renderArchive() {
   const content  = document.getElementById('archiveContent');
   const empty    = document.getElementById('archiveEmpty');
@@ -9274,6 +9316,7 @@ function renderArchive() {
           '</div>' +
         '</div>' +
         '<span id="' + accId + '-ch" style="font-size:11px;color:var(--text-faint);flex-shrink:0;">' + (idx === 0 ? '▲' : '▼') + '</span>' +
+        (canEdit('projects') ? '<button onclick="event.stopPropagation();revertFromVault(\''+proj.id+'\')" title="Move back to active" style="background:transparent;border:1px solid #f59e0b;color:#b45309;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;" onmouseover="this.style.background=\'#fef3c7\'" onmouseout="this.style.background=\'transparent\'">↩ Revert</button>' : '') +
       '</div>' +
       // Body
       '<div id="' + accId + '" style="display:' + (idx === 0 ? 'block' : 'none') + ';border-top:1px solid var(--border-soft);">' +
