@@ -4707,6 +4707,7 @@ function toggleReviewApproval() {
     markDirty('projects','summary','dashboard');
     renderTab('projects');
     showToastMsg('✅ Test plan reviewed — Release tab data updated');
+    addNotification('review_done', 'Test plan reviewed — ' + (proj ? proj.name : ''), 'Reviewed by ' + currentUserEmail.split('@')[0], selectedTestPlanProjectId);
   } else {
     clearReviewApproval();
   }
@@ -6425,6 +6426,7 @@ function saveProject() {
               if (proj.status !== 'Completed') proj.status = 'Not started';
 
               showToastMsg('🔄 Review reset — Release tab data cleared. Lead must re-review for "' + name + '"');
+              addNotification('review_reset', 'Re-review required — ' + name, isLateDate ? 'Build delayed ' + lateDays + 'd — milestones shifted' : 'Build early ' + earlyDays + 'd — milestones shifted', proj.id);
             }
 
             if (isLateDate) {
@@ -6865,14 +6867,18 @@ function saveTestRow() {
   }
   editingTestRowId = null;
   closeModal('testRowModal');
-  // Notify assigned person if it's someone else
-  if (assigneeId && assigneeId !== (state.people.find(p=>p.email===currentUserEmail)?.id)) {
+
+  // Notify assignee if someone else assigned them
+  if (assigneeId) {
     const assignee = state.people.find(p => p.id === assigneeId);
     const projName = state.projects.find(p => p.id === selectedTestPlanProjectId)?.name || '';
-    // Only add if the logged-in user IS the assignee
-    if (assignee && assignee.email === currentUserEmail) {
+    const myEmail = (currentUserEmail || '').toLowerCase();
+    // Only notify if assignee's email matches currentUserEmail (their own session)
+    if (assignee && (assignee.email || '').toLowerCase() === myEmail) {
+      addNotification('assigned', 'You were assigned to ' + name, projName, selectedTestPlanProjectId);
     }
   }
+
   syncTestPlanToProjects();
   saveState();
   renderTestPlan();
@@ -6916,21 +6922,22 @@ function saveBufferValues() {
   plan.testEnvAssigneeIds   = getFixedAssigneeIds('testEnv');
 
   // Notify newly assigned people
-  const currentPersonId = state.people.find(p => p.email === currentUserEmail)?.id;
+  const myEmail = (currentUserEmail || '').toLowerCase();
+  const projName = proj ? proj.name : '';
 
   plan.testPrepAssigneeIds.forEach(id => {
-    if (oldPrepIds.includes(id)) return; // already assigned before
-    if (id === currentPersonId) return;  // don't notify yourself
+    if (oldPrepIds.includes(id)) return;
     const assignee = state.people.find(p => p.id === id);
-    if (assignee && assignee.email === currentUserEmail) {
+    if (assignee && (assignee.email || '').toLowerCase() === myEmail) {
+      addNotification('assigned', 'You were assigned to Test prep', projName, selectedTestPlanProjectId);
     }
   });
 
   plan.testEnvAssigneeIds.forEach(id => {
     if (oldEnvIds.includes(id)) return;
-    if (id === currentPersonId) return;
     const assignee = state.people.find(p => p.id === id);
-    if (assignee && assignee.email === currentUserEmail) {
+    if (assignee && (assignee.email || '').toLowerCase() === myEmail) {
+      addNotification('assigned', 'You were assigned to Test env & Data prep', projName, selectedTestPlanProjectId);
     }
   });
 
