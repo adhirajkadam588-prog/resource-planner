@@ -4704,25 +4704,24 @@ function shareAllPlansReport() {
 }
 
 function openAllPlansInTab() {
-  let projects = getActiveProjects();
-  if (selectedTestPlanReleaseDate) projects = projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
-  if (selectedTestPlanDevPod)      projects = projects.filter(p => p.devPod === selectedTestPlanDevPod);
-  if (projects.length === 0) { showToastMsg('No items to export'); return; }
+  const content = document.getElementById('allPlansContent');
+  if (!content || !content.innerHTML.trim()) { showToastMsg('No content to open'); return; }
 
   let title = 'Test Plan Report';
   if (selectedTestPlanReleaseDate) title = 'Test Plan — ' + formatDateDisplay(selectedTestPlanReleaseDate);
   if (selectedTestPlanDevPod)      title += ' · ' + selectedTestPlanDevPod;
 
-  const POD_COLORS = {
-    'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
-    'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
-    'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
-  };
-
-  const cardsHtml = projects.map(proj => buildTestPlanProjectSectionHtml(proj)).join('');
-  const fullHtml  = buildFullReportHtml(title, cardsHtml);
+  const fullHtml = buildFullReportHtml(title, content.innerHTML);
   const blob = new Blob([fullHtml], { type: 'text/html' });
-  window.open(URL.createObjectURL(blob), '_blank');
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.target   = '_blank';
+  a.rel      = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function toggleReviewApproval() {
