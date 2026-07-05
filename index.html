@@ -6406,26 +6406,16 @@ function saveProject() {
               plan.reviewed   = false;
               plan.reviewedBy = '';
               plan.reviewedAt = '';
+              // Remove any existing pending request — QA must send a fresh one
               state.reviewRequests = (state.reviewRequests || []).filter(r => r.projectId !== proj.id);
-              state.reviewRequests.push({
-                id: uid(),
-                projectId:   proj.id,
-                projectName: proj.name,
-                requestedBy: currentUserEmail || '',
-                requestedAt: new Date().toISOString(),
-                status:      'pending',
-                reason:      isLateDate
-                  ? 'Build delayed by ' + lateDays + ' working day(s) — milestones shifted, re-review required'
-                  : 'Build arrived ' + earlyDays + ' working day(s) early — milestones shifted earlier, re-review required'
-              });
 
-              // *** Clear Release tab synced data — show blank until re-reviewed ***
+              // Clear Release tab synced data — show blank until re-reviewed
               proj.effort         = '';
               proj.goAheadDate    = '';
               proj.completionDate = '';
               if (proj.status !== 'Completed') proj.status = 'Not started';
 
-              showToastMsg('🔄 Review reset — Release tab data cleared. Lead must re-review for "' + name + '"');
+              showToastMsg('🔄 Review reset — milestones shifted. QA must re-request review for "' + name + '"');
               addNotification('review_reset', 'Re-review required — ' + name, isLateDate ? 'Build delayed ' + lateDays + 'd — milestones shifted' : 'Build early ' + earlyDays + 'd — milestones shifted', proj.id);
             }
 
