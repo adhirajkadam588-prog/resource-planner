@@ -744,7 +744,7 @@
         </div>
       </div>
       <!-- Activity Log -->
-      <button onclick="openActivityLog()"
+      <button onclick="openActivityLog()" id="activityLogBtn"
         onmouseover="this.style.background='rgba(255,255,255,0.07)'; this.style.color='#e2e8f0';"
         onmouseout="this.style.background='transparent'; this.style.color='#64748b';"
         style="display:flex; align-items:center; gap:8px; width:100%; background:transparent; border:none; border-radius:8px; color:#64748b; padding:7px 10px; font-size:12px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:2px; transition:all 0.12s;">
@@ -4688,12 +4688,12 @@ function toggleReviewApproval() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   const checkbox = document.getElementById('reviewCheckbox');
   if (!checkbox) return;
+  const proj = state.projects.find(p => p.id === selectedTestPlanProjectId);
 
   if (checkbox.checked) {
     plan.reviewed = true;
     plan.reviewedBy = currentUserEmail || 'Unknown';
     plan.reviewedAt = new Date().toISOString();
-    // Mark pending review request as resolved
     if (state.reviewRequests) {
       state.reviewRequests = state.reviewRequests.map(r =>
         r.projectId === selectedTestPlanProjectId && r.status === 'pending'
