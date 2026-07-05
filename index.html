@@ -3824,20 +3824,21 @@ function renderAlertsHtml() {
 
   if (alerts.length === 0) return '';
 
-  const rows = alerts.slice(0, 8).map(a => {
+  const rows = alerts.slice(0, 8).map((a, idx) => {
     const bgMap = { red: '#fee2e2', amber: '#fef9c3' };
     const fgMap = { red: '#dc2626', amber: '#a16207' };
     const bdMap = { red: '#fca5a5', amber: '#fde047' };
     const bg = bgMap[a.level] || '#f1f5f9';
     const fg = fgMap[a.level] || '#475569';
     const bd = bdMap[a.level] || '#e2e8f0';
-    return '<div style="display:flex;align-items:center;gap:10px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:9px;padding:9px 14px;">' +
+    return '<div id="alert-row-' + idx + '" style="display:flex;align-items:center;gap:10px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:9px;padding:9px 14px;">' +
       '<span style="font-size:16px;flex-shrink:0;">' + a.icon + '</span>' +
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-size:12.5px;font-weight:600;color:' + fg + ';">' + a.title + '</div>' +
         '<div style="font-size:11px;color:' + fg + ';opacity:0.8;margin-top:1px;">' + a.detail + '</div>' +
       '</div>' +
       '<button onclick="switchTabTo(\'' + a.action + '\')" style="background:' + fg + ';color:white;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;">→</button>' +
+      '<button onclick="document.getElementById(\'alert-row-' + idx + '\').remove()" title="Dismiss" style="background:transparent;border:none;color:' + fg + ';opacity:0.5;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✕</button>' +
     '</div>';
   }).join('');
 
@@ -8481,9 +8482,9 @@ function switchTimelineView(view) {
 // ── Notification System ─────────────────────────────────────
 function addNotification(type, title, detail, projectId) {
   if (!state.notifications) state.notifications = [];
+  // Only admin bypasses filter — Lead and QA must be associated
   if (projectId && type !== 'assigned') {
-    const isAdminOrLead = currentUserRole === 'admin' || isCurrentUserLead();
-    if (!isAdminOrLead && !isUserAssociatedWithProject(projectId)) return;
+    if (currentUserRole !== 'admin' && !isUserAssociatedWithProject(projectId)) return;
   }
   const today = toDateKey(new Date());
   const exists = state.notifications.some(n =>
@@ -8585,8 +8586,9 @@ function renderNotificationList() {
   const el = document.getElementById('notificationList');
   if (!el) return;
   const allNotifs = state.notifications || [];
-  const isLeadAdmin = currentUserRole === 'admin' || isCurrentUserLead();
-  const notifs = isLeadAdmin ? allNotifs : allNotifs.filter(n => !n.projectId || isUserAssociatedWithProject(n.projectId));
+  // Only admin sees all — Lead and QA both see only their associated projects
+  const isAdmin = currentUserRole === 'admin';
+  const notifs = isAdmin ? allNotifs : allNotifs.filter(n => !n.projectId || isUserAssociatedWithProject(n.projectId));
   const unread = notifs.filter(n => !n.read).length;
   if (notifs.length === 0) { el.innerHTML = '<div style="padding:40px 16px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;">🔔</div><div style="color:#94a3b8;font-size:12.5px;">No notifications yet</div></div>'; return; }
   const TYPE_META = { 'review_done':{icon:'✅',color:'#10b981',bg:'rgba(16,185,129,0.12)',tab:'testplan'}, 'build_delay':{icon:'⚠️',color:'#f59e0b',bg:'rgba(245,158,11,0.12)',tab:'projects'}, 'build_early':{icon:'🎉',color:'#10b981',bg:'rgba(16,185,129,0.12)',tab:'projects'}, 'milestone':{icon:'📅',color:'#3b82f6',bg:'rgba(59,130,246,0.12)',tab:'testplan'}, 'assigned':{icon:'👤',color:'#a855f7',bg:'rgba(168,85,247,0.12)',tab:'testplan'}, 'review_request':{icon:'📋',color:'#f59e0b',bg:'rgba(245,158,11,0.12)',tab:'testplan'}, 'review_reset':{icon:'🔄',color:'#ef4444',bg:'rgba(239,68,68,0.12)',tab:'testplan'} };
