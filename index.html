@@ -2398,7 +2398,7 @@ async function initApp(user) {
   document.getElementById('userAvatar').textContent = initials;
   document.getElementById('loginError').textContent = '';
   document.getElementById('loginBtn').disabled = false;
-  document.getElementById('loginBtn').textContent = 'Sign in';
+  document.getElementById('loginBtn').textContent = 'Sign in to TeamLens →';
 
   try {
     await fetchUserRole(user.id);
@@ -2521,12 +2521,18 @@ function resetApp() {
   state.leaves = {}; state.dailyPlan = []; state.holidays = []; state.testPlans = {};
   document.getElementById('loginOverlay').classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
-  document.getElementById('loginBtn').disabled = false;
-  document.getElementById('loginBtn').textContent = 'Sign in';
-  document.getElementById('loginError').textContent = '';
-  document.getElementById('userEmail').textContent = '';
-  document.getElementById('userAvatar').textContent = '';
-  document.getElementById('lastSaved').textContent = '';
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign in to TeamLens →'; }
+  const loginErr = document.getElementById('loginError');
+  if (loginErr) loginErr.textContent = '';
+  const loginEmail = document.getElementById('loginEmail');
+  if (loginEmail) loginEmail.value = '';
+  const userEmailEl = document.getElementById('userEmail');
+  if (userEmailEl) userEmailEl.textContent = '';
+  const userAvatarEl = document.getElementById('userAvatar');
+  if (userAvatarEl) userAvatarEl.textContent = '';
+  const lastSavedEl = document.getElementById('lastSaved');
+  if (lastSavedEl) lastSavedEl.textContent = '';
   const banner = document.getElementById('readOnlyBanner');
   if (banner) banner.remove();
 }
