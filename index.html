@@ -3463,6 +3463,7 @@ async function loadState() {
       state.knowledgeResources      = Array.isArray(parsed.knowledgeResources)      ? parsed.knowledgeResources      : [];
       state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
       state.notifications           = Array.isArray(parsed.notifications)           ? parsed.notifications           : [];
+      state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
       setTimeout(() => { updateBellBadge(); checkPendingReviewNotifications(); }, 400);
       setTimeout(() => {
@@ -4102,14 +4103,24 @@ function renderDashboard() {
 }
 
 function dismissAlert(rowId) {
+  // Remove only this specific row
   const row = document.getElementById(rowId);
   if (row) row.remove();
-  // Update count
+
+  // Persist so it doesn't come back on re-render
+  if (!state.dismissedAlerts) state.dismissedAlerts = [];
+  if (!state.dismissedAlerts.includes(rowId)) {
+    state.dismissedAlerts.push(rowId);
+    saveState();
+  }
+
+  // Update count badge — count remaining visible rows
   const container = document.getElementById('alertsRows');
   const countEl   = document.getElementById('alertsCount');
   const panel     = document.getElementById('alertsPanel');
   if (!container) return;
-  const remaining = container.querySelectorAll('[id^="alert-row-"]').length;
+
+  const remaining = container.querySelectorAll('div[id^="alert-row-"]').length;
   if (countEl) countEl.textContent = remaining;
   if (panel && remaining === 0) panel.style.display = 'none';
 }
@@ -4180,28 +4191,41 @@ function renderAlertsHtml() {
 
   if (alerts.length === 0) return '';
 
-  const rows = alerts.slice(0, 8).map((a, idx) => {
+  const dismissed = state.dismissedAlerts || [];
+
+  const rows = alerts.slice(0, 8).map((a) => {
+    // Unique stable ID based on alert content
+    const rowId = 'alert-row-' + (a.title + a.detail).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
+    // Skip if already dismissed
+    if (dismissed.includes(rowId)) return '';
     const bgMap = { red: '#fee2e2', amber: '#fef9c3' };
     const fgMap = { red: '#dc2626', amber: '#a16207' };
     const bdMap = { red: '#fca5a5', amber: '#fde047' };
     const bg = bgMap[a.level] || '#f1f5f9';
     const fg = fgMap[a.level] || '#475569';
     const bd = bdMap[a.level] || '#e2e8f0';
-    return '<div id="alert-row-' + idx + '" style="display:flex;align-items:center;gap:10px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:9px;padding:9px 14px;">' +
+    return '<div id="' + rowId + '" style="display:flex;align-items:center;gap:10px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:9px;padding:9px 14px;">' +
       '<span style="font-size:16px;flex-shrink:0;">' + a.icon + '</span>' +
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-size:12.5px;font-weight:600;color:' + fg + ';">' + a.title + '</div>' +
         '<div style="font-size:11px;color:' + fg + ';opacity:0.8;margin-top:1px;">' + a.detail + '</div>' +
       '</div>' +
       '<button onclick="switchTabTo(\'' + a.action + '\')" style="background:' + fg + ';color:white;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;">→</button>' +
-      '<button onclick="dismissAlert(\'alert-row-' + idx + '\')" title="Dismiss" style="background:transparent;border:none;color:' + fg + ';opacity:0.5;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✕</button>' +
+      '<button onclick="dismissAlert(\'' + rowId + '\')" title="Dismiss" style="background:transparent;border:none;color:' + fg + ';opacity:0.5;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✕</button>' +
     '</div>';
-  }).join('');
+  }).filter(Boolean).join('');
+
+  const visibleCount = alerts.filter(a => {
+    const rowId = 'alert-row-' + (a.title + a.detail).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
+    return !dismissed.includes(rowId);
+  }).length;
+
+  if (visibleCount === 0) return '';
 
   return '<div class="panel" id="alertsPanel" style="margin-bottom:18px;border-color:#fca5a5;">' +
     '<div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px;">' +
       '<span style="font-size:18px;">🚨</span> Alerts ' +
-      '<span id="alertsCount" style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;">' + alerts.length + '</span>' +
+      '<span id="alertsCount" style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;">' + visibleCount + '</span>' +
     '</div>' +
     '<div id="alertsRows" style="display:flex;flex-direction:column;gap:7px;">' + rows + '</div>' +
   '</div>';
