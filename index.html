@@ -10891,103 +10891,100 @@ function renderDailyPlan() {
   var W = window.innerWidth;
   var H = window.innerHeight;
 
-  // Get login card bounds
   function getCardRect() {
     var card = document.querySelector('.login-box');
-    if (!card) return null;
-    return card.getBoundingClientRect();
+    return card ? card.getBoundingClientRect() : null;
   }
 
-  // Init states with random positions away from card
-  var states = pills.map(function(pill, i) {
-    var pw = pill.offsetWidth || 200;
-    var ph = pill.offsetHeight || 38;
-    var angle = (i / pills.length) * Math.PI * 2;
-    var speed = 1.8 + Math.random() * 1.4;
-    return {
-      x: Math.random() * (W - pw),
-      y: Math.random() * (H - ph),
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      w: pw, h: ph
-    };
-  });
-
-  // Set pills to fixed positioning
-  pills.forEach(function(pill, i) {
-    pill.style.position = 'fixed';
-    pill.style.top = '0';
-    pill.style.left = '0';
-    pill.style.right = 'auto';
-    pill.style.bottom = 'auto';
-    pill.style.transform = 'translate(' + states[i].x.toFixed(1) + 'px,' + states[i].y.toFixed(1) + 'px)';
-    pill.style.zIndex = '5';
-  });
-
-  window.addEventListener('resize', function() { W = window.innerWidth; H = window.innerHeight; });
-
-  function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh, pad) {
-    pad = pad || 8;
-    return ax < bx + bw + pad && ax + aw + pad > bx && ay < by + bh + pad && ay + ah + pad > by;
-  }
-
-  function animate() {
+  // Wait for layout then init
+  setTimeout(function() {
     W = window.innerWidth;
     H = window.innerHeight;
-    var card = getCardRect();
 
-    states.forEach(function(s, i) {
-      var nx = s.x + s.vx;
-      var ny = s.y + s.vy;
+    var states = pills.map(function(pill, i) {
+      var pw = pill.offsetWidth || 200;
+      var ph = pill.offsetHeight || 38;
+      var angle = (i / pills.length) * Math.PI * 2 + Math.random() * 0.5;
+      var speed = 2.5 + Math.random() * 1.8;
+      // Spread initial positions around edges to avoid clustering
+      var x, y;
+      if (i % 4 === 0) { x = Math.random() * W * 0.4; y = Math.random() * H * 0.4; }
+      else if (i % 4 === 1) { x = W * 0.6 + Math.random() * W * 0.35; y = Math.random() * H * 0.4; }
+      else if (i % 4 === 2) { x = Math.random() * W * 0.4; y = H * 0.6 + Math.random() * H * 0.35; }
+      else { x = W * 0.6 + Math.random() * W * 0.35; y = H * 0.6 + Math.random() * H * 0.35; }
+      x = Math.min(x, W - pw); y = Math.min(y, H - ph);
+      return { x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, w: pw, h: ph };
+    });
 
-      // Bounce off screen edges
-      if (nx <= 0) { nx = 0; s.vx = Math.abs(s.vx); }
-      if (nx + s.w >= W) { nx = W - s.w; s.vx = -Math.abs(s.vx); }
-      if (ny <= 0) { ny = 0; s.vy = Math.abs(s.vy); }
-      if (ny + s.h >= H) { ny = H - s.h; s.vy = -Math.abs(s.vy); }
+    pills.forEach(function(pill, i) {
+      pill.style.position = 'fixed';
+      pill.style.top = '0'; pill.style.left = '0';
+      pill.style.right = 'auto'; pill.style.bottom = 'auto';
+      pill.style.zIndex = '5';
+      pill.style.transform = 'translate(' + states[i].x.toFixed(1) + 'px,' + states[i].y.toFixed(1) + 'px)';
+    });
 
-      // Bounce off login card
-      if (card && rectsOverlap(nx, ny, s.w, s.h, card.left, card.top, card.width, card.height, 12)) {
-        // Determine which side to bounce from
-        var overlapL = (s.x + s.w) - card.left;
-        var overlapR = (card.left + card.width) - s.x;
-        var overlapT = (s.y + s.h) - card.top;
-        var overlapB = (card.top + card.height) - s.y;
-        var minOverlap = Math.min(overlapL, overlapR, overlapT, overlapB);
-        if (minOverlap === overlapL) { s.vx = -Math.abs(s.vx); nx = card.left - s.w - 2; }
-        else if (minOverlap === overlapR) { s.vx = Math.abs(s.vx); nx = card.left + card.width + 2; }
-        else if (minOverlap === overlapT) { s.vy = -Math.abs(s.vy); ny = card.top - s.h - 2; }
-        else { s.vy = Math.abs(s.vy); ny = card.top + card.height + 2; }
-      }
+    window.addEventListener('resize', function() { W = window.innerWidth; H = window.innerHeight; });
 
-      // Pill-to-pill overlap — simple push apart
-      for (var j = 0; j < states.length; j++) {
-        if (j === i) continue;
-        var o = states[j];
-        if (rectsOverlap(nx, ny, s.w, s.h, o.x, o.y, o.w, o.h, 4)) {
-          s.vx = -s.vx * 0.9;
-          s.vy = -s.vy * 0.9;
-          nx = s.x;
-          ny = s.y;
-          break;
+    function overlap(ax, ay, aw, ah, bx, by, bw, bh, pad) {
+      pad = pad || 0;
+      return ax < bx + bw + pad && ax + aw + pad > bx && ay < by + bh + pad && ay + ah + pad > by;
+    }
+
+    function animate() {
+      var card = getCardRect();
+      W = window.innerWidth; H = window.innerHeight;
+
+      for (var i = 0; i < states.length; i++) {
+        var s = states[i];
+        var nx = s.x + s.vx;
+        var ny = s.y + s.vy;
+
+        // Screen bounce
+        if (nx <= 0) { nx = 1; s.vx = Math.abs(s.vx); }
+        if (nx + s.w >= W) { nx = W - s.w - 1; s.vx = -Math.abs(s.vx); }
+        if (ny <= 0) { ny = 1; s.vy = Math.abs(s.vy); }
+        if (ny + s.h >= H) { ny = H - s.h - 1; s.vy = -Math.abs(s.vy); }
+
+        // Login card bounce
+        if (card && overlap(nx, ny, s.w, s.h, card.left, card.top, card.width, card.height, 10)) {
+          var ol = (s.x + s.w) - card.left;
+          var or2 = (card.left + card.width) - s.x;
+          var ot = (s.y + s.h) - card.top;
+          var ob = (card.top + card.height) - s.y;
+          var mn = Math.min(ol, or2, ot, ob);
+          if (mn === ol) { s.vx = -Math.abs(s.vx); nx = card.left - s.w - 2; }
+          else if (mn === or2) { s.vx = Math.abs(s.vx); nx = card.left + card.width + 2; }
+          else if (mn === ot) { s.vy = -Math.abs(s.vy); ny = card.top - s.h - 2; }
+          else { s.vy = Math.abs(s.vy); ny = card.top + card.height + 2; }
         }
+
+        // Pill-pill overlap — push apart properly
+        for (var j = 0; j < states.length; j++) {
+          if (j === i) continue;
+          var o2 = states[j];
+          if (overlap(nx, ny, s.w, s.h, o2.x, o2.y, o2.w, o2.h, 6)) {
+            // Swap velocity components
+            var tmpVx = s.vx; var tmpVy = s.vy;
+            s.vx = o2.vx * 0.85; s.vy = o2.vy * 0.85;
+            o2.vx = tmpVx * 0.85; o2.vy = tmpVy * 0.85;
+            // Push apart
+            var dx = (nx + s.w/2) - (o2.x + o2.w/2);
+            var dy = (ny + s.h/2) - (o2.y + o2.h/2);
+            var dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            nx += (dx / dist) * 4;
+            ny += (dy / dist) * 4;
+            break;
+          }
+        }
+
+        s.x = nx; s.y = ny;
+        pills[i].style.transform = 'translate(' + s.x.toFixed(1) + 'px,' + s.y.toFixed(1) + 'px)';
       }
-
-      s.x = nx;
-      s.y = ny;
-      pills[i].style.transform = 'translate(' + s.x.toFixed(1) + 'px,' + s.y.toFixed(1) + 'px)';
-    });
-
+      requestAnimationFrame(animate);
+    }
     requestAnimationFrame(animate);
-  }
-
-  setTimeout(function() {
-    states.forEach(function(s, i) {
-      s.w = pills[i].offsetWidth || 180;
-      s.h = pills[i].offsetHeight || 38;
-    });
-    requestAnimationFrame(animate);
-  }, 300);
+  }, 400);
 })();
 </script>
 
