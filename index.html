@@ -794,7 +794,7 @@
   </header>
 
   <!-- PEOPLE TAB -->
-  <div class="tab-content" id="tab-people">
+  <div class="tab-content" id="tab-people" style="display:none;">
     <div class="panel">
       <div class="panel-head">
         <div>
@@ -2394,19 +2394,7 @@ async function initApp(user) {
   });
 
   markAllDirty();
-
-  try {
-    const tabBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`) ||
-                   document.querySelector('.tab-btn[data-tab="dashboard"]');
-    if (tabBtn) {
-      tabBtn.click();
-    } else {
-      renderAll();
-    }
-  } catch(e) {
-    console.warn('Tab render error:', e);
-    renderAll();
-  }
+  switchTabTo(savedTab);
 
   applyAccessUI();
   initRealtime();
@@ -2637,23 +2625,33 @@ let currentNotesProjectId = null;
 async function loadNotesInlineSummary(containerId, projectId) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  // Use cache if available
+  if (window._notesCache && window._notesCache[projectId] !== undefined) {
+    const data = window._notesCache[projectId].slice(0, 2);
+    if (!data || data.length === 0) { el.innerHTML = '<span style="color:var(--text-faint);font-size:11.5px;">—</span>'; return; }
+    el.innerHTML = data.map(n =>
+      '<div style="margin-bottom:4px;">' +
+        '<div style="font-size:11.5px;color:var(--text);line-height:1.4;">' + escapeHtml(n.note.slice(0,80)) + (n.note.length>80?'…':'') + '</div>' +
+        '<div style="font-size:10px;color:var(--text-faint);">— ' + escapeHtml((n.created_by||'?').split('@')[0]) + ' · ' + new Date(n.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) + '</div>' +
+      '</div>'
+    ).join('');
+    return;
+  }
   try {
     const { data, error } = await sbClient
-      .from('release_notes')
-      .select('*')
+      .from('release_notes').select('*')
       .eq('project_id', projectId)
-      .order('created_at', { ascending: false })
-      .limit(2);
+      .order('created_at', { ascending: false }).limit(2);
     if (error) throw error;
-    if (!data || data.length === 0) {
-      el.innerHTML = '<span style="color:var(--text-faint);font-size:11.5px;">—</span>';
-      return;
-    }
-    el.innerHTML = data.map(n => `
-      <div style="margin-bottom:4px;">
-        <div style="font-size:11.5px;color:var(--text);line-height:1.4;">${escapeHtml(n.note.slice(0,80))}${n.note.length>80?'…':''}</div>
-        <div style="font-size:10px;color:var(--text-faint);">— ${escapeHtml(n.created_by?.split('@')[0]||'?')} · ${new Date(n.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</div>
-      </div>`).join('');
+    if (!window._notesCache) window._notesCache = {};
+    window._notesCache[projectId] = data || [];
+    if (!data || data.length === 0) { el.innerHTML = '<span style="color:var(--text-faint);font-size:11.5px;">—</span>'; return; }
+    el.innerHTML = data.map(n =>
+      '<div style="margin-bottom:4px;">' +
+        '<div style="font-size:11.5px;color:var(--text);line-height:1.4;">' + escapeHtml(n.note.slice(0,80)) + (n.note.length>80?'…':'') + '</div>' +
+        '<div style="font-size:10px;color:var(--text-faint);">— ' + escapeHtml((n.created_by||'?').split('@')[0]) + ' · ' + new Date(n.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) + '</div>' +
+      '</div>'
+    ).join('');
   } catch(e) {
     el.innerHTML = '<span style="color:var(--text-faint);font-size:11px;">—</span>';
   }
@@ -2662,27 +2660,84 @@ async function loadNotesInlineSummary(containerId, projectId) {
 async function loadNotesInline(containerId, projectId) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  // Check cache first
+  if (window._notesCache && window._notesCache[projectId] !== undefined) {
+    _renderNotesInEl(el, window._notesCache[projectId]);
+    return;
+  }
   try {
     const { data, error } = await sbClient
-      .from('release_notes')
-      .select('*')
+      .from('release_notes').select('*')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    if (!data || data.length === 0) {
-      el.innerHTML = '<span style="color:var(--text-faint);font-size:12px;font-style:italic;">No comments yet.</span>';
-      return;
-    }
-    el.innerHTML = data.map(n => `
-      <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 12px;margin-bottom:6px;">
-        <div style="font-size:12.5px;color:var(--text);line-height:1.5;">${escapeHtml(n.note)}</div>
-        <div style="font-size:10.5px;color:var(--text-faint);margin-top:4px;display:flex;justify-content:space-between;">
-          <span>by <strong>${escapeHtml(n.created_by||'Unknown')}</strong></span>
-          <span>${new Date(n.created_at).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
-        </div>
-      </div>`).join('');
+    if (!window._notesCache) window._notesCache = {};
+    window._notesCache[projectId] = data || [];
+    _renderNotesInEl(el, window._notesCache[projectId]);
   } catch(e) {
     el.innerHTML = '<span style="color:var(--text-faint);font-size:12px;">Could not load comments.</span>';
+  }
+}
+
+async function loadNotesInlineSummary(containerId, projectId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (window._notesCache && window._notesCache[projectId] !== undefined) {
+    _renderNotesInEl(el, window._notesCache[projectId]);
+    return;
+  }
+  try {
+    const { data, error } = await sbClient
+      .from('release_notes').select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!window._notesCache) window._notesCache = {};
+    window._notesCache[projectId] = data || [];
+    _renderNotesInEl(el, window._notesCache[projectId]);
+  } catch(e) {
+    el.innerHTML = '<span style="color:var(--text-faint);font-size:12px;">Could not load.</span>';
+  }
+}
+
+function _renderNotesInEl(el, data) {
+  if (!data || data.length === 0) {
+    el.innerHTML = '<span style="color:var(--text-faint);font-size:12px;font-style:italic;">No comments yet.</span>';
+    return;
+  }
+  el.innerHTML = data.map(n =>
+    '<div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 12px;margin-bottom:6px;">' +
+      '<div style="font-size:12.5px;color:var(--text);line-height:1.5;">' + escapeHtml(n.note) + '</div>' +
+      '<div style="font-size:10.5px;color:var(--text-faint);margin-top:4px;display:flex;justify-content:space-between;">' +
+        '<span>by <strong>' + escapeHtml(n.created_by||'Unknown') + '</strong></span>' +
+        '<span>' + new Date(n.created_at).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</span>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+}
+
+// Batch prefetch all notes for given project ids (call before rendering vault/summary)
+async function prefetchAllNotes(projectIds) {
+  if (!projectIds || projectIds.length === 0) return;
+  if (!window._notesCache) window._notesCache = {};
+  // Only fetch for projects not already cached
+  const toFetch = projectIds.filter(id => window._notesCache[id] === undefined);
+  if (toFetch.length === 0) return;
+  try {
+    const { data, error } = await sbClient
+      .from('release_notes').select('*')
+      .in('project_id', toFetch)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    // Initialize all as empty first
+    toFetch.forEach(id => { window._notesCache[id] = []; });
+    // Fill with actual data
+    (data || []).forEach(n => {
+      if (!window._notesCache[n.project_id]) window._notesCache[n.project_id] = [];
+      window._notesCache[n.project_id].push(n);
+    });
+  } catch(e) {
+    console.warn('prefetchAllNotes error:', e);
   }
 }
 
@@ -2723,6 +2778,7 @@ async function loadNotes(projectId) {
 }
 
 async function saveNote() {
+  if (window._notesCache) delete window._notesCache[currentNotesProjectId];
   const note = document.getElementById('noteInput').value.trim();
   if (!note || !currentNotesProjectId) return;
 
@@ -9435,7 +9491,10 @@ function renderArchive() {
   }).join('');
 
   // Load notes for all vault items async
-  pageItems.forEach(proj => loadNotesInline('notes-vault-' + proj.id, proj.id));
+  window._notesCache = {}; // clear cache on fresh render
+  prefetchAllNotes(pageItems.map(p => p.id)).then(() => {
+    pageItems.forEach(proj => loadNotesInline('notes-vault-' + proj.id, proj.id));
+  });
   if (totalPages > 1) {
     const from = startIdx + 1;
     const to   = Math.min(startIdx + ARCHIVE_PAGE_SIZE, totalItems);
@@ -9765,7 +9824,9 @@ function renderSummary() {
   }).join('');
 
   // Load comments for all summary items
-  pageItems.forEach(proj => loadNotesInlineSummary('notes-summary-' + proj.id, proj.id));
+  prefetchAllNotes(pageItems.map(p => p.id)).then(() => {
+    pageItems.forEach(proj => loadNotesInlineSummary('notes-summary-' + proj.id, proj.id));
+  });
 
   // Pagination controls
   const paginationEl = document.getElementById('summaryPagination');
