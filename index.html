@@ -467,7 +467,7 @@
   .login-overlay {
     position: fixed; inset: 0;
     background: linear-gradient(135deg, #0b1120 0%, #0f1a35 50%, #0b1120 100%);
-    display: flex; align-items: center; justify-content: center; z-index: 1000;
+    display: flex; align-items: center; justify-content: center; z-index: 99999;
   }
   .login-overlay.hidden { display: none; }
   .login-box {
@@ -504,6 +504,7 @@
   .login-btn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.5); }
   .login-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
   .login-error { font-size: 12.5px; color: #f87171; margin-top: 12px; text-align: center; min-height: 18px; }
+</style>
 <!-- Login screen — shown until user authenticates -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
