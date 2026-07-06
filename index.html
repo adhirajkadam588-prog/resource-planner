@@ -465,70 +465,102 @@
 
   /* ── Login ── */
   .login-overlay {
-    position: fixed; inset: 0;
-    background: linear-gradient(135deg, #0b1120 0%, #0f1a35 50%, #0b1120 100%);
-    display: flex; align-items: center; justify-content: center; z-index: 1000;
+    position: fixed; inset: 0; background: #070d1a;
+    display: flex; align-items: center; justify-content: center; z-index: 1000; overflow: hidden;
   }
   .login-overlay.hidden { display: none; }
-  .login-box {
-    background: rgba(15,22,40,0.9);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px; padding: 40px 44px; width: 400px;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
-    backdrop-filter: blur(20px);
-  }
-  .login-mark {
-    width: 52px; height: 52px;
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-    border-radius: 14px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 22px; box-shadow: 0 6px 20px rgba(124,58,237,0.5);
-  }
-  .login-box h2 { font-family: 'Inter Tight', sans-serif; font-size: 23px; font-weight: 800; margin: 0 0 4px; color: #f1f5f9; letter-spacing: -0.02em; }
-  .login-box .login-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 28px; }
-  .login-field { margin-bottom: 14px; }
-  .login-field label { display: block; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.5); margin-bottom: 6px; letter-spacing: 0.03em; }
-  .login-field input {
-    width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
-    color: #f1f5f9; padding: 11px 14px; border-radius: 10px; font-size: 14px; font-family: inherit;
-    transition: all 0.15s;
-  }
-  .login-field input:focus { outline: none; border-color: #7c3aed; background: rgba(255,255,255,0.1); box-shadow: 0 0 0 3px rgba(124,58,237,0.25); }
-  .login-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
-    border: none; color: white; padding: 13px; border-radius: 10px; font-size: 14px;
-    font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px;
-    letter-spacing: 0.01em; box-shadow: 0 4px 16px rgba(124,58,237,0.4);
-    transition: all 0.15s;
-  }
-  .login-btn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.5); }
-  .login-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
-  .login-error { font-size: 12.5px; color: #f87171; margin-top: 12px; text-align: center; min-height: 18px; }
-</style>
+  .login-orb { position: absolute; border-radius: 50%; pointer-events: none; animation: orbFloat 10s ease-in-out infinite; }
+  .login-orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(109,40,217,0.4) 0%, transparent 70%); top: -200px; left: -150px; }
+  .login-orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(37,99,235,0.35) 0%, transparent 70%); bottom: -150px; right: -100px; animation-delay: 4s; }
+  .login-orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%); top: 50%; left: 45%; animation-delay: 7s; }
+  @keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-25px) scale(1.06)} 66%{transform:translate(-20px,20px) scale(0.96)} }
+  .login-grid { position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px); background-size: 28px 28px; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%); }
+  .login-card { position: relative; z-index: 1; display: flex; width: 880px; min-height: 540px; border-radius: 28px; overflow: hidden; box-shadow: 0 50px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06); animation: loginFadeIn 0.55s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
+  @keyframes loginFadeIn { from{opacity:0;transform:translateY(28px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .login-left { width: 380px; flex-shrink: 0; background: linear-gradient(145deg, #1a0a3d 0%, #0f1a3d 40%, #0a1628 100%); padding: 44px 38px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid rgba(255,255,255,0.06); position: relative; overflow: hidden; }
+  .login-left-orb { position: absolute; border-radius: 50%; pointer-events: none; }
+  .login-left-orb-1 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%); top: -80px; right: -80px; }
+  .login-left-orb-2 { width: 200px; height: 200px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); bottom: -50px; left: -30px; }
+  .login-right { flex: 1; background: rgba(10,16,32,0.95); padding: 44px 44px; display: flex; flex-direction: column; justify-content: center; backdrop-filter: blur(40px); }
+  .login-field { margin-bottom: 18px; }
+  .login-field label { display: block; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.38); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .login-field input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 13px 16px; border-radius: 12px; font-size: 14px; font-family: inherit; transition: all 0.2s; box-sizing: border-box; }
+  .login-field input::placeholder { color: rgba(255,255,255,0.18); }
+  .login-field input:focus { outline: none; border-color: rgba(124,58,237,0.8); background: rgba(124,58,237,0.07); box-shadow: 0 0 0 3px rgba(124,58,237,0.18); }
+  .login-btn { width: 100%; position: relative; overflow: hidden; background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 40%, #2563eb 100%); border: none; color: white; padding: 14px; border-radius: 12px; font-size: 14.5px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 6px; letter-spacing: 0.03em; box-shadow: 0 4px 24px rgba(124,58,237,0.4); transition: all 0.2s; }
+  .login-btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 50%); opacity: 0; transition: opacity 0.2s; }
+  .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(124,58,237,0.55); }
+  .login-btn:hover::after { opacity: 1; }
+  .login-btn:active { transform: translateY(0); }
+  .login-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+  .login-error { font-size: 12px; color: #f87171; margin-top: 10px; text-align: center; min-height: 16px; }
+  .login-feature { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 10px 13px; transition: all 0.2s; }
+  .login-feature:hover { background: rgba(255,255,255,0.07); border-color: rgba(124,58,237,0.3); }
+  .login-feature-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; }
 </head>
 <body>
 
-<!-- Login screen — shown until user authenticates -->
+<!-- Login screen -->
 <div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="login-mark">
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="20" cy="20" r="16" stroke="white" stroke-width="2" opacity="0.25"/>
-        <circle cx="20" cy="20" r="10" stroke="white" stroke-width="2.5" opacity="0.65"/>
-        <circle cx="20" cy="20" r="4.5" fill="white"/>
-        <line x1="24.5" y1="24.5" x2="31" y2="31" stroke="white" stroke-width="3" stroke-linecap="round"/>
-      </svg>
+  <div class="login-orb login-orb-1"></div>
+  <div class="login-orb login-orb-2"></div>
+  <div class="login-orb login-orb-3"></div>
+  <div class="login-grid"></div>
+  <div class="login-card">
+    <!-- LEFT — Branding -->
+    <div class="login-left">
+      <div class="login-left-orb login-left-orb-1"></div>
+      <div class="login-left-orb login-left-orb-2"></div>
+      <div style="position:relative;z-index:1;">
+        <div style="width:52px;height:52px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 8px 24px rgba(124,58,237,0.5);">
+          <svg width="26" height="26" viewBox="0 0 44 44" fill="none"><circle cx="20" cy="20" r="16" stroke="white" stroke-width="2" opacity="0.3"/><circle cx="20" cy="20" r="10" stroke="white" stroke-width="2.5" opacity="0.7"/><circle cx="20" cy="20" r="4.5" fill="white"/><line x1="24.5" y1="24.5" x2="31" y2="31" stroke="white" stroke-width="3" stroke-linecap="round"/></svg>
+        </div>
+        <div style="font-family:'Inter Tight',sans-serif;font-size:30px;font-weight:800;color:#ffffff;letter-spacing:-0.04em;line-height:1;">TeamLens</div>
+        <div style="display:flex;align-items:center;gap:7px;margin-top:8px;">
+          <span style="font-size:11.5px;color:rgba(255,255,255,0.4);">🏢 Seclore QA Team</span>
+          <span style="background:rgba(124,58,237,0.3);color:#c4b5fd;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid rgba(124,58,237,0.4);">v2.0</span>
+        </div>
+        <div style="margin-top:16px;font-size:13px;color:rgba(255,255,255,0.35);font-style:italic;line-height:1.7;border-left:2px solid rgba(124,58,237,0.5);padding-left:12px;">"Making QA life easier —<br>everything in one place." 🎯</div>
+      </div>
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:8px;margin-top:28px;">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">What's inside</div>
+        <div class="login-feature"><div class="login-feature-icon" style="background:rgba(124,58,237,0.2);">📋</div><div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);">Test Plan Management</div><div style="font-size:10.5px;color:rgba(255,255,255,0.35);margin-top:1px;">Review workflow · milestone tracking</div></div></div>
+        <div class="login-feature"><div class="login-feature-icon" style="background:rgba(37,99,235,0.2);">📅</div><div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);">Daily Planning</div><div style="font-size:10.5px;color:rgba(255,255,255,0.35);margin-top:1px;">Assignments · team availability</div></div></div>
+        <div class="login-feature"><div class="login-feature-icon" style="background:rgba(245,158,11,0.2);">⚠️</div><div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);">Build Delay Alerts</div><div style="font-size:10.5px;color:rgba(255,255,255,0.35);margin-top:1px;">Auto milestone shift · notifications</div></div></div>
+        <div class="login-feature"><div class="login-feature-icon" style="background:rgba(16,185,129,0.2);">📊</div><div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);">Release Summary</div><div style="font-size:10.5px;color:rgba(255,255,255,0.35);margin-top:1px;">Gantt · calendar · vault reports</div></div></div>
+      </div>
+      <div style="position:relative;z-index:1;margin-top:20px;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(37,99,235,0.15));border:1px solid rgba(124,58,237,0.25);border-radius:11px;padding:12px 14px;">
+        <div style="font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">✨ What's new in v2.0</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.45);line-height:1.8;">Real-time sync across all users<br>Smart role-based notifications<br>Build delay &amp; review gate flow</div>
+      </div>
     </div>
-    <h2>TeamLens</h2>
-    <div class="login-sub">Sign in to access TeamLens</div>
-    <div class="login-field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@company.com" autocomplete="email"></div>
-    <div class="login-field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
-    <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in</button>
-    <div class="login-error" id="loginError"></div>
-    <div style="font-size:10.5px; color:var(--text-faint); margin-top:16px; text-align:center;" id="loginDebug"></div>
+    <!-- RIGHT — Form -->
+    <div class="login-right">
+      <div style="margin-bottom:32px;">
+        <div style="font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:800;color:#f8faff;letter-spacing:-0.02em;">Welcome back 👋</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.35);margin-top:5px;">Sign in to your TeamLens workspace</div>
+      </div>
+      <div class="login-field"><label>Email address</label><input id="loginEmail" type="email" placeholder="you@seclore.com" autocomplete="email"></div>
+      <div class="login-field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') signIn()"></div>
+      <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in to TeamLens →</button>
+      <div class="login-error" id="loginError"></div>
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div id="loginStatusDot" style="width:7px;height:7px;border-radius:50%;background:#374151;transition:all 0.3s;"></div>
+            <span id="loginDebug" style="font-size:11px;color:rgba(255,255,255,0.25);">Connecting…</span>
+          </div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.2);">🌐 Powered by Supabase</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:10.5px;color:rgba(255,255,255,0.2);">👥 Seclore QA · 15 members</span>
+          <span style="font-size:10.5px;color:rgba(255,255,255,0.2);" id="loginLastUpdated">🕐 Loading…</span>
+        </div>
+        <div style="text-align:center;"><a href="mailto:akash.kadam@seclore.com" style="font-size:10.5px;color:rgba(255,255,255,0.2);text-decoration:none;" onmouseover="this.style.color='rgba(167,139,250,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.2)'">🔗 Support: akash.kadam@seclore.com</a></div>
+      </div>
+    </div>
   </div>
 </div>
-
 <!-- Change Password Modal -->
 <div class="modal-overlay" id="changePasswordModal">
   <div class="modal">
@@ -2045,6 +2077,17 @@ const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // Show connection status on login page
 const _dbgEl = document.getElementById('loginDebug');
 if (_dbgEl) _dbgEl.textContent = sbClient ? '✓ Connected to Supabase' : '✗ Connection failed';
+
+// Update status dot
+const statusDot = document.getElementById('loginStatusDot');
+if (statusDot) statusDot.style.background = sbClient ? '#10b981' : '#ef4444';
+
+// Last updated
+const lastUpdEl = document.getElementById('loginLastUpdated');
+if (lastUpdEl) {
+  const now = new Date();
+  lastUpdEl.textContent = 'Updated ' + now.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+}
 
 // ====================== UNDO SYSTEM ======================
 const UNDO_STACK = [];       // array of {snapshot, label}
