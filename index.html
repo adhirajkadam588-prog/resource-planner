@@ -2377,11 +2377,16 @@ async function initApp(user) {
 
   // On fresh login → dashboard. On page refresh → restore last tab.
   const isRefresh = !window._isLoginAction;
-  const savedTab  = isRefresh ? (localStorage.getItem('tl_active_tab') || 'dashboard') : 'dashboard';
+  let savedTab = isRefresh ? (localStorage.getItem('tl_active_tab') || 'dashboard') : 'dashboard';
+
+  // people was old default — redirect to dashboard
+  if (savedTab === 'people') savedTab = 'dashboard';
+
   window._isLoginAction = false;
 
   // Set BEFORE any render to prevent flash
   _activeTab = savedTab;
+  localStorage.setItem('tl_active_tab', savedTab);
 
   // Hide all tabs, show only the correct one immediately
   document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
