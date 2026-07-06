@@ -468,44 +468,128 @@
   /* ── Login ── */
   .login-overlay {
     position: fixed; inset: 0;
-    background: linear-gradient(135deg, #0b1120 0%, #0f1a35 50%, #0b1120 100%);
+    background: #050810;
     display: flex; align-items: center; justify-content: center; z-index: 99999;
+    overflow: hidden;
   }
   .login-overlay.hidden { display: none; }
+
+  /* Colorful animated orbs */
+  .lo1,.lo2,.lo3,.lo4 { position:absolute; border-radius:50%; pointer-events:none; animation: lof 12s ease-in-out infinite; }
+  .lo1 { width:700px;height:700px; background:radial-gradient(circle,rgba(124,58,237,0.45) 0%,transparent 65%); top:-200px;left:-200px; animation-delay:0s; }
+  .lo2 { width:600px;height:600px; background:radial-gradient(circle,rgba(37,99,235,0.4) 0%,transparent 65%); bottom:-150px;right:-150px; animation-delay:4s; }
+  .lo3 { width:400px;height:400px; background:radial-gradient(circle,rgba(236,72,153,0.3) 0%,transparent 65%); top:30%;right:10%; animation-delay:7s; }
+  .lo4 { width:350px;height:350px; background:radial-gradient(circle,rgba(16,185,129,0.25) 0%,transparent 65%); bottom:20%;left:5%; animation-delay:2s; }
+  @keyframes lof {
+    0%,100%{transform:translate(0,0) scale(1);}
+    25%{transform:translate(30px,-30px) scale(1.08);}
+    50%{transform:translate(-20px,20px) scale(0.95);}
+    75%{transform:translate(15px,10px) scale(1.04);}
+  }
+
+  /* Mesh grid */
+  .lo-grid {
+    position:absolute; inset:0; pointer-events:none;
+    background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
+  }
+
+  /* Floating feature pills */
+  .lo-pill {
+    position:absolute; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    border-radius:40px; padding:7px 14px; font-size:11.5px; color:rgba(255,255,255,0.55);
+    pointer-events:none; backdrop-filter:blur(8px); white-space:nowrap;
+    animation: lopill 8s ease-in-out infinite;
+  }
+  .lo-pill span { margin-right:6px; }
+  @keyframes lopill {
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-8px); }
+  }
+
+  /* Main card */
   .login-box {
-    background: rgba(15,22,40,0.9);
+    position:relative; z-index:10;
+    background: linear-gradient(145deg, rgba(13,18,40,0.92) 0%, rgba(18,12,45,0.88) 100%);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px; padding: 40px 44px; width: 400px;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
-    backdrop-filter: blur(20px);
+    border-radius: 28px; padding: 44px 48px; width: 420px;
+    box-shadow: 0 50px 120px rgba(0,0,0,0.7),
+                0 0 0 1px rgba(255,255,255,0.06),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+    backdrop-filter: blur(40px);
+    animation: lobox 0.6s cubic-bezier(0.16,1,0.3,1) both;
   }
+  @keyframes lobox {
+    from{opacity:0;transform:translateY(24px) scale(0.96);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
+
+  /* Logo mark */
   .login-mark {
-    width: 52px; height: 52px;
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-    border-radius: 14px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 22px; box-shadow: 0 6px 20px rgba(124,58,237,0.5);
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f59e0b 100%);
+    border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(124,58,237,0.6), 0 0 0 1px rgba(255,255,255,0.15);
+    position:relative;
   }
-  .login-box h2 { font-family: 'Inter Tight', sans-serif; font-size: 23px; font-weight: 800; margin: 0 0 4px; color: #f1f5f9; letter-spacing: -0.02em; }
-  .login-box .login-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 28px; }
-  .login-field { margin-bottom: 14px; }
-  .login-field label { display: block; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.5); margin-bottom: 6px; letter-spacing: 0.03em; }
+  .login-mark::after {
+    content:''; position:absolute; inset:-1px; border-radius:17px;
+    background:linear-gradient(135deg,rgba(255,255,255,0.25),transparent);
+    pointer-events:none;
+  }
+
+  .login-box h2 {
+    font-family:'Inter Tight',sans-serif; font-size:26px; font-weight:800;
+    margin:0 0 4px; letter-spacing:-0.03em;
+    background:linear-gradient(135deg,#ffffff 0%,#c4b5fd 60%,#93c5fd 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  }
+  .login-box .login-sub { font-size:13px; color:rgba(255,255,255,0.38); margin-bottom:30px; }
+
+  .login-field { margin-bottom:16px; }
+  .login-field label {
+    display:block; font-size:10.5px; font-weight:700; letter-spacing:0.1em;
+    text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:8px;
+  }
   .login-field input {
-    width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
-    color: #f1f5f9; padding: 11px 14px; border-radius: 10px; font-size: 14px; font-family: inherit;
-    transition: all 0.15s; box-sizing: border-box;
+    width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+    color:#f1f5f9; padding:13px 16px; border-radius:12px; font-size:14px; font-family:inherit;
+    transition:all 0.2s; box-sizing:border-box;
   }
-  .login-field input:focus { outline: none; border-color: #7c3aed; background: rgba(255,255,255,0.1); box-shadow: 0 0 0 3px rgba(124,58,237,0.25); }
+  .login-field input::placeholder{color:rgba(255,255,255,0.18);}
+  .login-field input:focus {
+    outline:none; border-color:rgba(124,58,237,0.8);
+    background:rgba(124,58,237,0.08);
+    box-shadow:0 0 0 3px rgba(124,58,237,0.2), 0 0 24px rgba(124,58,237,0.12);
+  }
+
   .login-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
-    border: none; color: white; padding: 13px; border-radius: 10px; font-size: 14px;
-    font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px;
-    letter-spacing: 0.01em; box-shadow: 0 4px 16px rgba(124,58,237,0.4);
-    transition: all 0.15s;
+    width:100%; position:relative; overflow:hidden;
+    background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f59e0b 100%);
+    background-size:200% 200%; animation:logradbg 4s ease infinite;
+    border:none; color:white; padding:14px; border-radius:12px; font-size:14.5px;
+    font-weight:700; cursor:pointer; font-family:inherit; margin-top:8px;
+    letter-spacing:0.02em;
+    box-shadow:0 4px 24px rgba(124,58,237,0.45);
+    transition:all 0.2s;
   }
-  .login-btn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.5); }
-  .login-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
-  .login-error { font-size: 12.5px; color: #f87171; margin-top: 12px; text-align: center; min-height: 18px; }
+  @keyframes logradbg {
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+  .login-btn::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%);
+    opacity:0; transition:opacity 0.2s;
+  }
+  .login-btn:hover{transform:translateY(-2px); box-shadow:0 8px 32px rgba(124,58,237,0.6);}
+  .login-btn:hover::before{opacity:1;}
+  .login-btn:active{transform:translateY(0);}
+  .login-btn:disabled{opacity:0.45;cursor:default;transform:none;animation:none;}
+  .login-error{font-size:12px;color:#f87171;margin-top:10px;text-align:center;min-height:16px;}
 </style>
 <script>
 // Instantly apply saved tab before page renders — zero flash
@@ -526,22 +610,62 @@
 </script>
 <!-- Login screen — shown until user authenticates -->
 <div class="login-overlay" id="loginOverlay">
+  <!-- Colorful background -->
+  <div class="lo1"></div>
+  <div class="lo2"></div>
+  <div class="lo3"></div>
+  <div class="lo4"></div>
+  <div class="lo-grid"></div>
+
+  <!-- Floating feature pills -->
+  <div class="lo-pill" style="top:14%;left:6%;animation-delay:0s;"><span>📋</span>Test Plans</div>
+  <div class="lo-pill" style="top:22%;right:5%;animation-delay:1.5s;"><span>🔔</span>Smart Alerts</div>
+  <div class="lo-pill" style="bottom:26%;left:4%;animation-delay:3s;"><span>📅</span>Daily Planning</div>
+  <div class="lo-pill" style="bottom:16%;right:6%;animation-delay:2s;"><span>⚡</span>Real-time Sync</div>
+  <div class="lo-pill" style="top:50%;left:2%;animation-delay:4.5s;"><span>📊</span>Gantt & Summary</div>
+  <div class="lo-pill" style="top:40%;right:3%;animation-delay:0.8s;"><span>🔐</span>Release Vault</div>
+
   <div class="login-box">
     <div class="login-mark">
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="20" cy="20" r="16" stroke="white" stroke-width="2" opacity="0.25"/>
-        <circle cx="20" cy="20" r="10" stroke="white" stroke-width="2.5" opacity="0.65"/>
+      <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
+        <circle cx="20" cy="20" r="16" stroke="white" stroke-width="2" opacity="0.3"/>
+        <circle cx="20" cy="20" r="10" stroke="white" stroke-width="2.5" opacity="0.7"/>
         <circle cx="20" cy="20" r="4.5" fill="white"/>
         <line x1="24.5" y1="24.5" x2="31" y2="31" stroke="white" stroke-width="3" stroke-linecap="round"/>
       </svg>
     </div>
+
     <h2>TeamLens</h2>
-    <div class="login-sub">Sign in to access TeamLens</div>
-    <div class="login-field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@company.com" autocomplete="email"></div>
-    <div class="login-field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') signIn()"></div>
-    <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in</button>
+    <div class="login-sub">Sign in to your Seclore QA workspace</div>
+
+    <div class="login-field">
+      <label>Email</label>
+      <input id="loginEmail" type="email" placeholder="you@seclore.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') signIn()">
+    </div>
+
+    <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in →</button>
     <div class="login-error" id="loginError"></div>
-    <div style="font-size:10.5px; color:rgba(255,255,255,0.3); margin-top:16px; text-align:center;" id="loginDebug"></div>
+
+    <!-- Footer -->
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.07);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div id="loginStatusDot" style="width:7px;height:7px;border-radius:50%;background:#374151;box-shadow:0 0 8px rgba(55,65,81,0.5);transition:all 0.3s;"></div>
+          <span id="loginDebug" style="font-size:10.5px;color:rgba(255,255,255,0.22);">Connecting…</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span style="font-size:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);padding:2px 8px;border-radius:20px;color:rgba(255,255,255,0.3);font-weight:600;">v1.0</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.18);">🏢 Seclore QA</span>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <a href="mailto:akash.kadam@seclore.com" style="font-size:10.5px;color:rgba(255,255,255,0.18);text-decoration:none;" onmouseover="this.style.color='rgba(196,181,253,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.18)'">🔗 akash.kadam@seclore.com</a>
+      </div>
+    </div>
   </div>
 </div>
 <!-- Change Password Modal -->
@@ -2059,7 +2183,12 @@ const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 // Show connection status on login page
 const _dbgEl = document.getElementById('loginDebug');
-if (_dbgEl) _dbgEl.textContent = sbClient ? '✓ Connected to Supabase' : '✗ Connection failed';
+if (_dbgEl) _dbgEl.textContent = sbClient ? '✓ Connected' : '✗ Failed';
+const _statusDot = document.getElementById('loginStatusDot');
+if (_statusDot) {
+  _statusDot.style.background = sbClient ? '#10b981' : '#ef4444';
+  _statusDot.style.boxShadow = sbClient ? '0 0 8px rgba(16,185,129,0.6)' : '0 0 8px rgba(239,68,68,0.6)';
+}
 
 // Update status dot
 const statusDot = document.getElementById('loginStatusDot');
