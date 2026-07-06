@@ -466,7 +466,7 @@
   /* ── Login ── */
   .login-overlay {
     position: fixed; inset: 0; background: #070d1a;
-    display: flex; align-items: center; justify-content: center; z-index: 1000; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; z-index: 9999; overflow: hidden;
   }
   .login-overlay.hidden { display: none; }
   .login-orb { position: absolute; border-radius: 50%; pointer-events: none; animation: orbFloat 10s ease-in-out infinite; }
@@ -475,7 +475,7 @@
   .login-orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%); top: 50%; left: 45%; animation-delay: 7s; }
   @keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-25px) scale(1.06)} 66%{transform:translate(-20px,20px) scale(0.96)} }
   .login-grid { position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px); background-size: 28px 28px; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%); }
-  .login-card { position: relative; z-index: 1; display: flex; width: 880px; min-height: 540px; border-radius: 28px; overflow: hidden; box-shadow: 0 50px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06); animation: loginFadeIn 0.55s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
+  .login-card { position: relative; z-index: 1; display: flex; width: 880px; min-height: 540px; border-radius: 28px; overflow: hidden; box-shadow: 0 50px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06); animation: loginFadeIn 0.55s cubic-bezier(0.16,1,0.3,1) both; }
   @keyframes loginFadeIn { from{opacity:0;transform:translateY(28px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
   .login-left { width: 380px; flex-shrink: 0; background: linear-gradient(145deg, #1a0a3d 0%, #0f1a3d 40%, #0a1628 100%); padding: 44px 38px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid rgba(255,255,255,0.06); position: relative; overflow: hidden; }
   .login-left-orb { position: absolute; border-radius: 50%; pointer-events: none; }
