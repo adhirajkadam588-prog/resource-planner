@@ -514,7 +514,9 @@
     if (saved === 'people') saved = 'dashboard';
     window._instantTab = saved;
     var s = document.createElement('style');
+    s.id = 'instant-tab-style';
     s.textContent =
+      '.shell { visibility: hidden; }' +
       '.tab-content { display: none !important; }' +
       '#tab-' + saved + ' { display: block !important; }' +
       '.tab-btn[data-tab="' + saved + '"] { background: rgba(255,255,255,0.09) !important; color: #f1f5f9 !important; }';
@@ -2425,6 +2427,12 @@ async function initApp(user) {
   markAllDirty();
   clearRenderCache();
   renderTab(savedTab);
+
+  // Reveal app — remove visibility:hidden now that correct tab is shown
+  const shell = document.querySelector('.shell');
+  if (shell) shell.style.visibility = 'visible';
+  const instStyle = document.getElementById('instant-tab-style');
+  if (instStyle) instStyle.remove();
 
   applyAccessUI();
   initRealtime();
