@@ -10865,59 +10865,103 @@ function renderDailyPlan() {
   var W = window.innerWidth;
   var H = window.innerHeight;
 
-  // Give each pill a random starting position and velocity
-  var states = pills.map(function(pill) {
+  // Get login card bounds
+  function getCardRect() {
+    var card = document.querySelector('.login-box');
+    if (!card) return null;
+    return card.getBoundingClientRect();
+  }
+
+  // Init states with random positions away from card
+  var states = pills.map(function(pill, i) {
     var pw = pill.offsetWidth || 200;
-    var ph = pill.offsetHeight || 36;
+    var ph = pill.offsetHeight || 38;
+    var angle = (i / pills.length) * Math.PI * 2;
+    var speed = 1.8 + Math.random() * 1.4;
     return {
       x: Math.random() * (W - pw),
       y: Math.random() * (H - ph),
-      vx: (Math.random() - 0.5) * 1.2,
-      vy: (Math.random() - 0.5) * 1.0,
-      w: pw,
-      h: ph
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      w: pw, h: ph
     };
   });
 
-  // Override CSS positioning — use fixed + transform
+  // Set pills to fixed positioning
   pills.forEach(function(pill, i) {
     pill.style.position = 'fixed';
     pill.style.top = '0';
     pill.style.left = '0';
     pill.style.right = 'auto';
     pill.style.bottom = 'auto';
-    pill.style.transform = 'translate(' + states[i].x + 'px,' + states[i].y + 'px)';
+    pill.style.transform = 'translate(' + states[i].x.toFixed(1) + 'px,' + states[i].y.toFixed(1) + 'px)';
+    pill.style.zIndex = '5';
   });
 
-  window.addEventListener('resize', function() {
-    W = window.innerWidth;
-    H = window.innerHeight;
-  });
+  window.addEventListener('resize', function() { W = window.innerWidth; H = window.innerHeight; });
+
+  function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh, pad) {
+    pad = pad || 8;
+    return ax < bx + bw + pad && ax + aw + pad > bx && ay < by + bh + pad && ay + ah + pad > by;
+  }
 
   function animate() {
     W = window.innerWidth;
     H = window.innerHeight;
+    var card = getCardRect();
+
     states.forEach(function(s, i) {
-      s.x += s.vx;
-      s.y += s.vy;
-      // Bounce off edges
-      if (s.x <= 0) { s.x = 0; s.vx = Math.abs(s.vx); }
-      if (s.x + s.w >= W) { s.x = W - s.w; s.vx = -Math.abs(s.vx); }
-      if (s.y <= 0) { s.y = 0; s.vy = Math.abs(s.vy); }
-      if (s.y + s.h >= H) { s.y = H - s.h; s.vy = -Math.abs(s.vy); }
+      var nx = s.x + s.vx;
+      var ny = s.y + s.vy;
+
+      // Bounce off screen edges
+      if (nx <= 0) { nx = 0; s.vx = Math.abs(s.vx); }
+      if (nx + s.w >= W) { nx = W - s.w; s.vx = -Math.abs(s.vx); }
+      if (ny <= 0) { ny = 0; s.vy = Math.abs(s.vy); }
+      if (ny + s.h >= H) { ny = H - s.h; s.vy = -Math.abs(s.vy); }
+
+      // Bounce off login card
+      if (card && rectsOverlap(nx, ny, s.w, s.h, card.left, card.top, card.width, card.height, 12)) {
+        // Determine which side to bounce from
+        var overlapL = (s.x + s.w) - card.left;
+        var overlapR = (card.left + card.width) - s.x;
+        var overlapT = (s.y + s.h) - card.top;
+        var overlapB = (card.top + card.height) - s.y;
+        var minOverlap = Math.min(overlapL, overlapR, overlapT, overlapB);
+        if (minOverlap === overlapL) { s.vx = -Math.abs(s.vx); nx = card.left - s.w - 2; }
+        else if (minOverlap === overlapR) { s.vx = Math.abs(s.vx); nx = card.left + card.width + 2; }
+        else if (minOverlap === overlapT) { s.vy = -Math.abs(s.vy); ny = card.top - s.h - 2; }
+        else { s.vy = Math.abs(s.vy); ny = card.top + card.height + 2; }
+      }
+
+      // Pill-to-pill overlap — simple push apart
+      for (var j = 0; j < states.length; j++) {
+        if (j === i) continue;
+        var o = states[j];
+        if (rectsOverlap(nx, ny, s.w, s.h, o.x, o.y, o.w, o.h, 4)) {
+          s.vx = -s.vx * 0.9;
+          s.vy = -s.vy * 0.9;
+          nx = s.x;
+          ny = s.y;
+          break;
+        }
+      }
+
+      s.x = nx;
+      s.y = ny;
       pills[i].style.transform = 'translate(' + s.x.toFixed(1) + 'px,' + s.y.toFixed(1) + 'px)';
     });
+
     requestAnimationFrame(animate);
   }
 
-  // Wait for layout
   setTimeout(function() {
     states.forEach(function(s, i) {
       s.w = pills[i].offsetWidth || 180;
-      s.h = pills[i].offsetHeight || 36;
+      s.h = pills[i].offsetHeight || 38;
     });
     requestAnimationFrame(animate);
-  }, 200);
+  }, 300);
 })();
 </script>
 
