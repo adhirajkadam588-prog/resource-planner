@@ -2401,6 +2401,10 @@ async function initApp(user) {
     b.classList.toggle('active', b.dataset.tab === savedTab);
   });
 
+  // Update page header immediately
+  const savedBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
+  if (savedBtn) updatePageHeader(savedTab, savedBtn.dataset.title || savedBtn.textContent.trim(), savedBtn.dataset.desc || '');
+
   markAllDirty();
   clearRenderCache();
   renderTab(savedTab);
