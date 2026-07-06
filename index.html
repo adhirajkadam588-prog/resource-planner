@@ -121,6 +121,7 @@
     scrollbar-width: none;
   }
   .sidebar::-webkit-scrollbar { display: none; }
+  .tab-btn:focus { outline: none; scroll-margin: 0; }
 
   .brand {
     padding: 20px 10px 20px;
@@ -516,7 +517,6 @@
     var s = document.createElement('style');
     s.id = 'instant-tab-style';
     s.textContent =
-      '.shell { visibility: hidden; }' +
       '.tab-content { display: none !important; }' +
       '#tab-' + saved + ' { display: block !important; }' +
       '.tab-btn[data-tab="' + saved + '"] { background: rgba(255,255,255,0.09) !important; color: #f1f5f9 !important; }';
@@ -2383,57 +2383,49 @@ async function initApp(user) {
   document.getElementById('loginBtn').disabled = false;
   document.getElementById('loginBtn').textContent = 'Sign in';
 
+  // Show correct tab IMMEDIATELY — no waiting for data
+  const isRefresh = !window._isLoginAction;
+  let savedTab = isRefresh ? (localStorage.getItem('tl_active_tab') || 'dashboard') : 'dashboard';
+  if (savedTab === 'people') savedTab = 'dashboard';
+  window._isLoginAction = false;
+
+  _activeTab = savedTab;
+  localStorage.setItem('tl_active_tab', savedTab);
+
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  const targetTab = document.getElementById('tab-' + savedTab);
+  if (targetTab) targetTab.style.display = 'block';
+
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === savedTab);
+  });
+
+  const savedBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
+  if (savedBtn) updatePageHeader(savedTab, savedBtn.dataset.title || savedBtn.textContent.trim(), savedBtn.dataset.desc || '');
+
+  // Remove instant-tab CSS override
+  const instStyle = document.getElementById('instant-tab-style');
+  if (instStyle) instStyle.remove();
+
+  // Reset sidebar scroll to top
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.scrollTop = 0;
+
+  // Now load data in background
   try {
     await fetchUserRole(user.id);
     await loadState();
     if (currentUserRole === 'admin') await fetchAllUserRoles();
     seedVMData();
-    // Enforce review gate — clear any dates that were saved without review
     if (syncTestPlanToProjects()) saveState();
   } catch(e) {
     console.warn('initApp load error:', e);
   }
 
-  // On fresh login → dashboard. On page refresh → restore last tab.
-  const isRefresh = !window._isLoginAction;
-  let savedTab = isRefresh ? (localStorage.getItem('tl_active_tab') || 'dashboard') : 'dashboard';
-
-  // people was old default — redirect to dashboard
-  if (savedTab === 'people') savedTab = 'dashboard';
-
-  window._isLoginAction = false;
-
-  // Set BEFORE any render to prevent flash
-  _activeTab = savedTab;
-  localStorage.setItem('tl_active_tab', savedTab);
-
-  // Hide all tabs, show only the correct one immediately — NO animation
-  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-  const targetTab = document.getElementById('tab-' + savedTab);
-  if (targetTab) {
-    targetTab.style.display = 'block';
-    // No tab-enter animation on initial restore
-  }
-
-  // Update active tab button
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === savedTab);
-  });
-
-  // Update page header immediately
-  const savedBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
-  if (savedBtn) updatePageHeader(savedTab, savedBtn.dataset.title || savedBtn.textContent.trim(), savedBtn.dataset.desc || '');
-
+  // Re-render with actual data
   markAllDirty();
   clearRenderCache();
   renderTab(savedTab);
-
-  // Reveal app — remove visibility:hidden now that correct tab is shown
-  const shell = document.querySelector('.shell');
-  if (shell) shell.style.visibility = 'visible';
-  const instStyle = document.getElementById('instant-tab-style');
-  if (instStyle) instStyle.remove();
-
   applyAccessUI();
   initRealtime();
 }
@@ -4074,6 +4066,8 @@ function switchTabTo(tabName) {
 
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  // Prevent browser from scrolling sidebar to show active button
+  btn.focus({ preventScroll: true });
   document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
   const activeTab = document.getElementById('tab-' + tabName);
   if (activeTab) {
