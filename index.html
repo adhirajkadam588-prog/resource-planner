@@ -3923,7 +3923,7 @@ function renderDashboard() {
       <div class="stat-card">
         <div class="label">VMs expiring ≤14d</div>
         <div class="value ${expiringVMs.length > 0 ? 'amber' : ''}">${expiringVMs.length}</div>
-        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${expiringVMs.length === 0 ? 'All good' : expiringVMs.slice(0,1).map(v=>`${v.details.split('-')[0].trim()} (${formatDateDisplay(v.expiry)})`).join(', ')}</div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">${expiringVMs.length === 0 ? 'All good' : `<span style="color:#d97706;cursor:pointer;font-weight:600;" onclick="switchTabTo('vmrepo')">View details in Infra Hub →</span>`}</div>
       </div>
       <div class="stat-card">
         <div class="label">Assigned today</div>
