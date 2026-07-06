@@ -2378,9 +2378,21 @@ async function initApp(user) {
   // On fresh login → dashboard. On page refresh → restore last tab.
   const isRefresh = !window._isLoginAction;
   const savedTab  = isRefresh ? (localStorage.getItem('tl_active_tab') || 'dashboard') : 'dashboard';
-  window._isLoginAction = false; // reset after use
+  window._isLoginAction = false;
 
+  // Set BEFORE any render to prevent flash
   _activeTab = savedTab;
+
+  // Hide all tabs, show only the correct one immediately
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  const targetTab = document.getElementById('tab-' + savedTab);
+  if (targetTab) targetTab.style.display = 'block';
+
+  // Update active tab button
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === savedTab);
+  });
+
   markAllDirty();
 
   try {
@@ -4717,20 +4729,55 @@ function shareAllPlansReport() {
 }
 
 function openAllPlansInTab() {
-  const content = document.getElementById('allPlansContent');
-  if (!content || !content.innerHTML.trim()) { showToastMsg('No content to open'); return; }
+  let projects = getActiveProjects();
+  if (selectedTestPlanReleaseDate) projects = projects.filter(p => p.releaseDate === selectedTestPlanReleaseDate);
+  if (selectedTestPlanDevPod)      projects = projects.filter(p => p.devPod === selectedTestPlanDevPod);
+  if (projects.length === 0) { showToastMsg('No items to export'); return; }
 
   let title = 'Test Plan Report';
   if (selectedTestPlanReleaseDate) title = 'Test Plan — ' + formatDateDisplay(selectedTestPlanReleaseDate);
   if (selectedTestPlanDevPod)      title += ' · ' + selectedTestPlanDevPod;
 
-  const fullHtml = buildFullReportHtml(title, content.innerHTML);
+  const POD_COLORS = {
+    'WinGuardians':['#dbeafe','#1d4ed8'],'Heisenbug':['#dcfce7','#15803d'],
+    'Hydra':['#fce7f3','#9d174d'],'Sentinels':['#fef3c7','#b45309'],
+    'DareDevils':['#fee2e2','#b91c1c'],'Evil Inc.':['#f3e8ff','#7e22ce'],
+  };
+
+  const cardsHtml = projects.map(proj => {
+    const plan = getTestPlanForProject(proj.id);
+    const reviewed = plan.reviewed === true;
+    const podC = POD_COLORS[proj.devPod] || ['#f1f5f9','#475569'];
+    const allStatuses = [
+      plan.testPrepStatus||'Not yet started',
+      plan.testEnvStatus||'Not yet started',
+      ...plan.rows.map(r => r.status||'Not yet started')
+    ];
+    const total=allStatuses.length, done=allStatuses.filter(s=>s==='Done').length, inProg=allStatuses.filter(s=>s==='In progress').length, notStart=total-done-inProg;
+    const donePct=total>0?Math.round(done/total*100):0, inProgPct=total>0?Math.round(inProg/total*100):0;
+    const sc={'Completed':['#dcfce7','#15803d'],'In progress':['#fef3c7','#b45309'],'Not started':['#f1f5f9','#64748b'],'Blocked':['#fee2e2','#dc2626']};
+    const [sbg,sfg]=sc[proj.status]||sc['Not started'];
+    const ec={'Not yet started':'#f1f5f9:#64748b','In progress':'#fef3c7:#b45309','Done':'#dcfce7:#15803d'};
+    const envRows=[
+      {name:'📋 Test prep',cls:'row-prep',status:plan.testPrepStatus||'Not yet started',effort:plan.testPrepEffort||0,assignee:getFixedAssigneeNames(plan.testPrepAssigneeIds),cases:'—'},
+      {name:'🔧 Test env & data prep',cls:'row-prep',status:plan.testEnvStatus||'Not yet started',effort:plan.testEnvEffort||0,assignee:getFixedAssigneeNames(plan.testEnvAssigneeIds),cases:'—'},
+      ...plan.rows.map(r=>{return{name:r.name,cls:'row-env',status:r.status||'Not yet started',effort:r.effort||0,assignee:getAssigneeNames(r),cases:r.cases||0};}),
+      {name:'Buffer',cls:'row-buffer',status:'',effort:plan.buffer&&plan.buffer.effort||0,assignee:'—',cases:'—'},
+    ];
+    const totalEffort=envRows.reduce((s,r)=>s+(parseFloat(r.effort)||0),0);
+    const totalCases=plan.rows.reduce((s,r)=>s+(r.cases||0),0);
+    const ms=plan.milestones||{};
+    const rowsHtml=envRows.map(r=>{const [bg,fg]=(ec[r.status]||'#f1f5f9:#64748b').split(':');const statusCell=r.status?'<span style="background:'+bg+';color:'+fg+';padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;">'+escapeHtml(r.status)+'</span>':'—';return '<tr class="'+r.cls+'"><td>'+escapeHtml(r.name)+'</td><td class="r">'+r.cases+'</td><td class="r">'+r.effort+'</td><td>'+escapeHtml(r.assignee)+'</td><td>'+statusCell+'</td></tr>';}).join('');
+    const msHtml=(ms.buildPickup||ms.bvtCompletion||ms.execNoBuffer||ms.execWithBuffer||ms.mergedBuildGoAhead)?'<div class="section-label">Milestones</div><div class="milestone-wrap"><table class="milestone-table">'+(ms.buildPickup?'<tr><td class="ms-icon">📥</td><td class="ms-label">Build pickup</td><td class="ms-value">'+formatDateDisplay(ms.buildPickup)+'</td></tr>':'')+(ms.bvtCompletion?'<tr><td class="ms-icon">🔬</td><td class="ms-label">BVT completion</td><td class="ms-value">'+formatDateDisplay(ms.bvtCompletion)+'</td></tr>':'')+(ms.execNoBuffer?'<tr><td class="ms-icon">📅</td><td class="ms-label">Exec (without buffer)</td><td class="ms-value">'+formatDateDisplay(ms.execNoBuffer)+'</td></tr>':'')+(ms.execWithBuffer?'<tr><td class="ms-icon">🏁</td><td class="ms-label">Exec (with buffer)</td><td class="ms-value">'+formatDateDisplay(ms.execWithBuffer)+'</td></tr>':'')+(ms.mergedBuildGoAhead?'<tr><td class="ms-icon">🚀</td><td class="ms-label">Merged build go ahead</td><td class="ms-value">'+formatDateDisplay(ms.mergedBuildGoAhead)+'</td></tr>':'')+'</table></div>':'';
+    const metaPills=(proj.buildDate?'<span class="meta-pill"><span class="pill-icon">📥</span> Dev to QA: <strong>'+formatDateDisplay(proj.buildDate)+'</strong></span>':'')+(proj.goAheadDate?'<span class="meta-pill"><span class="pill-icon">🚀</span> Go ahead: <strong>'+formatDateDisplay(proj.goAheadDate)+'</strong></span>':'')+(proj.completionDate?'<span class="meta-pill"><span class="pill-icon">🏁</span> QA done: <strong>'+formatDateDisplay(proj.completionDate)+'</strong></span>':'')+(proj.effort?'<span class="meta-pill"><span class="pill-icon">⏱</span> Effort: <strong>'+proj.effort+' PDs</strong></span>':'');
+    return '<div class="project-card"><div class="project-card-header"><div style="flex:1;min-width:0;"><div style="margin-bottom:8px;"><h2 style="margin:0;font-size:17px;">'+escapeHtml(proj.name)+'</h2></div><div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'+(proj.jiraUrl?'<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>':'')+(proj.devPod?'<span style="background:'+podC[0]+';color:'+podC[1]+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+escapeHtml(proj.devPod)+'</span>':'')+'<span style="background:'+sbg+';color:'+sfg+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+(proj.status||'Not started')+'</span>'+(reviewed?'<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">✅ Reviewed</span>':'<span style="background:#fef9c3;color:#a16207;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">⏳ Pending review</span>')+(proj.releaseDate?'<span style="font-size:12px;color:#64748b;">📅 '+formatDateDisplay(proj.releaseDate)+'</span>':'')+'</div></div><div style="min-width:160px;flex-shrink:0;text-align:right;"><div style="font-size:11px;color:#94a3b8;margin-bottom:5px;font-weight:600;">'+done+'/'+total+' done · '+donePct+'%</div><div style="height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden;border:1px solid #e2e8f0;display:flex;"><div style="width:'+donePct+'%;background:linear-gradient(90deg,#10b981,#059669);border-radius:99px;"></div><div style="width:'+inProgPct+'%;background:#fbbf24;border-radius:99px;"></div></div></div></div><div class="project-card-body">'+(metaPills?'<div class="meta-pills">'+metaPills+'</div>':'')+'<div class="section-label">Test matrix</div><div class="matrix-wrap"><table class="matrix-table" style="table-layout:fixed;width:100%;"><thead><tr><th style="width:35%;">Environment</th><th class="r" style="width:13%;">Cases</th><th class="r" style="width:15%;">Effort (PD)</th><th style="width:20%;">Assigned</th><th style="width:17%;">Status</th></tr></thead><tbody>'+rowsHtml+'</tbody><tfoot><tr class="row-total"><td><strong>Total</strong></td><td class="r"><strong>'+totalCases+'</strong></td><td class="r"><strong>'+ceilHalf(totalEffort)+'</strong></td><td colspan="2"></td></tr></tfoot></table></div>'+msHtml+'</div></div>';
+  }).join('');
+
+  const fullHtml = buildFullReportHtml(title, cardsHtml);
   const blob = new Blob([fullHtml], { type: 'text/html' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href     = url;
-  a.target   = '_blank';
-  a.rel      = 'noopener';
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -5678,7 +5725,7 @@ function renderHelp() {
 
 // Track which tabs need re-render
 const _dirtyTabs = new Set();
-let _activeTab = 'people';
+let _activeTab = 'dashboard';
 let _renderScheduled = false;
 
 function markDirty(...tabs) {
