@@ -2388,10 +2388,13 @@ async function initApp(user) {
   _activeTab = savedTab;
   localStorage.setItem('tl_active_tab', savedTab);
 
-  // Hide all tabs, show only the correct one immediately
+  // Hide all tabs, show only the correct one immediately — NO animation
   document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
   const targetTab = document.getElementById('tab-' + savedTab);
-  if (targetTab) targetTab.style.display = 'block';
+  if (targetTab) {
+    targetTab.style.display = 'block';
+    // No tab-enter animation on initial restore
+  }
 
   // Update active tab button
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -2399,7 +2402,8 @@ async function initApp(user) {
   });
 
   markAllDirty();
-  switchTabTo(savedTab);
+  clearRenderCache();
+  renderTab(savedTab);
 
   applyAccessUI();
   initRealtime();
@@ -4029,13 +4033,29 @@ function renderPendingReviewsHtml() {
 
 
 function switchTabTo(tabName) {
-  // Check permission — don't navigate if user has no access
   if (currentUserRole !== 'admin') {
     const perm = currentUserPermissions[tabName] || 'read';
-    if (perm === 'none') return; // silently block
+    if (perm === 'none') return;
   }
   const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-  if (btn) btn.click();
+  if (!btn) return;
+
+  _activeTab = tabName;
+  localStorage.setItem('tl_active_tab', tabName);
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  const activeTab = document.getElementById('tab-' + tabName);
+  if (activeTab) {
+    activeTab.style.display = 'block';
+    activeTab.classList.remove('tab-enter');
+    void activeTab.offsetWidth;
+    activeTab.classList.add('tab-enter');
+  }
+  updatePageHeader(tabName, btn.dataset.title || btn.textContent.trim(), btn.dataset.desc || '');
+  clearRenderCache();
+  renderTab(tabName);
 }
 
 // ====================== GLOBAL SEARCH ======================
