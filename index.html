@@ -5440,7 +5440,7 @@ function renderHelp() {
     <div style="position:absolute;right:-20px;top:-20px;font-size:140px;opacity:0.08;line-height:1;">🔍</div>
     <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
       <span style="background:rgba(255,255,255,0.2);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">User Guide</span>
-      <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v4.0</span>
+      <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v1.0</span>
     </div>
     <h1 style="font-family:'Inter Tight',sans-serif;font-size:28px;font-weight:800;margin:0 0 10px;letter-spacing:-0.03em;">TeamLens Help Center</h1>
     <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide — planning, tracking, test plans, build delays, knowledge base, VM management, AI assistant and more.</p>
@@ -5501,11 +5501,12 @@ function renderHelp() {
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">
         ${[['📊','4 stat cards — free today, at-risk, VMs expiring, assigned today'],
-           ['📅','Today\'s assignments — QA sees own, Lead/Admin sees all (leads first)'],
+           ['📅','Today\'s assignments — QA sees own, Lead sees associated, Admin sees all'],
            ['🏷️','Task badges — 📝✍️🗂️🔬▶️ shown per assignment'],
-           ['⚠️','Build Alerts — late/early builds with milestone shift info'],
+           ['⚠️','Build Alerts — late/early builds with milestone shift info (role-filtered)'],
            ['🚨','General Alerts — VM expiry, QA overdue, release soon (role-filtered)'],
-           ['📋','Pending lead reviews panel (for leads/admin only)']].map(([i,t])=>`
+           ['📋','Pending lead reviews panel (leads/admin only)'],
+           ['🔔','Notification bell — build delays, reviews, milestones, assignments']].map(([i,t])=>`
           <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text-dim);padding:3px 0;">
             <span style="flex-shrink:0;">${i}</span><span>${t}</span>
           </div>`).join('')}
@@ -5542,7 +5543,7 @@ function renderHelp() {
         📥 <strong>Actual Dev to QA</strong> — enter when build received → auto calculates delay<br>
         ⏱ Build Delay badge — working days only (excludes weekends + holidays)<br>
         🔄 Milestones auto-shift when build is late (gaps preserved)<br>
-        ☑️ Bulk select → set status or 🗑 delete multiple items<br>
+        ☑️ Bulk select → 🗑 delete multiple items<br>
         Paginated <strong>15 items/page</strong> · filter by date, POD, status
       </div>
     </div>
@@ -5644,7 +5645,8 @@ function renderHelp() {
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
         Items appear when: status = <strong>Completed</strong> AND all envs = <strong>Done</strong><br>
         Filter by Release date or Dev POD<br>
-        Accordion — environments, effort, milestones per item<br>
+        Accordion — environments, buffer, total effort, milestones per item<br>
+        <strong>↩ Revert</strong> — move back to active releases (Admin/Lead only)<br>
         Paginated <strong>15 items/page</strong><br>
         <strong>⬇ Download Report</strong> / <strong>🔗 Open in new tab</strong>
       </div>
@@ -5782,12 +5784,47 @@ function renderHelp() {
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">⚙️ Settings & Sync</div>
       <div style="display:flex;flex-direction:column;gap:7px;">
-        ${[['🌙','Dark Mode','Toggle in sidebar · Shift+D · Preference saved permanently'],['🟢','Real-time Sync','Green dot = live · Changes appear across all users in under 1 second'],['🔍','Search','Sidebar search bar · finds people, releases, and VMs'],['🔒','Password','Sidebar footer → Change password'],['👤','Permissions','Admin tab → per-user tab access · Copy from another user · Release Vault permission included'],['💾','Tab Memory','Last open tab is remembered on refresh via localStorage']].map(([i,t,d])=>`
+        ${[['🌙','Dark Mode','Toggle in sidebar · Shift+D · Preference saved permanently'],
+           ['🟢','Real-time Sync','Green dot = live · Changes appear across all users in under 1 second'],
+           ['🔍','Search','Sidebar search bar · finds people, releases, VMs · completed items → Release Vault'],
+           ['🔒','Password','Sidebar footer → Change password'],
+           ['👤','Permissions','Admin tab → per-user tab access · Copy from another user'],
+           ['💾','Tab Memory','Refresh = same page · localStorage remembers last open tab instantly'],
+           ['🔔','Notifications','Bell icon top-right · role-filtered · Today/Yesterday/Earlier grouped']].map(([i,t,d])=>`
           <div style="padding:8px 10px;background:var(--panel-2);border-radius:8px;">
             <div style="font-size:12px;font-weight:600;color:var(--text);">${i} ${t}</div>
             <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${d}</div>
           </div>`).join('')}
       </div>
+    </div>
+  </div>
+
+  <!-- What's New v1.0 -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed44;background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(37,99,235,0.02));">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">🚀</div>
+      <div>
+        <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">What's New in v1.0</h2>
+        <div style="font-size:11.5px;color:var(--text-faint);margin-top:2px;">Seclore QA Team · July 2026</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      ${[['🔔','Smart Notifications','Role-filtered bell notifications — build delays, review requests, milestone due dates, assignments'],
+         ['🔄','Review Gate','Test plan must be reviewed by Lead before dates sync to Release tab. Build delay auto-resets review.'],
+         ['⚡','Instant Tab Restore','Refresh = same page, zero flash. localStorage remembers your last tab instantly.'],
+         ['📊','Batch Notes Fetch','Summary & Vault load all comments in 1 request instead of N separate calls.'],
+         ['↩','Revert from Vault','Accidentally marked Completed? Revert button brings release back to active.'],
+         ['🔗','Open in New Tab','Test Plan & Release Vault reports open in new tab with full data.'],
+         ['👥','Role-Based Alerts','Build alerts, today\'s assignments, general alerts — each role sees only their releases.'],
+         ['🗑','Bulk Delete Only','Simplified bulk action — just delete. Status changes done per-item for accuracy.']
+      ].map(([i,t,d])=>`
+        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);display:flex;gap:10px;align-items:flex-start;">
+          <span style="font-size:18px;flex-shrink:0;">${i}</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">${t}</div>
+            <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
+          </div>
+        </div>`).join('')}
     </div>
   </div>
 
