@@ -10892,23 +10892,69 @@ function renderDailyPlan() {
     var W = window.innerWidth;
     var H = window.innerHeight;
 
-    // Force fixed positioning immediately
+    // Force fixed positioning
     pills.forEach(function(p) {
       p.style.cssText += ';position:fixed!important;top:0!important;left:0!important;right:auto!important;bottom:auto!important;z-index:5;';
     });
 
+    // Unique color per pill
+    var colors = [
+      {bg:'rgba(124,58,237,0.22)',color:'#c4b5fd',border:'rgba(124,58,237,0.5)'},
+      {bg:'rgba(236,72,153,0.22)',color:'#f9a8d4',border:'rgba(236,72,153,0.5)'},
+      {bg:'rgba(245,158,11,0.22)',color:'#fcd34d',border:'rgba(245,158,11,0.5)'},
+      {bg:'rgba(16,185,129,0.22)',color:'#6ee7b7',border:'rgba(16,185,129,0.5)'},
+      {bg:'rgba(59,130,246,0.22)',color:'#93c5fd',border:'rgba(59,130,246,0.5)'},
+      {bg:'rgba(232,121,249,0.22)',color:'#f0abfc',border:'rgba(232,121,249,0.5)'},
+      {bg:'rgba(251,113,133,0.22)',color:'#fda4af',border:'rgba(251,113,133,0.5)'},
+      {bg:'rgba(52,211,153,0.22)',color:'#6ee7b7',border:'rgba(52,211,153,0.5)'},
+      {bg:'rgba(251,191,36,0.22)',color:'#fde68a',border:'rgba(251,191,36,0.5)'},
+      {bg:'rgba(99,102,241,0.22)',color:'#a5b4fc',border:'rgba(99,102,241,0.5)'},
+      {bg:'rgba(20,184,166,0.22)',color:'#99f6e4',border:'rgba(20,184,166,0.5)'},
+      {bg:'rgba(239,68,68,0.22)',color:'#fca5a5',border:'rgba(239,68,68,0.5)'},
+      {bg:'rgba(168,85,247,0.22)',color:'#d8b4fe',border:'rgba(168,85,247,0.5)'},
+      {bg:'rgba(234,179,8,0.22)',color:'#fef08a',border:'rgba(234,179,8,0.5)'},
+      {bg:'rgba(14,165,233,0.22)',color:'#7dd3fc',border:'rgba(14,165,233,0.5)'},
+      {bg:'rgba(249,115,22,0.22)',color:'#fdba74',border:'rgba(249,115,22,0.5)'},
+      {bg:'rgba(34,197,94,0.22)',color:'#86efac',border:'rgba(34,197,94,0.5)'},
+      {bg:'rgba(244,63,94,0.22)',color:'#fda4af',border:'rgba(244,63,94,0.5)'},
+      {bg:'rgba(79,70,229,0.22)',color:'#a5b4fc',border:'rgba(79,70,229,0.5)'},
+      {bg:'rgba(6,182,212,0.22)',color:'#67e8f9',border:'rgba(6,182,212,0.5)'},
+      {bg:'rgba(217,70,239,0.22)',color:'#e879f9',border:'rgba(217,70,239,0.5)'},
+      {bg:'rgba(132,204,22,0.22)',color:'#bef264',border:'rgba(132,204,22,0.5)'},
+      {bg:'rgba(251,146,60,0.22)',color:'#fed7aa',border:'rgba(251,146,60,0.5)'},
+      {bg:'rgba(45,212,191,0.22)',color:'#99f6e4',border:'rgba(45,212,191,0.5)'},
+      {bg:'rgba(192,132,252,0.22)',color:'#e9d5ff',border:'rgba(192,132,252,0.5)'},
+      {bg:'rgba(248,113,113,0.22)',color:'#fecaca',border:'rgba(248,113,113,0.5)'},
+      {bg:'rgba(56,189,248,0.22)',color:'#bae6fd',border:'rgba(56,189,248,0.5)'},
+      {bg:'rgba(74,222,128,0.22)',color:'#bbf7d0',border:'rgba(74,222,128,0.5)'},
+      {bg:'rgba(253,186,116,0.22)',color:'#fed7aa',border:'rgba(253,186,116,0.5)'},
+      {bg:'rgba(167,139,250,0.22)',color:'#ddd6fe',border:'rgba(167,139,250,0.5)'},
+      {bg:'rgba(94,234,212,0.22)',color:'#99f6e4',border:'rgba(94,234,212,0.5)'},
+    ];
+    pills.forEach(function(p, i) {
+      var c = colors[i % colors.length];
+      p.style.background = c.bg;
+      p.style.color = c.color;
+      p.style.borderColor = c.border;
+    });
+
+    // Grid-based spread
+    var cols = 4;
+    var rows = Math.ceil(pills.length / cols);
     var states = pills.map(function(p, i) {
       var pw = p.offsetWidth + 10;
       var ph = p.offsetHeight + 10;
       var angle = (i / pills.length) * Math.PI * 2;
       var spd = 2.2 + Math.random() * 1.6;
-      return {
-        x: 50 + Math.random() * (W - pw - 100),
-        y: 50 + Math.random() * (H - ph - 100),
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd,
-        w: pw, h: ph
-      };
+      var col = i % cols;
+      var row = Math.floor(i / cols);
+      var cellW = W / cols;
+      var cellH = H / rows;
+      var x = col * cellW + Math.random() * Math.max(0, cellW - pw - 10);
+      var y = row * cellH + Math.random() * Math.max(0, cellH - ph - 10);
+      x = Math.max(0, Math.min(x, W - pw));
+      y = Math.max(0, Math.min(y, H - ph));
+      return { x:x, y:y, vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd, w:pw, h:ph };
     });
 
     // Apply initial positions
@@ -10921,45 +10967,67 @@ function renderDailyPlan() {
     function tick() {
       W = window.innerWidth;
       H = window.innerHeight;
-      var card = (document.querySelector('.login-box') || {}).getBoundingClientRect ? document.querySelector('.login-box').getBoundingClientRect() : null;
+      var card = document.querySelector('.login-box');
+      var cr = card ? card.getBoundingClientRect() : null;
 
       for (var i = 0; i < states.length; i++) {
         var s = states[i];
         s.x += s.vx;
         s.y += s.vy;
 
-        // Screen edges bounce
+        // Screen bounce
         if (s.x < 0) { s.x = 0; s.vx = Math.abs(s.vx); }
         if (s.x + s.w > W) { s.x = W - s.w; s.vx = -Math.abs(s.vx); }
         if (s.y < 0) { s.y = 0; s.vy = Math.abs(s.vy); }
         if (s.y + s.h > H) { s.y = H - s.h; s.vy = -Math.abs(s.vy); }
 
         // Card bounce
-        if (card) {
-          var cx = card.left, cy = card.top, cw = card.width, ch = card.height, pad = 8;
-          if (s.x < cx+cw+pad && s.x+s.w > cx-pad && s.y < cy+ch+pad && s.y+s.h > cy-pad) {
-            var fromL = (s.x + s.w) - cx;
-            var fromR = (cx + cw) - s.x;
-            var fromT = (s.y + s.h) - cy;
-            var fromB = (cy + ch) - s.y;
-            var mn = Math.min(fromL, fromR, fromT, fromB);
-            if (mn === fromL) { s.vx = -Math.abs(s.vx); s.x = cx - s.w - 2; }
-            else if (mn === fromR) { s.vx = Math.abs(s.vx); s.x = cx + cw + 2; }
-            else if (mn === fromT) { s.vy = -Math.abs(s.vy); s.y = cy - s.h - 2; }
-            else { s.vy = Math.abs(s.vy); s.y = cy + ch + 2; }
+        if (cr) {
+          var pad = 8;
+          if (s.x < cr.left+cr.width+pad && s.x+s.w > cr.left-pad && s.y < cr.top+cr.height+pad && s.y+s.h > cr.top-pad) {
+            var fL = (s.x+s.w) - cr.left;
+            var fR = (cr.left+cr.width) - s.x;
+            var fT = (s.y+s.h) - cr.top;
+            var fB = (cr.top+cr.height) - s.y;
+            var mn = Math.min(fL, fR, fT, fB);
+            if (mn===fL) { s.vx=-Math.abs(s.vx); s.x=cr.left-s.w-2; }
+            else if (mn===fR) { s.vx=Math.abs(s.vx); s.x=cr.left+cr.width+2; }
+            else if (mn===fT) { s.vy=-Math.abs(s.vy); s.y=cr.top-s.h-2; }
+            else { s.vy=Math.abs(s.vy); s.y=cr.top+cr.height+2; }
           }
         }
 
-        // Pill-pill bounce
-        for (var j = i + 1; j < states.length; j++) {
+        // Pill-pill bounce — proper separation
+        for (var j = i+1; j < states.length; j++) {
           var b = states[j];
-          if (s.x < b.x+b.w+4 && s.x+s.w > b.x-4 && s.y < b.y+b.h+4 && s.y+s.h > b.y-4) {
-            var tx = s.vx; s.vx = b.vx; b.vx = tx;
-            var ty = s.vy; s.vy = b.vy; b.vy = ty;
+          var gap = 6;
+          if (s.x < b.x+b.w+gap && s.x+s.w+gap > b.x && s.y < b.y+b.h+gap && s.y+s.h+gap > b.y) {
+            // Find overlap on each axis
+            var overlapX = Math.min(s.x+s.w - b.x, b.x+b.w - s.x);
+            var overlapY = Math.min(s.y+s.h - b.y, b.y+b.h - s.y);
+
+            if (overlapX < overlapY) {
+              // Separate on X axis
+              var tx = s.vx; s.vx = b.vx; b.vx = tx;
+              var sep = overlapX/2 + 2;
+              if (s.x < b.x) { s.x -= sep; b.x += sep; }
+              else { s.x += sep; b.x -= sep; }
+            } else {
+              // Separate on Y axis
+              var ty = s.vy; s.vy = b.vy; b.vy = ty;
+              var sep2 = overlapY/2 + 2;
+              if (s.y < b.y) { s.y -= sep2; b.y += sep2; }
+              else { s.y += sep2; b.y -= sep2; }
+            }
+            // Ensure min speed so they never stick
+            if (Math.abs(s.vx) < 1.0) s.vx = s.vx < 0 ? -1.5 : 1.5;
+            if (Math.abs(s.vy) < 1.0) s.vy = s.vy < 0 ? -1.5 : 1.5;
+            if (Math.abs(b.vx) < 1.0) b.vx = b.vx < 0 ? -1.5 : 1.5;
+            if (Math.abs(b.vy) < 1.0) b.vy = b.vy < 0 ? -1.5 : 1.5;
           }
         }
 
-        pills[i].style.transform = 'translate(' + s.x.toFixed(1) + 'px,' + s.y.toFixed(1) + 'px)';
+        pills[i].style.transform = 'translate('+s.x.toFixed(1)+'px,'+s.y.toFixed(1)+'px)';
       }
       requestAnimationFrame(tick);
     }
