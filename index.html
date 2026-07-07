@@ -590,7 +590,7 @@
   .login-error{font-size:12px;color:#f87171;margin-top:10px;text-align:center;min-height:16px;}
 
   /* ── Team Chat — Modern ── */
-  .chat-fab { position:fixed; bottom:28px; right:28px; z-index:8000; width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#7c3aed 0%,#ec4899 60%,#f59e0b 100%); border:none; cursor:pointer; display:none; align-items:center; justify-content:center; box-shadow:0 8px 28px rgba(124,58,237,0.55), 0 2px 8px rgba(0,0,0,0.2); transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s, right 0.2s ease; font-size:24px; font-family:'Inter',sans-serif; }
+  .chat-fab { position:fixed; bottom:28px; right:28px; z-index:8000; width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#7c3aed 0%,#ec4899 60%,#f59e0b 100%); border:none; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 8px 28px rgba(124,58,237,0.55), 0 2px 8px rgba(0,0,0,0.2); transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s, right 0.2s ease; font-size:24px; font-family:'Inter',sans-serif; }
   .chat-fab:hover { transform:scale(1.12) rotate(-5deg); box-shadow:0 12px 36px rgba(124,58,237,0.7); }
   .chat-fab:active { transform:scale(0.95); }
   .chat-fab-badge { position:absolute; top:-6px; right:-6px; background:linear-gradient(135deg,#ef4444,#dc2626); color:white; font-size:10px; font-weight:800; min-width:20px; height:20px; border-radius:10px; display:none; align-items:center; justify-content:center; padding:0 5px; border:2.5px solid var(--bg); font-family:'Inter',sans-serif; letter-spacing:0; animation:badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 2px 8px rgba(239,68,68,0.5); }
@@ -2786,7 +2786,7 @@ async function initApp(user) {
   // Show chat FAB immediately
   const _chatFabEl = document.getElementById('chatFab');
   if (_chatFabEl) {
-    _chatFabEl.style.cssText += ';display:flex!important;visibility:visible!important;opacity:1!important;';
+    _chatFabEl.removeAttribute('style'); _chatFabEl.style.display = 'flex';
   }
   document.getElementById('loginBtn').textContent = 'Sign in';
 
@@ -2837,7 +2837,7 @@ async function initApp(user) {
   initRealtime();
   // Show chat FAB immediately
   const _fab = document.getElementById('chatFab');
-  if (_fab) { _fab.style.cssText += ';display:flex!important;visibility:visible!important;'; }
+  if (_fab) { _fab.removeAttribute('style'); _fab.style.display = 'flex'; }
   initChat();
   buildChatTabs();
 }
@@ -8221,7 +8221,7 @@ function buildFullReportHtml(title, bodyHtml) {
   ${bodyHtml}
 </div>
 <!-- ── Team Chat FAB + Window ── -->
-<button class="chat-fab" id="chatFab" onclick="toggleChat()" title="Team Chat">
+<button class="chat-fab" id="chatFab" onclick="toggleChat()" title="Team Chat" style="display:none;">
   💬
   <div class="chat-fab-badge" id="chatBadge"></div>
 </button>
@@ -11148,7 +11148,7 @@ let _chatUnread    = 0;
 function initChat() {
   // Show FAB immediately — no waiting for DB
   const fab = document.getElementById('chatFab');
-  if (fab) fab.style.cssText += ';display:flex!important;visibility:visible!important;';
+  if (fab) { fab.removeAttribute('style'); fab.style.display = 'flex'; }
   updateChatOnline();
   // Build tabs and load messages safely
   try { buildChatTabs(); } catch(e) { console.warn('buildChatTabs error:', e); }
