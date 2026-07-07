@@ -11138,11 +11138,16 @@ let _chatUnread    = 0;
 
 // ── Init chat (called after login) ──────────────────────
 function initChat() {
+  // Show FAB immediately — no waiting for DB
   const fab = document.getElementById('chatFab');
   if (fab) fab.style.display = 'flex';
-  buildChatTabs();
-  switchChatRoom('global');
   updateChatOnline();
+  // Build tabs and load messages safely
+  try { buildChatTabs(); } catch(e) { console.warn('buildChatTabs error:', e); }
+  // Load messages with delay so app renders first
+  setTimeout(() => {
+    try { switchChatRoom('global'); } catch(e) { console.warn('chat load error:', e); }
+  }, 800);
 }
 
 // ── Toggle window ────────────────────────────────────────
@@ -11240,7 +11245,7 @@ async function loadChatMessages(roomId) {
     renderChatMessages(data || []);
   } catch(e) {
     const msgs = document.getElementById('chatMessages');
-    if (msgs) msgs.innerHTML = '<div class="chat-empty">Could not load messages.</div>';
+    if (msgs) msgs.innerHTML = '<div class="chat-empty">⚠️ Chat table not set up yet.<br><span style="font-size:11px;opacity:0.7;">Run the SQL setup file in Supabase.</span></div>';
   }
 }
 
