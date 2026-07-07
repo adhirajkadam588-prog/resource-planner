@@ -3362,23 +3362,26 @@ async function openActivityLog() {
   document.getElementById('activityLogModal').classList.add('show');
 
   let logs = [];
+  let supabaseLoaded = false;
+
   try {
     const { data, error } = await sbClient
       .from('activity_log')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(500);
-    if (!error && data && data.length > 0) logs = data;
-  } catch (e) {}
-
-  try {
-    const local = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
-    if (local.length > 0) {
-      const supaIds = new Set(logs.map(l => l.created_at));
-      const localOnly = local.filter(l => !supaIds.has(l.created_at));
-      logs = [...localOnly, ...logs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (!error && data && data.length > 0) {
+      logs = data;
+      supabaseLoaded = true;
     }
   } catch (e) {}
+
+  // Only use localStorage if Supabase returned nothing (offline fallback)
+  if (!supabaseLoaded) {
+    try {
+      logs = JSON.parse(localStorage.getItem(LOCAL_LOG_KEY) || '[]');
+    } catch (e) {}
+  }
 
   _activityLogs = logs;
   _activityDayFilter = 1; // default — Today
@@ -4209,7 +4212,12 @@ function renderDashboard() {
       <!-- Build Delay Notifications -->
     ${(() => {
       const isAdmin = currentUserRole === 'admin';
-      const allNotifs = (state.buildDelayNotifications || []).filter(n => !n.acknowledged);
+      // Per-user acknowledged list from localStorage
+      const ackKey = 'tl_build_ack_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+      let ackedIds = [];
+      try { ackedIds = JSON.parse(localStorage.getItem(ackKey) || '[]'); } catch(e) {}
+
+      const allNotifs = (state.buildDelayNotifications || []).filter(n => !ackedIds.includes(n.projectId));
 
       const notifs = isAdmin ? allNotifs : allNotifs.filter(n => {
         const proj = state.projects.find(p => p.id === n.projectId) ||
@@ -7083,10 +7091,12 @@ function togglePinResource(id) {
 // ── End Launchpad ───────────────────────────────────────
 
 function acknowledgeBuildDelay(projectId) {
-  if (!state.buildDelayNotifications) return;
-  const n = state.buildDelayNotifications.find(x => x.projectId === projectId);
-  if (n) n.acknowledged = true;
-  saveState();
+  // Save acknowledged per-user in localStorage — NOT in shared state
+  const key = 'tl_build_ack_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+  let acked = [];
+  try { acked = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+  if (!acked.includes(projectId)) acked.push(projectId);
+  localStorage.setItem(key, JSON.stringify(acked));
   renderDashboard();
 }
 
