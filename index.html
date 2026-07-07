@@ -11757,11 +11757,15 @@ function buildMsgHtml(msg) {
   const colorIdx = name.charCodeAt(0) % avatarColors.length;
   const avatarStyle = isMine ? 'background:linear-gradient(135deg,#7c3aed,#2563eb)' : 'background:' + avatarColors[colorIdx];
 
-  // Edit/Delete actions — only for own messages
-  const actions = isMine && msg.id && !msg.id.startsWith('temp-') ? `
+  // Edit/Delete actions — only for own messages (case-insensitive email compare)
+  const isMineForActions = isMine ||
+    (msg.sender_email && currentUserEmail &&
+     msg.sender_email.toLowerCase() === currentUserEmail.toLowerCase());
+
+  const actions = isMineForActions && msg.id && !msg.id.startsWith('temp-') ? `
     <div class="chat-msg-actions">
-      <button onclick="editChatMessage('${msg.id}','${escapeHtml(msg.text).replace(/'/g,"\\'")}')" title="Edit">✏️</button>
-      <button onclick="deleteChatMessage('${msg.id}')" title="Delete">🗑️</button>
+      <button onclick="editChatMessage('${msg.id}','${escapeHtml(msg.text).replace(/'/g,"\\'")}','${escapeHtml(msg.sender_email)}')" title="Edit">✏️</button>
+      <button onclick="deleteChatMessage('${msg.id}','${escapeHtml(msg.sender_email)}')" title="Delete">🗑️</button>
     </div>` : '';
 
   return '<div class="chat-msg' + (isMine ? ' mine' : '') + '" data-id="' + (msg.id||'') + '">' +
@@ -11778,28 +11782,49 @@ function buildMsgHtml(msg) {
 }
 
 // ── Edit message ─────────────────────────────────────────
-async function editChatMessage(msgId, currentText) {
+async function editChatMessage(msgId, currentText, senderEmail) {
+  // Verify ownership (case-insensitive)
+  if (senderEmail && currentUserEmail &&
+      senderEmail.toLowerCase() !== currentUserEmail.toLowerCase()) {
+    showToastMsg('You can only edit your own messages');
+    return;
+  }
   const newText = prompt('Edit message:', currentText);
   if (!newText || newText.trim() === currentText) return;
   try {
-    const { error } = await sbClient.from('chat_messages').update({ text: newText.trim() }).eq('id', msgId);
+    const { error } = await sbClient
+      .from('chat_messages')
+      .update({ text: newText.trim() })
+      .eq('id', msgId);
     if (error) throw error;
-    // Update DOM
     const msgEl = document.querySelector('.chat-msg[data-id="' + msgId + '"] .chat-bubble');
     if (msgEl) msgEl.textContent = newText.trim();
-  } catch(e) { showToastMsg('Could not edit message'); }
+    showToastMsg('Message updated ✅');
+  } catch(e) {
+    showToastMsg('Could not edit message — ' + (e.message || ''));
+  }
 }
 
 // ── Delete message ────────────────────────────────────────
-async function deleteChatMessage(msgId) {
+async function deleteChatMessage(msgId, senderEmail) {
+  // Verify ownership (case-insensitive)
+  if (senderEmail && currentUserEmail &&
+      senderEmail.toLowerCase() !== currentUserEmail.toLowerCase()) {
+    showToastMsg('You can only delete your own messages');
+    return;
+  }
   if (!confirm('Delete this message?')) return;
   try {
-    const { error } = await sbClient.from('chat_messages').delete().eq('id', msgId);
+    const { error } = await sbClient
+      .from('chat_messages')
+      .delete()
+      .eq('id', msgId);
     if (error) throw error;
-    // Remove from DOM
     const msgEl = document.querySelector('.chat-msg[data-id="' + msgId + '"]');
     if (msgEl) msgEl.remove();
-  } catch(e) { showToastMsg('Could not delete message'); }
+  } catch(e) {
+    showToastMsg('Could not delete message — ' + (e.message || ''));
+  }
 }
 
 // ── Send message ─────────────────────────────────────────
