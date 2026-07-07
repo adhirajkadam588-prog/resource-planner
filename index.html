@@ -2663,8 +2663,7 @@ function initRealtime() {
           console.log('[Realtime] User typing — retrying in 3s');
           setTimeout(async () => {
             await loadState();
-            const changed = syncTestPlanToProjects();
-            if (changed) await saveState();
+            syncTestPlanToProjects();
             markAllDirty();
             renderAll();
             showSyncToast();
@@ -2672,8 +2671,7 @@ function initRealtime() {
           return;
         }
         await loadState();
-        const changed = syncTestPlanToProjects();
-        if (changed) await saveState();
+        syncTestPlanToProjects();
         markAllDirty();
         renderAll();
         showSyncToast();
@@ -3758,10 +3756,7 @@ async function loadState() {
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
       // Enforce review gate — clear values if not reviewed
-      const syncChanged = syncTestPlanToProjects();
-      if (syncChanged && (currentUserRole === 'admin' || Object.values(currentUserPermissions).some(v => v === 'edit'))) {
-        saveState();
-      }
+      syncTestPlanToProjects();
       setTimeout(() => { updateBellBadge(); }, 400);
       setTimeout(() => {
       }, 300);
