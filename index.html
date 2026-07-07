@@ -2641,22 +2641,34 @@ function initRealtime() {
       table: 'resource_planner',
       filter: 'id=eq.shared'
     }, (payload) => {
-      // Only skip if WE saved in last 1.5s (not 3s — too long)
-      // This prevents echo but doesn't block other users' changes
-      if (_lastSavedAt && Date.now() - _lastSavedAt < 1500) {
+      // Skip if WE saved in last 5s — prevents overwriting own input
+      if (_lastSavedAt && Date.now() - _lastSavedAt < 5000) {
         console.log('[Realtime] Skipping own save echo');
+        return;
+      }
+
+      // Skip if user is actively typing in any input/textarea/select
+      const activeEl = document.activeElement;
+      if (activeEl && ['INPUT','TEXTAREA','SELECT'].includes(activeEl.tagName)) {
+        console.log('[Realtime] Skipping — user is actively typing');
         return;
       }
 
       console.log('[Realtime] Change received from another user — reloading...');
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
+        // Double-check user is not typing before reloading
+        const el = document.activeElement;
+        if (el && ['INPUT','TEXTAREA','SELECT'].includes(el.tagName)) {
+          console.log('[Realtime] Deferred reload — user typing, will retry');
+          return;
+        }
         await loadState();
-        syncTestPlanToProjects(); // ensure review gate enforced after any reload
+        syncTestPlanToProjects();
         markAllDirty();
         renderAll();
         showSyncToast();
-      }, 500); // faster — 500ms instead of 800ms
+      }, 1500); // longer debounce — 1.5s
     })
     .subscribe((status) => {
       const indicator = document.getElementById('realtimeIndicator');
@@ -9386,30 +9398,22 @@ function addNotification(type, title, detail, projectId) {
   const notifKey = type + '|' + (projectId||'') + '|' + title;
   if (dismissed.includes(notifKey)) return;
 
-  // Dedup
+  // Dedup — same type+project+title already exists
   if (state.notifications.some(n => n.type === type && n.projectId === projectId && n.title === title)) return;
 
-  // Save to push_notifications table (self) so it persists properly
-  if (sbClient && currentUserEmail) {
-    sbClient.from('push_notifications').insert({
-      to_email: currentUserEmail, from_email: currentUserEmail,
-      type, title, detail, project_id: projectId || null
-    }).then(() => {}).catch(() => {
-      // Fallback: add to local state only
-      state.notifications.unshift({ id: uid(), type, title, detail, projectId: projectId||null, read: false, createdAt: new Date().toISOString() });
-      if (state.notifications.length > 100) state.notifications = state.notifications.slice(0, 100);
-      updateBellBadge();
-      const panel = document.getElementById('notificationPanel');
-      if (panel && panel.style.display === 'flex') renderNotificationList();
-    });
-  } else {
-    // No Supabase — local only
-    state.notifications.unshift({ id: uid(), type, title, detail, projectId: projectId||null, read: false, createdAt: new Date().toISOString() });
-    if (state.notifications.length > 100) state.notifications = state.notifications.slice(0, 100);
-    updateBellBadge();
-    const panel = document.getElementById('notificationPanel');
-    if (panel && panel.style.display === 'flex') renderNotificationList();
-  }
+  // Add to local state ONLY — no Supabase insert here
+  // (prevents infinite loop: insert → realtime → reload → insert again)
+  // pushNotificationTo() handles Supabase inserts for OTHER users
+  state.notifications.unshift({
+    id: uid(), type, title, detail,
+    projectId: projectId || null,
+    read: false,
+    createdAt: new Date().toISOString()
+  });
+  if (state.notifications.length > 100) state.notifications = state.notifications.slice(0, 100);
+  updateBellBadge();
+  const panel = document.getElementById('notificationPanel');
+  if (panel && panel.style.display === 'flex') renderNotificationList();
 }
 
 function updateBellBadge() {
