@@ -1295,19 +1295,7 @@
                 </select>
               </th>
               <th style="white-space:nowrap; min-width:160px;">Release</th>
-              <th style="white-space:nowrap; min-width:150px;">
-                Component
-                <select onchange="setComponentFilter(this.value || null)" id="componentFilterSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
-                  <option value="">All components</option>
-                  <option>Desktop Client</option>
-                  <option>Mac Client</option>
-                  <option>HotFolder Server</option>
-                  <option>AppConnect Client</option>
-                  <option>AppConnect Server</option>
-                  <option>iOS</option>
-                  <option>Classification Migration</option>
-                </select>
-              </th>
+
               <th style="white-space:nowrap;">JIRA</th>
               <th style="white-space:nowrap; min-width:120px;">
                 Dev POD
@@ -2144,19 +2132,7 @@
                 </select>
               </th>
               <th style="white-space:nowrap; min-width:160px;">Release Items</th>
-              <th style="white-space:nowrap; min-width:140px;">Component
-                <select onchange="setSummaryComponentFilter(this.value||null)" id="summaryComponentSelect"
-                  style="display:block;margin-top:4px;width:100%;font-size:10px;padding:3px 6px;border-radius:6px;border:1px solid rgba(0,0,0,0.1);background:#f1f5f9;color:#475569;font-weight:500;cursor:pointer;">
-                  <option value="">All</option>
-                  <option>Desktop Client</option>
-                  <option>Mac Client</option>
-                  <option>HotFolder Server</option>
-                  <option>AppConnect Client</option>
-                  <option>AppConnect Server</option>
-                  <option>iOS</option>
-                  <option>Classification Migration</option>
-                </select>
-              </th>
+
               <th style="white-space:nowrap; min-width:120px;">
                 Dev POD
                 <select onchange="setSummaryPodFilter(this.value || null)" id="summaryPodSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
@@ -2255,25 +2231,7 @@
       <label>Release/GA date <span style="color:#ef4444;">*</span></label>
       <input id="projReleaseDate" type="date">
     </div>
-    <div class="field">
-      <label>Component <span style="color:#ef4444;">*</span> <span style="font-size:10.5px;color:var(--text-faint);font-weight:400;">(select multiple)</span></label>
-      <div id="componentDropdown" style="position:relative;">
-        <div id="componentSelected" onclick="toggleComponentDropdown()"
-          style="min-height:36px;padding:6px 10px;background:var(--input);border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
-          <span id="componentPlaceholder" style="color:var(--text-faint);font-size:13px;">— Select components —</span>
-        </div>
-        <div id="componentOptions" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9999;max-height:200px;overflow-y:auto;">
-          <div class="component-option" data-value="Desktop Client" onclick="toggleComponent('Desktop Client')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-Desktop_Client" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>Desktop Client</div>
-          <div class="component-option" data-value="Mac Client" onclick="toggleComponent('Mac Client')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-Mac_Client" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>Mac Client</div>
-          <div class="component-option" data-value="HotFolder Server" onclick="toggleComponent('HotFolder Server')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-HotFolder_Server" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>HotFolder Server</div>
-          <div class="component-option" data-value="AppConnect Client" onclick="toggleComponent('AppConnect Client')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-AppConnect_Client" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>AppConnect Client</div>
-          <div class="component-option" data-value="AppConnect Server" onclick="toggleComponent('AppConnect Server')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-AppConnect_Server" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>AppConnect Server</div>
-          <div class="component-option" data-value="iOS" onclick="toggleComponent('iOS')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-iOS" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>iOS</div>
-          <div class="component-option" data-value="Classification Migration" onclick="toggleComponent('Classification Migration')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-Classification_Migration" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>Classification Migration</div>
-        </div>
-      </div>
-      <input type="hidden" id="projComponents" value="">
-    </div>
+
     <div class="field">
       <label>Dev POD</label>
       <select id="projDevPod">
@@ -5180,8 +5138,7 @@ function buildAllPlansHtml(projects) {
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
             '<span style="font-size:14px;font-weight:700;color:var(--text);">' + escapeHtml(proj.name) + '</span>' +
             (proj.jiraUrl ? '<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;text-decoration:none;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>' : '') +
-            ((proj.components||[]).length>0 ? proj.components.map(c=>'<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;">'+escapeHtml(c)+'</span>').join(' ') : '') +
-            (proj.devPod ? '<span style="background:' + podC[0] + ';color:' + podC[1] + ';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + escapeHtml(proj.devPod) + '</span>' : '') +
+(proj.devPod ? '<span style="background:' + podC[0] + ';color:' + podC[1] + ';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + escapeHtml(proj.devPod) + '</span>' : '') +
             '<span style="background:' + sbg + ';color:' + sfg + ';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + (proj.status||'Not started') + '</span>' +
             (reviewed ? '<span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">✅ Reviewed</span>'
                       : '<span style="background:#fef9c3;color:#a16207;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">⏳ Pending review</span>') +
@@ -5297,8 +5254,7 @@ function shareAllPlansReport() {
           '</div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">'+
             (proj.jiraUrl?'<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>':'')+
-            ((proj.components||[]).length>0?(proj.components.map(c=>'<span style="background:#f0fdf4;color:#15803d;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+escapeHtml(c)+'</span>').join(' ')):'')+ 
-            (proj.devPod?'<span style="background:'+podC[0]+';color:'+podC[1]+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+escapeHtml(proj.devPod)+'</span>':'')+
+(proj.devPod?'<span style="background:'+podC[0]+';color:'+podC[1]+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+escapeHtml(proj.devPod)+'</span>':'')+
             '<span style="background:'+sbg+';color:'+sfg+';padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">'+(proj.status||'Not started')+'</span>'+
             (reviewed?'<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">✅ Reviewed</span>':
                       '<span style="background:#fef9c3;color:#a16207;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">⏳ Pending review</span>')+
@@ -6679,8 +6635,6 @@ function openProjectModal(id) {
     populateGoAheadBySelect(proj.goAheadBy || '');
     populateQaLeadSelect(proj.qaLead || '');
     updateJiraPreview();
-    // Restore components
-    setComponentValues(proj.components || []);
   } else {
     titleEl.textContent = 'Add release item';
     btnEl.textContent = 'Add release item';
@@ -6691,84 +6645,10 @@ function openProjectModal(id) {
     document.getElementById('projJiraPreview').textContent = '';
     document.getElementById('projActualBuildDate').value  = '';
     document.getElementById('projPlannedBuildDate').value = '';
-    setComponentValues([]);
   }
-  // Reset border color
-  const cs = document.getElementById('componentSelected');
-  if (cs) cs.style.borderColor = '';
   document.getElementById('projectModal').classList.add('show');
 }
 
-
-// ── Component dropdown functions ─────────────────────────
-let _selectedComponents = [];
-
-function toggleComponentDropdown() {
-  const opts = document.getElementById('componentOptions');
-  if (!opts) return;
-  opts.style.display = opts.style.display === 'block' ? 'none' : 'block';
-}
-
-function toggleComponent(value) {
-  const idx = _selectedComponents.indexOf(value);
-  if (idx === -1) {
-    _selectedComponents.push(value);
-  } else {
-    _selectedComponents.splice(idx, 1);
-  }
-  renderComponentSelected();
-}
-
-function renderComponentSelected() {
-  const sel = document.getElementById('componentSelected');
-  const ph  = document.getElementById('componentPlaceholder');
-  const inp = document.getElementById('projComponents');
-  if (!sel || !inp) return;
-
-  inp.value = _selectedComponents.join(',');
-
-  // Update checkmarks
-  document.querySelectorAll('.comp-check').forEach(el => {
-    const val = el.closest('.component-option')?.dataset.value;
-    el.style.opacity = _selectedComponents.includes(val) ? '1' : '0';
-    el.style.color = '#7c3aed';
-    el.style.fontWeight = '700';
-  });
-
-  if (_selectedComponents.length === 0) {
-    if (ph) ph.style.display = '';
-    // Remove tags
-    sel.querySelectorAll('.comp-tag').forEach(t => t.remove());
-  } else {
-    if (ph) ph.style.display = 'none';
-    // Remove old tags
-    sel.querySelectorAll('.comp-tag').forEach(t => t.remove());
-    // Add new tags
-    _selectedComponents.forEach(c => {
-      const tag = document.createElement('span');
-      tag.className = 'comp-tag';
-      tag.style.cssText = 'background:#ede9fe;color:#7c3aed;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:4px;';
-      tag.innerHTML = c + '<span onclick="event.stopPropagation();toggleComponent(\'' + c + '\')" style="cursor:pointer;font-size:14px;line-height:1;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">×</span>';
-      sel.appendChild(tag);
-    });
-  }
-  // Reset border color on selection
-  sel.style.borderColor = _selectedComponents.length > 0 ? '' : sel.style.borderColor;
-}
-
-function setComponentValues(values) {
-  _selectedComponents = values ? [...values] : [];
-  renderComponentSelected();
-}
-
-// Close dropdown on outside click
-document.addEventListener('click', function(e) {
-  const dd = document.getElementById('componentDropdown');
-  const opts = document.getElementById('componentOptions');
-  if (dd && opts && !dd.contains(e.target)) {
-    opts.style.display = 'none';
-  }
-});
 
 // ── Field error helper ────────────────────────────────────
 function showFieldError(fieldId, msg) {
@@ -7196,9 +7076,6 @@ function saveProject() {
   const qaLead          = document.getElementById('projQaLead').value;
   const actualBuildDate   = document.getElementById('projActualBuildDate').value;
   const plannedBuildDate  = document.getElementById('projPlannedBuildDate').value;
-  const componentsRaw   = document.getElementById('projComponents').value;
-  const components      = componentsRaw ? componentsRaw.split(',').filter(Boolean) : [];
-
   // Mandatory field validation
   if (!name) {
     showFieldError('projName', 'Release item name is required');
@@ -7212,11 +7089,6 @@ function saveProject() {
     showFieldError('projReleaseDate', 'Release/GA date is required');
     return;
   }
-  if (components.length === 0) {
-    showToastMsg('⚠️ Please select at least one Component');
-    document.getElementById('componentSelected').style.borderColor = '#ef4444';
-    return;
-  }
 
   if (editingProjectId) {
     snapshotState(`Edit release item: ${name}`);
@@ -7228,7 +7100,6 @@ function saveProject() {
       proj.releaseDate = releaseDate; proj.devPod = devPod; proj.goAheadBy = goAheadBy; proj.qaLead = qaLead;
       proj.actualBuildDate  = actualBuildDate;
       proj.plannedBuildDate = plannedBuildDate;
-      proj.components       = components;
       // buildDate (used for delay calc) = manually entered planned OR test-plan synced
       if (plannedBuildDate) proj.buildDate = plannedBuildDate;
 
@@ -7331,7 +7202,7 @@ function saveProject() {
     snapshotState(`Add release item: ${name}`);
     state.projects.push({
       id: uid(), name, jiraUrl, releaseDate, devPod, goAheadBy, qaLead,
-      actualBuildDate, plannedBuildDate, components,
+      actualBuildDate, plannedBuildDate,
       buildDate: plannedBuildDate || '', effort: '', status: 'Not started'
     });
     logActivity('Release item added', { name, devPod, releaseDate });
@@ -8719,9 +8590,6 @@ async function exportSummaryReport() {
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
   if (selectedSummaryStatus) projects = projects.filter(p => p.status === selectedSummaryStatus);
-  if (selectedSummaryComponent) projects = projects.filter(p => (p.components||[]).includes(selectedSummaryComponent));
-  const summaryCompSel = document.getElementById('summaryComponentSelect');
-  if (summaryCompSel) summaryCompSel.value = selectedSummaryComponent || '';
 
   if (projects.length === 0) {
     alert('No items to include in this report for the selected filter.');
@@ -8792,7 +8660,6 @@ async function exportSummaryReport() {
           ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
         <td style="padding:8px 10px; font-weight:600; color:#0f172a; font-size:12px; white-space:nowrap;">${escapeHtml(proj.name)}</td>
-        <td style="padding:8px 10px;">${(proj.components||[]).length>0 ? proj.components.map(c=>`<span style="background:#f0fdf4;color:#15803d;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:600;margin:1px;display:inline-block;">${escapeHtml(c)}</span>`).join(' ') : '<span style="color:#94a3b8;">—</span>'}</td>
         <td style="padding:8px 10px; white-space:nowrap;">${proj.devPod ? `<span style="background:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[0]};color:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[1]};padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;">${escapeHtml(proj.devPod)}</span>` : '<span style="color:#94a3b8;">—</span>'}</td>
         <td style="padding:8px 10px; white-space:nowrap;">${jiraCell}</td>
         <td style="padding:8px 10px; text-align:center; white-space:nowrap;">${buildDelayBadgeReport(proj.plannedBuildDate || proj.buildDate, proj.actualBuildDate)}</td>
@@ -8845,7 +8712,6 @@ async function exportSummaryReport() {
           <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release/GA date</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Release item</th>
-            <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Component</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Dev POD</th>
             <th style="padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">JIRA</th>
             <th style="padding:10px 14px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Build Delay</th>
@@ -8971,10 +8837,7 @@ function renderProjects() {
   if (selectedReleaseDate) filtered = filtered.filter(p => p.releaseDate === selectedReleaseDate);
   if (selectedDevPod) filtered = filtered.filter(p => p.devPod === selectedDevPod);
   if (selectedReleaseStatus) filtered = filtered.filter(p => p.status === selectedReleaseStatus);
-  if (selectedComponentFilter) filtered = filtered.filter(p => (p.components||[]).includes(selectedComponentFilter));
-  // Sync component filter dropdown
-  const compSel = document.getElementById('componentFilterSelect');
-  if (compSel) compSel.value = selectedComponentFilter || '';
+
 
   if (state.projects.length === 0) {
     tbody.innerHTML = ''; empty.style.display = 'block'; return;
@@ -9023,11 +8886,7 @@ function renderProjects() {
           ${escapeHtml(p.name)}<span style="font-size:10px;opacity:0.55;">↗</span>
         </span>
       </td>
-      <td>
-        ${p.components && p.components.length > 0
-          ? p.components.map(c => `<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;margin:1px;display:inline-block;">${escapeHtml(c)}</span>`).join(' ')
-          : '<span style="color:var(--text-faint);">—</span>'}
-      </td>
+
       <td>${jiraCell}</td>
       <td>${podCell}</td>
       <td style="color:var(--text-dim); font-family:var(--mono); font-size:12px;">${(p.plannedBuildDate || p.buildDate) ? formatDateDisplay(p.plannedBuildDate || p.buildDate) : '—'}</td>
@@ -10416,8 +10275,7 @@ function renderArchive() {
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
             '<span style="font-size:14px;font-weight:700;color:var(--text);">' + escapeHtml(proj.name) + '</span>' +
             (proj.jiraUrl ? '<a href="'+escapeHtml(proj.jiraUrl)+'" target="_blank" style="background:#dbeafe;color:#1d4ed8;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;text-decoration:none;">🎫 '+escapeHtml(extractJiraId(proj.jiraUrl)||proj.jiraUrl)+'</a>' : '') +
-            ((proj.components||[]).length>0 ? proj.components.map(c=>'<span style="background:#f0fdf4;color:#15803d;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:600;">'+escapeHtml(c)+'</span>').join(' ') : '') +
-            (proj.devPod ? '<span style="background:'+podC[0]+';color:'+podC[1]+';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + escapeHtml(proj.devPod) + '</span>' : '') +
+(proj.devPod ? '<span style="background:'+podC[0]+';color:'+podC[1]+';padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">' + escapeHtml(proj.devPod) + '</span>' : '') +
             '<span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;">✅ Completed</span>' +
           '</div>' +
           '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text-faint);">' +
@@ -10721,9 +10579,6 @@ function renderSummary() {
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
   if (selectedSummaryStatus) projects = projects.filter(p => p.status === selectedSummaryStatus);
-  if (selectedSummaryComponent) projects = projects.filter(p => (p.components||[]).includes(selectedSummaryComponent));
-  const summaryCompSel = document.getElementById('summaryComponentSelect');
-  if (summaryCompSel) summaryCompSel.value = selectedSummaryComponent || '';
 
   if (state.projects.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
@@ -10785,7 +10640,6 @@ function renderSummary() {
           ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
         </td>
         <td style="font-weight:500;">${escapeHtml(proj.name)}</td>
-        <td>${(proj.components||[]).length>0 ? proj.components.map(c=>`<span style="background:#f0fdf4;color:#15803d;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:600;margin:1px;display:inline-block;">${escapeHtml(c)}</span>`).join(' ') : '<span style="color:var(--text-faint);">—</span>'}</td>
         <td>${podCell}</td>
         <td>${jiraCell}</td>
         <td style="text-align:center;">
