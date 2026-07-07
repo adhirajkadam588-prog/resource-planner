@@ -5382,7 +5382,6 @@ function toggleReviewApproval() {
     markDirty('projects','summary','dashboard');
     renderTab('projects');
     showToastMsg('✅ Test plan reviewed — Release tab data updated');
-    addNotification('review_done', 'Test plan reviewed — ' + (proj ? proj.name : ''), 'Reviewed by ' + currentUserEmail.split('@')[0], selectedTestPlanProjectId);
   } else {
     clearReviewApproval();
   }
@@ -7158,7 +7157,6 @@ function saveProject() {
               if (proj.status !== 'Completed') proj.status = 'Not started';
 
               showToastMsg('🔄 Review reset — milestones shifted. QA must re-request review for "' + name + '"');
-              addNotification('review_reset', 'Re-review required — ' + name, isLateDate ? 'Build delayed ' + lateDays + 'd — milestones shifted' : 'Build early ' + earlyDays + 'd — milestones shifted', proj.id);
             }
 
             if (isLateDate) {
@@ -7171,7 +7169,6 @@ function saveProject() {
                 shiftedAt: new Date().toISOString(), acknowledged: false
               });
               logActivity('Build delay — milestones shifted', { name, delayDays: lateDays, planned: formatDateDisplay(plannedBuild), actual: formatDateDisplay(actualBuildDate) });
-              addNotification('build_delay', 'Build delayed ' + lateDays + 'd — ' + name, 'Planned: ' + formatDateDisplay(plannedBuild) + ' · Actual: ' + formatDateDisplay(actualBuildDate), proj.id);
               showToastMsg(`⚠️ Build delayed by ${lateDays} working day(s) — milestones shifted for "${name}"`);
             } else {
               if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
@@ -7183,7 +7180,6 @@ function saveProject() {
                 shiftedAt: new Date().toISOString(), acknowledged: false
               });
               logActivity('Build early — milestones shifted earlier', { name, earlyDays, planned: formatDateDisplay(plannedBuild), actual: formatDateDisplay(actualBuildDate) });
-              addNotification('build_early', 'Build arrived ' + earlyDays + 'd early — ' + name, 'Milestones shifted earlier', proj.id);
               showToastMsg(`🎉 Build arrived ${earlyDays} working day(s) early — milestones shifted earlier for "${name}"`);
             }
           }
@@ -9255,7 +9251,7 @@ function subscribePushNotifications() {
     const n = payload.new;
 
     // Check if user already dismissed this
-    const dismissedKey = 'tl_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+    const dismissedKey = 'tl_notif_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
     let dismissed = [];
     try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
     const notifKey = n.type + '|' + (n.project_id||'') + '|' + n.title;
@@ -9326,33 +9322,28 @@ async function markPushNotifRead(notifId) {
 }
 
 function addNotification(type, title, detail, projectId) {
+  // ONLY allow assigned and milestone — nothing else
+  if (type !== 'assigned' && type !== 'milestone') return;
+
   if (!state.notifications) state.notifications = [];
 
-  // Role filter
-  if (projectId && type !== 'assigned') {
-    if (currentUserRole !== 'admin' && !isUserAssociatedWithProject(projectId)) return;
-  }
-
-  // Check dismissed list — user cleared this before, don't add again
-  const dismissedKey = 'tl_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+  // Check dismissed list — if user cleared this before, don't add again
+  const dismissedKey = 'tl_notif_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
   let dismissed = [];
   try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
   const notifKey = type + '|' + (projectId||'') + '|' + title;
   if (dismissed.includes(notifKey)) return;
 
-  // Dedup — same type+project+title already exists (any day)
-  const exists = state.notifications.some(n =>
-    n.type === type && n.projectId === projectId && n.title === title
-  );
-  if (exists) return;
+  // Dedup — same type+project+title already exists
+  if (state.notifications.some(n => n.type === type && n.projectId === projectId && n.title === title)) return;
 
   state.notifications.unshift({
     id: uid(), type, title, detail,
-    projectId: projectId||null,
+    projectId: projectId || null,
     read: false,
     createdAt: new Date().toISOString()
   });
-  if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
+  if (state.notifications.length > 100) state.notifications = state.notifications.slice(0, 100);
   saveState();
   updateBellBadge();
   const panel = document.getElementById('notificationPanel');
@@ -9364,25 +9355,16 @@ function updateBellBadge() {
   const bell  = document.getElementById('bellBtn');
   if (!badge) return;
 
-  // Count unread from local state (filtered by role)
-  const localUnread = (state.notifications || []).filter(n => {
-    if (n.read) return false;
-    if (!n.projectId) return true;
-    if (currentUserRole === 'admin') return true;
-    return isUserAssociatedWithProject(n.projectId);
-  }).length;
-
-  const unread = localUnread;
+  // Count only unread assigned + milestone notifications
+  const unread = (state.notifications || []).filter(n =>
+    !n.read && (n.type === 'assigned' || n.type === 'milestone')
+  ).length;
 
   if (unread > 0) {
     badge.removeAttribute('style');
-    badge.style.display = 'flex';
+    badge.style.cssText = 'display:flex !important;';
     badge.textContent = unread > 9 ? '9+' : String(unread);
-    if (bell) {
-      bell.classList.add('has-unread');
-      const svg = bell.querySelector('svg');
-      if (svg) { svg.style.animation = 'none'; setTimeout(() => { svg.style.animation = ''; }, 10); }
-    }
+    if (bell) bell.classList.add('has-unread');
   } else {
     badge.style.display = 'none';
     if (bell) bell.classList.remove('has-unread');
@@ -9398,19 +9380,20 @@ function toggleNotificationPanel() {
 }
 
 function markAllNotificationsRead() {
-  // Mark local notifications read
-  (state.notifications || []).forEach(n => n.read = true);
+  // Mark only current user's local notifications as read
+  (state.notifications || []).forEach(n => { n.read = true; });
   saveState();
-  // Mark push notifications read in Supabase — only current user's
+  // Update Supabase push notifications — only current user's
   if (sbClient && currentUserEmail) {
     sbClient.from('push_notifications')
       .update({ read: true })
       .eq('to_email', currentUserEmail)
       .eq('read', false)
       .then(() => {})
-      .catch(e => console.warn('markAllRead error:', e));
+      .catch(e => console.warn('markAllRead:', e));
   }
-  updateBellBadge(); renderNotificationList();
+  updateBellBadge();
+  renderNotificationList();
 }
 
 function markNotificationRead(id) {
@@ -9425,21 +9408,19 @@ function markNotificationRead(id) {
 function clearAllNotifications() {
   if (!confirm('Clear all your notifications?')) return;
 
-  // Save dismissed keys so these notifications don't come back
-  const dismissedKey = 'tl_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+  // Save dismissed keys per user so these don't come back
+  const dismissedKey = 'tl_notif_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
   let dismissed = [];
   try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
-
-  // Add current notifications to dismissed list
   (state.notifications || []).forEach(n => {
     const key = n.type + '|' + (n.projectId||'') + '|' + n.title;
     if (!dismissed.includes(key)) dismissed.push(key);
   });
-  // Keep only last 200 dismissed keys
-  if (dismissed.length > 200) dismissed = dismissed.slice(-200);
+  if (dismissed.length > 500) dismissed = dismissed.slice(-500);
   localStorage.setItem(dismissedKey, JSON.stringify(dismissed));
 
-  // Clear local state
+  // Only clear current user's notifications from local state
+  // Other users' state is in their own browser — no impact
   state.notifications = [];
   saveState();
 
@@ -9449,9 +9430,10 @@ function clearAllNotifications() {
       .delete()
       .eq('to_email', currentUserEmail)
       .then(() => {})
-      .catch(e => console.warn('clearNotif error:', e));
+      .catch(e => console.warn('clearNotif:', e));
   }
-  updateBellBadge(); renderNotificationList();
+  updateBellBadge();
+  renderNotificationList();
 }
 
 function handleNotificationClick(id, tab, projectId) {
@@ -9562,14 +9544,10 @@ function renderNotificationList() {
   const el = document.getElementById('notificationList');
   if (!el) return;
 
-  // Merge local state notifications + push notifications
-  // Local = system notifications (build delays, milestones etc) filtered by role
-  // Push = user-specific assigned notifications from Supabase
-  const localNotifs = (state.notifications || []).filter(n => {
-    if (!n.projectId) return true; // global notifications
-    if (currentUserRole === 'admin') return true;
-    return isUserAssociatedWithProject(n.projectId);
-  });
+  // Only show assigned + milestone notifications for current user
+  const localNotifs = (state.notifications || []).filter(n =>
+    n.type === 'assigned' || n.type === 'milestone'
+  );
 
   // Combine and deduplicate by id
   const seen = new Set();
