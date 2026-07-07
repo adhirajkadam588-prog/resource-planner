@@ -2859,6 +2859,8 @@ async function initApp(user) {
   if (_fab) { _fab.removeAttribute('style'); _fab.style.display = 'flex'; }
   initChat();
   buildChatTabs();
+  subscribeAllChatRooms();
+  initChatPresence();
 }
 
 function seedVMData() {
@@ -10026,6 +10028,10 @@ function renderArchive() {
           '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-faint);margin-bottom:8px;">💬 Comments</div>' +
           '<div id="notes-vault-' + proj.id + '" style="color:var(--text-faint);font-size:12px;font-style:italic;">Loading…</div>' +
         '</div>' +
+        '<div style="padding:12px 16px;border-top:1px solid var(--border-soft);">' +
+          '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-faint);margin-bottom:10px;">💬 Chat History</div>' +
+          '<div id="chat-vault-' + proj.id + '" style="color:var(--text-faint);font-size:12px;font-style:italic;">Loading…</div>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -10035,6 +10041,8 @@ function renderArchive() {
   prefetchAllNotes(pageItems.map(p => p.id)).then(() => {
     pageItems.forEach(proj => loadNotesInline('notes-vault-' + proj.id, proj.id));
   });
+  // Load chat history for vault items
+  pageItems.forEach(proj => loadVaultChatHistory(proj.id));
   if (totalPages > 1) {
     const from = startIdx + 1;
     const to   = Math.min(startIdx + ARCHIVE_PAGE_SIZE, totalItems);
@@ -11158,9 +11166,7 @@ function buildChatTabs() {
   if (currentUserRole !== 'admin') {
     projects = projects.filter(p => isUserAssociatedWithProject(p.id));
   }
-  const completed = (state.projects || []).filter(p => p.status === 'Completed' &&
-    (currentUserRole === 'admin' || isUserAssociatedWithProject(p.id)));
-  const allReleases = [...projects, ...completed];
+  const allReleases = [...projects];
 
   const currentRelease = allReleases.find(p => p.id === _chatRoom);
   const releaseLabel = currentRelease
@@ -11231,6 +11237,54 @@ async function switchChatRoom(roomId) {
   subscribeChatRoom(roomId);
 }
 
+// ── Load chat history for vault ──────────────────────────
+async function loadVaultChatHistory(projectId) {
+  const el = document.getElementById('chat-vault-' + projectId);
+  if (!el || !sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('chat_messages').select('*')
+      .eq('room', projectId).order('created_at', { ascending: true }).limit(50);
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div style="color:var(--text-faint);font-size:12px;font-style:italic;">No chat messages for this release.</div>';
+      return;
+    }
+    let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+    let lastDate = '';
+    data.forEach(m => {
+      const d = new Date(m.created_at);
+      const dateStr = d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+      if (dateStr !== lastDate) {
+        html += '<div style="text-align:center;font-size:10px;color:var(--text-faint);font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin:4px 0;">' + dateStr + '</div>';
+        lastDate = dateStr;
+      }
+      const isMine = m.sender_email === currentUserEmail;
+      const name = m.sender_name || m.sender_email.split('@')[0];
+      const initials = name.slice(0,2).toUpperCase();
+      const time = d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+      const avatarColors = ['#7c3aed','#2563eb','#059669','#d97706','#db2777','#0891b2'];
+      const avatarBg = isMine ? 'linear-gradient(135deg,#7c3aed,#2563eb)' : avatarColors[name.charCodeAt(0) % avatarColors.length];
+      html += '<div style="display:flex;gap:8px;align-items:flex-end;' + (isMine ? 'flex-direction:row-reverse;' : '') + '">' +
+        '<div style="width:26px;height:26px;border-radius:8px;background:' + avatarBg + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0;">' + escapeHtml(initials) + '</div>' +
+        '<div>' +
+          '<div style="font-size:10px;color:var(--text-faint);margin-bottom:2px;' + (isMine ? 'text-align:right;' : '') + '">' +
+            (!isMine ? '<span style="font-weight:700;color:var(--text-dim);">' + escapeHtml(name) + '</span> · ' : '') + time +
+          '</div>' +
+          '<div style="padding:7px 11px;border-radius:' + (isMine ? '12px 3px 12px 12px' : '3px 12px 12px 12px') + ';font-size:12.5px;line-height:1.5;' +
+            (isMine ? 'background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;' : 'background:rgba(255,255,255,0.07);border:1px solid var(--border-soft);color:var(--text);') + '">' +
+            escapeHtml(m.text) +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div><div style="margin-top:10px;text-align:center;padding:7px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:11px;color:#d97706;font-weight:600;">🔒 Release completed — chat archived</div>';
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--text-faint);font-size:12px;">Could not load chat history.</div>';
+  }
+}
+
 // ── Load messages from Supabase ──────────────────────────
 async function loadChatMessages(roomId) {
   if (!sbClient) return;
@@ -11262,14 +11316,69 @@ function subscribeChatRoom(roomId) {
       const msg = payload.new;
       if (!_chatMessages[roomId]) _chatMessages[roomId] = [];
       _chatMessages[roomId].push(msg);
-      appendChatMessage(msg);
-      // Unread badge if window closed
-      if (!_chatOpen && msg.sender_email !== currentUserEmail) {
+      // Only append if this is the current open room
+      if (_chatRoom === roomId) appendChatMessage(msg);
+      // Badge + notification for messages from others
+      if (msg.sender_email !== currentUserEmail) {
         _chatUnread++;
         updateChatBadge();
+        // Browser notification if window not focused
+        showChatNotification(msg, roomId);
       }
     })
     .subscribe();
+}
+
+// ── Subscribe ALL rooms for unread badge ─────────────────
+function subscribeAllChatRooms() {
+  if (!sbClient) return;
+  // Subscribe to global + all accessible releases
+  const rooms = ['global'];
+  (state.projects || []).forEach(p => {
+    if (p.status !== 'Completed' &&
+       (currentUserRole === 'admin' || isUserAssociatedWithProject(p.id))) {
+      rooms.push(p.id);
+    }
+  });
+  rooms.forEach(roomId => {
+    sbClient.channel('chat-all:' + roomId)
+      .on('postgres_changes', {
+        event:'INSERT', schema:'public', table:'chat_messages',
+        filter:'room=eq.' + roomId
+      }, (payload) => {
+        const msg = payload.new;
+        if (msg.sender_email === currentUserEmail) return;
+        if (_chatOpen && _chatRoom === roomId) return; // already visible
+        _chatUnread++;
+        updateChatBadge();
+        showChatNotification(msg, roomId);
+      })
+      .subscribe();
+  });
+}
+
+// ── Show notification ────────────────────────────────────
+function showChatNotification(msg, roomId) {
+  const senderName = msg.sender_name || msg.sender_email.split('@')[0];
+  const roomName = roomId === 'global' ? 'Global' :
+    (state.projects || []).find(p => p.id === roomId)?.name || 'Chat';
+
+  // In-app toast notification
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:96px;right:28px;z-index:9000;' +
+    'background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;' +
+    'padding:10px 16px;border-radius:14px;font-size:12.5px;font-family:Inter,sans-serif;' +
+    'box-shadow:0 8px 24px rgba(124,58,237,0.4);cursor:pointer;max-width:280px;' +
+    'animation:chatSlideIn 0.3s cubic-bezier(0.16,1,0.3,1);';
+  toast.innerHTML = '<div style="font-weight:700;margin-bottom:2px;">💬 ' + escapeHtml(senderName) + ' · ' + escapeHtml(roomName) + '</div>' +
+    '<div style="opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(msg.text) + '</div>';
+  toast.onclick = function() {
+    if (!_chatOpen) toggleChat();
+    switchChatRoom(roomId);
+    document.body.removeChild(toast);
+  };
+  document.body.appendChild(toast);
+  setTimeout(() => { if (document.body.contains(toast)) document.body.removeChild(toast); }, 4000);
 }
 
 // ── Render all messages ──────────────────────────────────
@@ -11429,11 +11538,54 @@ function updateChatBadge() {
 }
 
 // ── Online count ─────────────────────────────────────────
+// ── Online presence ──────────────────────────────────────
+let _presenceChannel = null;
+let _onlineUsers = new Set();
+
+function initChatPresence() {
+  if (!sbClient || !currentUserEmail) return;
+  const userName = (state.people || []).find(p =>
+    p.email?.toLowerCase() === currentUserEmail.toLowerCase()
+  )?.name || currentUserEmail.split('@')[0];
+
+  _presenceChannel = sbClient.channel('chat-presence', {
+    config: { presence: { key: currentUserEmail } }
+  });
+
+  _presenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = _presenceChannel.presenceState();
+      _onlineUsers = new Set(Object.keys(state));
+      updateChatOnline();
+    })
+    .on('presence', { event: 'join' }, ({ key }) => {
+      _onlineUsers.add(key);
+      updateChatOnline();
+    })
+    .on('presence', { event: 'leave' }, ({ key }) => {
+      _onlineUsers.delete(key);
+      updateChatOnline();
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await _presenceChannel.track({ name: userName, email: currentUserEmail, online_at: new Date().toISOString() });
+      }
+    });
+}
+
 function updateChatOnline() {
   const el = document.getElementById('chatOnlineCount');
   if (!el) return;
-  const total = (state.people || []).length;
-  el.textContent = total + ' team members';
+  const count = _onlineUsers.size;
+  if (count > 0) {
+    el.innerHTML = '<span style="display:inline-flex;align-items:center;gap:4px;">' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;box-shadow:0 0 4px #10b981;"></span>' +
+      count + ' online now' +
+    '</span>';
+  } else {
+    const total = (state.people || []).length;
+    el.textContent = total + ' team members';
+  }
 }
 
 // ====================== INIT ======================
