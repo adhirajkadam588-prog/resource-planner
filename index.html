@@ -5418,11 +5418,23 @@ function clearReviewApproval() {
   plan.reviewed = false;
   plan.reviewedBy = '';
   plan.reviewedAt = '';
+
+  // Immediately clear proj fields so UI updates without needing refresh
+  const proj = state.projects.find(p => p.id === selectedTestPlanProjectId);
+  if (proj) {
+    proj.effort = '';
+    proj.goAheadDate = '';
+    proj.completionDate = '';
+    if (proj.buildDate && !proj.plannedBuildDate) proj.buildDate = '';
+  }
+
   saveState();
   syncTestPlanToProjects();
   renderTestPlan();
-  markDirty('projects','summary');
+  clearRenderCache();
+  markDirty('projects','summary','dashboard');
   renderTab('projects');
+  renderSummary();
   showToastMsg('↩ Review removed — Release tab data cleared');
 }
 
