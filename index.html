@@ -9321,19 +9321,44 @@ function toggleNotificationPanel() {
 }
 
 function markAllNotificationsRead() {
+  // Mark local notifications read
   (state.notifications || []).forEach(n => n.read = true);
-  saveState(); updateBellBadge(); renderNotificationList();
+  saveState();
+  // Mark push notifications read in Supabase — only current user's
+  if (sbClient && currentUserEmail) {
+    sbClient.from('push_notifications')
+      .update({ read: true })
+      .eq('to_email', currentUserEmail)
+      .eq('read', false)
+      .then(() => {})
+      .catch(e => console.warn('markAllRead error:', e));
+  }
+  updateBellBadge(); renderNotificationList();
 }
 
 function markNotificationRead(id) {
   const n = (state.notifications||[]).find(x => x.id === id);
   if (n) { n.read = true; saveState(); updateBellBadge(); renderNotificationList(); }
+  // Also update in Supabase push_notifications
+  if (sbClient) {
+    sbClient.from('push_notifications').update({ read: true }).eq('id', id).then(()=>{}).catch(()=>{});
+  }
 }
 
 function clearAllNotifications() {
-  if (!confirm('Clear all notifications?')) return;
+  if (!confirm('Clear all your notifications?')) return;
+  // Clear local state notifications
   state.notifications = [];
-  saveState(); updateBellBadge(); renderNotificationList();
+  saveState();
+  // Delete from Supabase — only current user's push notifications
+  if (sbClient && currentUserEmail) {
+    sbClient.from('push_notifications')
+      .delete()
+      .eq('to_email', currentUserEmail)
+      .then(() => {})
+      .catch(e => console.warn('clearNotif error:', e));
+  }
+  updateBellBadge(); renderNotificationList();
 }
 
 function handleNotificationClick(id, tab, projectId) {
@@ -9389,18 +9414,32 @@ function checkBuildDelayNotifications() {
 function renderNotificationList() {
   const el = document.getElementById('notificationList');
   if (!el) return;
-  const allNotifs = state.notifications || [];
-  // Only admin sees all — Lead and QA both see only their associated projects
-  const isAdmin = currentUserRole === 'admin';
-  const notifs = isAdmin ? allNotifs : allNotifs.filter(n => !n.projectId || isUserAssociatedWithProject(n.projectId));
-  const unread = notifs.filter(n => !n.read).length;
-  if (notifs.length === 0) { el.innerHTML = '<div style="padding:40px 16px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;">🔔</div><div style="color:#94a3b8;font-size:12.5px;">No notifications yet</div></div>'; return; }
+
+  // Merge local state notifications + push notifications
+  // Local = system notifications (build delays, milestones etc) filtered by role
+  // Push = user-specific assigned notifications from Supabase
+  const localNotifs = (state.notifications || []).filter(n => {
+    if (!n.projectId) return true; // global notifications
+    if (currentUserRole === 'admin') return true;
+    return isUserAssociatedWithProject(n.projectId);
+  });
+
+  // Combine and deduplicate by id
+  const seen = new Set();
+  const allNotifs = [...localNotifs].filter(n => {
+    if (seen.has(n.id)) return false;
+    seen.add(n.id);
+    return true;
+  }).sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+
+  const unread = allNotifs.filter(n => !n.read).length;
+  if (allNotifs.length === 0) { el.innerHTML = '<div style="padding:40px 16px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;">🔔</div><div style="color:#94a3b8;font-size:12.5px;">No notifications yet</div></div>'; return; }
   const TYPE_META = { 'review_done':{icon:'✅',color:'#10b981',bg:'rgba(16,185,129,0.12)',tab:'testplan'}, 'build_delay':{icon:'⚠️',color:'#f59e0b',bg:'rgba(245,158,11,0.12)',tab:'projects'}, 'build_early':{icon:'🎉',color:'#10b981',bg:'rgba(16,185,129,0.12)',tab:'projects'}, 'milestone':{icon:'📅',color:'#3b82f6',bg:'rgba(59,130,246,0.12)',tab:'testplan'}, 'assigned':{icon:'👤',color:'#a855f7',bg:'rgba(168,85,247,0.12)',tab:'testplan'}, 'review_request':{icon:'📋',color:'#f59e0b',bg:'rgba(245,158,11,0.12)',tab:'testplan'}, 'review_reset':{icon:'🔄',color:'#ef4444',bg:'rgba(239,68,68,0.12)',tab:'testplan'} };
   function timeAgo(iso) { if (!iso) return ''; const diff = Date.now() - new Date(iso).getTime(); const m = Math.floor(diff/60000); if (m<1) return 'just now'; if (m<60) return m+'m ago'; const h = Math.floor(m/60); if (h<24) return h+'h ago'; const d = Math.floor(h/24); return d<7?d+'d ago':new Date(iso).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
   const todayKey = toDateKey(new Date()); const yest = new Date(); yest.setDate(yest.getDate()-1); const yestKey = toDateKey(yest);
   const groups = {Today:[],Yesterday:[],Earlier:[]};
-  notifs.forEach(n => { const d = n.createdAt?n.createdAt.slice(0,10):''; if(d===todayKey) groups.Today.push(n); else if(d===yestKey) groups.Yesterday.push(n); else groups.Earlier.push(n); });
-  let html = '<div style="padding:8px 16px 6px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="font-size:11px;color:#64748b;">'+(unread>0?'<span style="color:#a78bfa;font-weight:600;">'+unread+' unread</span> · ':'')+notifs.length+' total</div><div style="display:flex;gap:5px;">'+(unread>0?'<button onclick="markAllNotificationsRead()" style="font-size:10px;color:#94a3b8;background:rgba(255,255,255,0.06);border:1px solid #334155;border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit;">✓ All read</button>':'')+' <button onclick="clearAllNotifications()" style="font-size:10px;color:#ef4444;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit;">🗑 Clear</button></div></div>';
+  allNotifs.forEach(n => { const d = n.createdAt?n.createdAt.slice(0,10):''; if(d===todayKey) groups.Today.push(n); else if(d===yestKey) groups.Yesterday.push(n); else groups.Earlier.push(n); });
+  let html = '<div style="padding:8px 16px 6px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="font-size:11px;color:#64748b;">'+(unread>0?'<span style="color:#a78bfa;font-weight:600;">'+unread+' unread</span> · ':'')+allNotifs.length+' total</div><div style="display:flex;gap:5px;">'+(unread>0?'<button onclick="markAllNotificationsRead()" style="font-size:10px;color:#94a3b8;background:rgba(255,255,255,0.06);border:1px solid #334155;border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit;">✓ All read</button>':'')+' <button onclick="clearAllNotifications()" style="font-size:10px;color:#ef4444;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit;">🗑 Clear</button></div></div>';
   ['Today','Yesterday','Earlier'].forEach(g => {
     const items = groups[g]; if (!items.length) return;
     html += '<div style="padding:8px 16px 3px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#475569;">'+g+'</div>';
