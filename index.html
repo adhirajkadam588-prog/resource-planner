@@ -9211,22 +9211,33 @@ function subscribePushNotifications() {
       event: 'INSERT', schema: 'public', table: 'push_notifications',
       filter: 'to_email=eq.' + currentUserEmail
     }, (payload) => {
-      const n = payload.new;
-      // Add to local state and show
-      if (!state.notifications) state.notifications = [];
-      state.notifications.unshift({
-        id:        n.id,
-        type:      n.type,
-        title:     n.title,
-        detail:    n.detail,
-        projectId: n.project_id,
-        read:      false,
-        createdAt: n.created_at,
-      });
-      if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
-      updateBellBadge();
-      const panel = document.getElementById('notificationPanel');
-      if (panel && panel.style.display === 'flex') renderNotificationList();
+    const n = payload.new;
+
+    // Check if user already dismissed this
+    const dismissedKey = 'tl_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+    let dismissed = [];
+    try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
+    const notifKey = n.type + '|' + (n.project_id||'') + '|' + n.title;
+    if (dismissed.includes(notifKey)) return;
+
+    // Add to local state
+    if (!state.notifications) state.notifications = [];
+    // Avoid duplicate
+    if (state.notifications.some(x => x.id === n.id)) return;
+
+    state.notifications.unshift({
+      id:        n.id,
+      type:      n.type,
+      title:     n.title,
+      detail:    n.detail,
+      projectId: n.project_id,
+      read:      false,
+      createdAt: n.created_at,
+    });
+    if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
+    updateBellBadge();
+    const panel = document.getElementById('notificationPanel');
+    if (panel && panel.style.display === 'flex') renderNotificationList();
     })
     .subscribe();
 }
@@ -9260,6 +9271,7 @@ async function loadPushNotifications() {
     if (newOnes.length > 0) {
       state.notifications = [...newOnes, ...(state.notifications || [])].slice(0, 50);
       updateBellBadge();
+      renderNotificationList();
     }
   } catch(e) { console.warn('loadPushNotifications:', e); }
 }
@@ -9279,6 +9291,14 @@ function addNotification(type, title, detail, projectId) {
     if (currentUserRole !== 'admin' && !isUserAssociatedWithProject(projectId)) return;
   }
   const today = toDateKey(new Date());
+
+  // Check if user already dismissed/cleared this notification
+  const dismissedKey = 'tl_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+  let dismissed = [];
+  try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
+  const notifKey = type + '|' + (projectId||'') + '|' + title;
+  if (dismissed.includes(notifKey)) return; // user already cleared this
+
   const exists = state.notifications.some(n =>
     n.type === type && n.projectId === projectId &&
     n.createdAt && n.createdAt.startsWith(today) && n.title === title
@@ -9296,13 +9316,23 @@ function updateBellBadge() {
   const badge = document.getElementById('bellBadge');
   const bell  = document.getElementById('bellBtn');
   if (!badge) return;
-  const unread = (state.notifications || []).filter(n => !n.read).length;
+
+  // Count unread from local state (filtered by role)
+  const localUnread = (state.notifications || []).filter(n => {
+    if (n.read) return false;
+    if (!n.projectId) return true;
+    if (currentUserRole === 'admin') return true;
+    return isUserAssociatedWithProject(n.projectId);
+  }).length;
+
+  const unread = localUnread;
+
   if (unread > 0) {
+    badge.removeAttribute('style');
     badge.style.display = 'flex';
-    badge.textContent = unread > 9 ? '9+' : unread;
+    badge.textContent = unread > 9 ? '9+' : String(unread);
     if (bell) {
       bell.classList.add('has-unread');
-      // Ring animation
       const svg = bell.querySelector('svg');
       if (svg) { svg.style.animation = 'none'; setTimeout(() => { svg.style.animation = ''; }, 10); }
     }
@@ -9347,9 +9377,25 @@ function markNotificationRead(id) {
 
 function clearAllNotifications() {
   if (!confirm('Clear all your notifications?')) return;
-  // Clear local state notifications
+
+  // Save dismissed keys so these notifications don't come back
+  const dismissedKey = 'tl_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
+  let dismissed = [];
+  try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
+
+  // Add current notifications to dismissed list
+  (state.notifications || []).forEach(n => {
+    const key = n.type + '|' + (n.projectId||'') + '|' + n.title;
+    if (!dismissed.includes(key)) dismissed.push(key);
+  });
+  // Keep only last 200 dismissed keys
+  if (dismissed.length > 200) dismissed = dismissed.slice(-200);
+  localStorage.setItem(dismissedKey, JSON.stringify(dismissed));
+
+  // Clear local state
   state.notifications = [];
   saveState();
+
   // Delete from Supabase — only current user's push notifications
   if (sbClient && currentUserEmail) {
     sbClient.from('push_notifications')
@@ -9386,9 +9432,63 @@ function checkPendingReviewNotifications() {
 }
 
 function checkMilestoneNotifications() {
+  // Only admin runs this — pushes to all relevant users
+  if (currentUserRole !== 'admin') {
+    // Non-admin: only check own local notifications
+    _checkMyMilestoneNotifications();
+    return;
+  }
   const today = toDateKey(new Date());
-  const myEmail = (currentUserEmail || '').toLowerCase().trim();
-  const currentPerson = state.people.find(p => p.email && p.email.toLowerCase().trim() === myEmail);
+  getActiveProjects().forEach(proj => {
+    const plan = state.testPlans && state.testPlans[proj.id];
+    if (!plan) return;
+    const ms = plan.milestones || {};
+
+    // Collect all emails to notify for this release
+    const emailsToNotify = new Set();
+
+    // 1. All assignees from test rows
+    (plan.rows || []).forEach(r => {
+      const ids = r.assigneeIds || (r.assigneeId ? [r.assigneeId] : []);
+      ids.forEach(id => {
+        const p = state.people.find(x => x.id === id);
+        if (p && p.email) emailsToNotify.add(p.email.toLowerCase());
+      });
+    });
+    // Test prep + env assignees
+    [...(plan.testPrepAssigneeIds||[]), ...(plan.testEnvAssigneeIds||[])].forEach(id => {
+      const p = state.people.find(x => x.id === id);
+      if (p && p.email) emailsToNotify.add(p.email.toLowerCase());
+    });
+    // Lead
+    if (proj.qaLead) {
+      const lead = state.people.find(p => p.name && p.name.toLowerCase() === proj.qaLead.toLowerCase());
+      if (lead && lead.email) emailsToNotify.add(lead.email.toLowerCase());
+    }
+
+    [[ms.bvtCompletion,'BVT due'],[ms.execWithBuffer,'QA completion due'],[ms.mergedBuildGoAhead,'Go ahead date']].forEach(([date, label]) => {
+      if (!date) return;
+      const diff = Math.round((new Date(date+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
+      if (diff !== 0 && diff !== 1) return;
+      const title = label + (diff === 1 ? ' tomorrow' : ' today') + ' — ' + proj.name;
+      const detail = formatDateDisplay(date);
+
+      emailsToNotify.forEach(email => {
+        if (email === currentUserEmail.toLowerCase()) {
+          // Self — add locally
+          addNotification('milestone', title, detail, proj.id);
+        } else {
+          // Others — push via Supabase
+          pushNotificationTo(email, 'milestone', title, detail, proj.id);
+        }
+      });
+    });
+  });
+}
+
+function _checkMyMilestoneNotifications() {
+  // For non-admin: just add locally for own releases
+  const today = toDateKey(new Date());
   getActiveProjects().forEach(proj => {
     const plan = state.testPlans && state.testPlans[proj.id];
     if (!plan) return;
