@@ -2652,6 +2652,7 @@ function initRealtime() {
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
         await loadState();
+        syncTestPlanToProjects(); // ensure review gate enforced after any reload
         markAllDirty();
         renderAll();
         showSyncToast();
@@ -3231,9 +3232,10 @@ function _renderNotesInEl(el, data) {
   el.innerHTML = data.map(n =>
     '<div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 12px;margin-bottom:6px;">' +
       '<div style="font-size:12.5px;color:var(--text);line-height:1.5;">' + escapeHtml(n.note) + '</div>' +
-      '<div style="font-size:10.5px;color:var(--text-faint);margin-top:4px;display:flex;justify-content:space-between;">' +
-        '<span>by <strong>' + escapeHtml(n.created_by||'Unknown') + '</strong></span>' +
-        '<span>' + new Date(n.created_at).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</span>' +
+      '<div style="font-size:10.5px;color:var(--text-faint);margin-top:5px;">' +
+        '<div><strong style="color:var(--text-dim);">' + escapeHtml((n.created_by||'Unknown').split('@')[0]) + '</strong>' +
+        '<span style="color:var(--text-faint);"> @' + escapeHtml((n.created_by||'').split('@')[1]||'') + '</span></div>' +
+        '<div style="margin-top:1px;">' + new Date(n.created_at).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div>' +
       '</div>' +
     '</div>'
   ).join('');
@@ -3731,6 +3733,8 @@ async function loadState() {
       state.notifications           = []; // loaded from push_notifications table separately
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
+      // Always enforce review gate after loading — prevents stale synced values
+      syncTestPlanToProjects();
       setTimeout(() => { updateBellBadge(); }, 400);
       setTimeout(() => {
       }, 300);
