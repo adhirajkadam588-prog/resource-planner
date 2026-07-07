@@ -11749,7 +11749,8 @@ function appendChatMessage(msg) {
 
 // ── Build message HTML ───────────────────────────────────
 function buildMsgHtml(msg) {
-  const isMine = msg.sender_email === currentUserEmail;
+  const isMine = msg.sender_email && currentUserEmail &&
+    msg.sender_email.toLowerCase() === currentUserEmail.toLowerCase();
   const initials = (msg.sender_name || msg.sender_email || '?').split(/[@. ]/)[0].slice(0,2).toUpperCase();
   const name = msg.sender_name || msg.sender_email.split('@')[0];
   const time = new Date(msg.created_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
@@ -11858,13 +11859,25 @@ async function sendChatMessage() {
     // Show message immediately — don't wait for realtime
     appendChatMessage(tempMsg);
 
-    const { error } = await sbClient.from('chat_messages').insert({
+    const tempId = tempMsg.id;
+    const { data: inserted, error } = await sbClient.from('chat_messages').insert({
       room:         _chatRoom,
       sender_email: currentUserEmail,
       sender_name:  senderName,
       text:         text,
-    });
+    }).select().single();
     if (error) throw error;
+
+    // Replace temp message with real one (has real id → edit/delete works)
+    if (inserted) {
+      const tempEl = document.querySelector('.chat-msg[data-id="' + tempId + '"]');
+      if (tempEl) {
+        const realHtml = buildMsgHtml(inserted);
+        const div = document.createElement('div');
+        div.innerHTML = realHtml;
+        tempEl.replaceWith(div.firstChild);
+      }
+    }
   } catch(e) {
     showToastMsg('Could not send message');
     inp.value = text;
