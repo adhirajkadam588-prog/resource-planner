@@ -2783,6 +2783,11 @@ async function initApp(user) {
   document.getElementById('userAvatar').textContent = initials;
   document.getElementById('loginError').textContent = '';
   document.getElementById('loginBtn').disabled = false;
+  // Show chat FAB immediately
+  const _chatFabEl = document.getElementById('chatFab');
+  if (_chatFabEl) {
+    _chatFabEl.style.cssText += ';display:flex!important;visibility:visible!important;opacity:1!important;';
+  }
   document.getElementById('loginBtn').textContent = 'Sign in';
 
   // Show correct tab IMMEDIATELY — no waiting for data
@@ -2830,6 +2835,9 @@ async function initApp(user) {
   renderTab(savedTab);
   applyAccessUI();
   initRealtime();
+  // Show chat FAB immediately
+  const _fab = document.getElementById('chatFab');
+  if (_fab) { _fab.style.cssText += ';display:flex!important;visibility:visible!important;'; }
   initChat();
   buildChatTabs();
 }
@@ -11140,7 +11148,7 @@ let _chatUnread    = 0;
 function initChat() {
   // Show FAB immediately — no waiting for DB
   const fab = document.getElementById('chatFab');
-  if (fab) fab.style.display = 'flex';
+  if (fab) fab.style.cssText += ';display:flex!important;visibility:visible!important;';
   updateChatOnline();
   // Build tabs and load messages safely
   try { buildChatTabs(); } catch(e) { console.warn('buildChatTabs error:', e); }
