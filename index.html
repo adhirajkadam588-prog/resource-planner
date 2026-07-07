@@ -4065,8 +4065,8 @@ function renderDashboard() {
   // 2. At-risk releases
   const atRisk = getActiveProjects().filter(proj => {
     const plan = state.testPlans?.[proj.id];
-    const qaCompletion = plan?.milestones?.execWithBuffer || proj.completionDate || '';
-    const goAhead      = plan?.milestones?.mergedBuildGoAhead || proj.goAheadDate || '';
+    const qaCompletion = proj.completionDate || '';
+    const goAhead      = proj.goAheadDate || '';
     const releaseDate  = proj.releaseDate || '';
     const status       = proj.status || 'Not started';
 
@@ -4417,7 +4417,7 @@ function renderAlertsHtml() {
     if (!canSeeProject(proj)) return;
 
     const plan = state.testPlans && state.testPlans[proj.id];
-    const qaCompletion = (plan && plan.milestones && plan.milestones.execWithBuffer) || proj.completionDate || '';
+    const qaCompletion = proj.completionDate || '';
     const releaseDate  = proj.releaseDate || '';
 
     if (qaCompletion && qaCompletion < today) {
@@ -4787,8 +4787,8 @@ function buildTeamLensContext() {
 
   const releases = state.projects.map(p => {
     const plan = state.testPlans?.[p.id];
-    const build = plan?.milestones?.buildPickup || p.buildDate || '';
-    const goAhead = plan?.milestones?.mergedBuildGoAhead || p.goAheadDate || '';
+    const build = p.buildDate || '';
+    const goAhead = p.goAheadDate || '';
     const risk = p.status !== 'Completed' && ((build && build < today) || (goAhead && goAhead < today));
     return `${p.name} (${p.devPod||'?'}) | ${p.status||'Not started'} | Release: ${p.releaseDate ? formatDateDisplay(p.releaseDate):'TBD'} | ${risk?'⚠ AT RISK':'OK'}`;
   }).join('\n');
@@ -8684,9 +8684,6 @@ async function exportSummaryReport() {
 
     return `
       <tr style="border-bottom:1px solid #f1f5f9;">
-        <td style="padding:8px; width:32px;">
-          <input type="checkbox" class="row-checkbox" data-id="${proj.id}" value="${proj.id}" style="width:15px;height:15px;cursor:pointer;accent-color:#7c3aed;" ${selectedProjectIds && selectedProjectIds.has(proj.id) ? 'checked' : ''} onchange="updateProjectSelection()">
-        </td>
         <td style="padding:8px 10px; white-space:nowrap;">
           ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
@@ -9754,9 +9751,9 @@ function renderReleaseCalendar() {
 
   projects.forEach(proj => {
     const plan = state.testPlans && state.testPlans[proj.id];
-    const buildPickup  = plan?.milestones?.buildPickup || proj.buildDate || '';
-    const goAhead      = plan?.milestones?.mergedBuildGoAhead || proj.goAheadDate || '';
-    const qaCompletion = plan?.milestones?.execWithBuffer || proj.completionDate || '';
+    const buildPickup  = proj.buildDate || '';
+    const goAhead      = proj.goAheadDate || '';
+    const qaCompletion = proj.completionDate || '';
     const releaseDate  = proj.releaseDate || '';
     const [cbg, cfg]   = POD_COLORS_CAL[proj.devPod] || ['#f1f5f9','#475569'];
 
@@ -9879,7 +9876,7 @@ function renderGantt() {
     const y = i * rowH + 30;
     const plan = state.testPlans?.[proj.id];
 
-    const buildDate = (plan?.milestones?.buildPickup || proj.buildDate);
+    const buildDate = proj.buildDate || '';
     const qaDate    = (plan?.milestones?.execWithBuffer || proj.completionDate);
     const gaDate    = (plan?.milestones?.mergedBuildGoAhead || proj.goAheadDate);
     const relDate   = proj.releaseDate;
