@@ -7168,9 +7168,6 @@ function saveProject() {
             if (gapWithBuf  !== null) ms.execWithBuffer      = shiftDate(newBuildPickup, gapWithBuf);
             if (gapGoAhead  !== null) ms.mergedBuildGoAhead  = shiftDate(newBuildPickup, gapGoAhead);
 
-            if (ms.mergedBuildGoAhead) proj.goAheadDate    = ms.mergedBuildGoAhead;
-            if (ms.execWithBuffer)     proj.completionDate  = ms.execWithBuffer;
-
             // Calculate days for notifications and review reason
             const lateDays  = isLateDate  ? getWorkingDaysBetween(plannedBuild, actualBuildDate) : 0;
             const earlyDays = isEarlyDate ? getWorkingDaysBetween(actualBuildDate, plannedBuild)  : 0;
@@ -7180,17 +7177,16 @@ function saveProject() {
               plan.reviewed   = false;
               plan.reviewedBy = '';
               plan.reviewedAt = '';
-              // Remove any existing pending request — QA must send a fresh one
               state.reviewRequests = (state.reviewRequests || []).filter(r => r.projectId !== proj.id);
-
               // Clear Release tab synced data — show blank until re-reviewed
               proj.effort         = '';
               proj.goAheadDate    = '';
               proj.completionDate = '';
               if (proj.status !== 'Completed') proj.status = 'Not started';
-
               showToastMsg('🔄 Review reset — milestones shifted. QA must re-request review for "' + name + '"');
             }
+            // NOTE: proj.goAheadDate and proj.completionDate are NOT set here
+            // They only get set via syncTestPlanToProjects() AFTER review is approved
 
             if (isLateDate) {
               if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
