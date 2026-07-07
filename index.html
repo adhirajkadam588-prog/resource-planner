@@ -8220,52 +8220,6 @@ function buildFullReportHtml(title, bodyHtml) {
   </div>
   ${bodyHtml}
 </div>
-<!-- ── Team Chat FAB + Window ── -->
-<button class="chat-fab" id="chatFab" onclick="toggleChat()" title="Team Chat" style="display:none;">
-  💬
-  <div class="chat-fab-badge" id="chatBadge"></div>
-</button>
-
-<div class="chat-window" id="chatWindow">
-
-  <!-- Header -->
-  <div class="chat-header">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(124,58,237,0.4);">💬</div>
-      <div>
-        <div style="font-size:14px;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;letter-spacing:-0.01em;">Team Chat</div>
-        <div style="font-size:10.5px;color:var(--text-faint);font-family:'Inter',sans-serif;" id="chatOnlineCount">Loading...</div>
-      </div>
-    </div>
-    <button class="chat-header-close" onclick="toggleChat()">✕ Close</button>
-  </div>
-
-  <!-- Tabs -->
-  <div class="chat-tabs" id="chatTabs">
-    <button class="chat-tab active" data-room="global" onclick="switchChatRoom('global')">🌐 Global</button>
-  </div>
-
-  <!-- Messages -->
-  <div class="chat-messages" id="chatMessages">
-    <div class="chat-empty">Loading messages...</div>
-  </div>
-
-  <!-- Archived notice (shown for completed releases) -->
-  <div class="chat-archived" id="chatArchived" style="display:none;">
-    🔒 This release is completed — chat is read-only
-  </div>
-
-  <!-- Input -->
-  <div class="chat-input-row" id="chatInputRow">
-    <textarea class="chat-input" id="chatInput" placeholder="Type a message..." rows="1"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"
-      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
-    <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()" title="Send">➤</button>
-  </div>
-
-</div>
-
-
 </body>
 </html>`;
 }
@@ -11579,6 +11533,52 @@ function updateChatOnline() {
     <div id="allPlansContent"></div>
   </div>
 </div>
+
+<!-- ── Team Chat FAB + Window ── -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat()" title="Team Chat" style="display:none;">
+  💬
+  <div class="chat-fab-badge" id="chatBadge"></div>
+</button>
+
+<div class="chat-window" id="chatWindow">
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(124,58,237,0.4);">💬</div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;letter-spacing:-0.01em;">Team Chat</div>
+        <div style="font-size:10.5px;color:var(--text-faint);font-family:'Inter',sans-serif;" id="chatOnlineCount">Loading...</div>
+      </div>
+    </div>
+    <button class="chat-header-close" onclick="toggleChat()">✕ Close</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="chat-tabs" id="chatTabs">
+    <button class="chat-tab active" data-room="global" onclick="switchChatRoom('global')">🌐 Global</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-empty">Loading messages...</div>
+  </div>
+
+  <!-- Archived notice (shown for completed releases) -->
+  <div class="chat-archived" id="chatArchived" style="display:none;">
+    🔒 This release is completed — chat is read-only
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input-row" id="chatInputRow">
+    <textarea class="chat-input" id="chatInput" placeholder="Type a message..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+    <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()" title="Send">➤</button>
+  </div>
+
+</div>
+
 
 </body>
 </html>
