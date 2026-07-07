@@ -1298,6 +1298,20 @@
               </th>
               <th style="white-space:nowrap; min-width:160px;">Release</th>
 
+              <th style="white-space:nowrap; min-width:140px;">
+                Component
+                <select onchange="setComponentFilter(this.value || null)" id="componentFilterSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All</option>
+                  <option>Desktop Client</option>
+                  <option>Mac Client</option>
+                  <option>HotFolder Server</option>
+                  <option>AppConnect Server</option>
+                  <option>AppConnect Client</option>
+                  <option>Classification Migration</option>
+                  <option>iOS Device</option>
+                </select>
+              </th>
+
               <th style="white-space:nowrap;">JIRA</th>
               <th style="white-space:nowrap; min-width:120px;">
                 Dev POD
@@ -2135,6 +2149,20 @@
               </th>
               <th style="white-space:nowrap; min-width:160px;">Release Items</th>
 
+              <th style="white-space:nowrap; min-width:130px;">
+                Component
+                <select onchange="setSummaryComponentFilter(this.value || null)" id="summaryComponentSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All</option>
+                  <option>Desktop Client</option>
+                  <option>Mac Client</option>
+                  <option>HotFolder Server</option>
+                  <option>AppConnect Server</option>
+                  <option>AppConnect Client</option>
+                  <option>Classification Migration</option>
+                  <option>iOS Device</option>
+                </select>
+              </th>
+
               <th style="white-space:nowrap; min-width:120px;">
                 Dev POD
                 <select onchange="setSummaryPodFilter(this.value || null)" id="summaryPodSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
@@ -2231,6 +2259,20 @@
     <div class="field">
       <label>Release/GA date <span style="color:#ef4444;">*</span></label>
       <input id="projReleaseDate" type="date">
+    </div>
+
+    <div class="field">
+      <label>Component</label>
+      <select id="projComponent">
+        <option value="">— Select component —</option>
+        <option value="Desktop Client">Desktop Client</option>
+        <option value="Mac Client">Mac Client</option>
+        <option value="HotFolder Server">HotFolder Server</option>
+        <option value="AppConnect Server">AppConnect Server</option>
+        <option value="AppConnect Client">AppConnect Client</option>
+        <option value="Classification Migration">Classification Migration</option>
+        <option value="iOS Device">iOS Device</option>
+      </select>
     </div>
 
     <div class="field">
@@ -6604,6 +6646,7 @@ function openProjectModal(id) {
     document.getElementById('projName').value = proj.name;
     document.getElementById('projJiraUrl').value = proj.jiraUrl || '';
     document.getElementById('projReleaseDate').value = proj.releaseDate || '';
+    document.getElementById('projComponent').value   = proj.component   || '';
     document.getElementById('projDevPod').value = proj.devPod || '';
     document.getElementById('projActualBuildDate').value  = proj.actualBuildDate  || '';
     document.getElementById('projPlannedBuildDate').value = proj.plannedBuildDate || '';
@@ -6616,6 +6659,7 @@ function openProjectModal(id) {
     document.getElementById('projName').value = '';
     document.getElementById('projJiraUrl').value = '';
     document.getElementById('projReleaseDate').value = '';
+    document.getElementById('projComponent').value   = '';
     document.getElementById('projDevPod').value = '';
     document.getElementById('projJiraPreview').textContent = '';
     document.getElementById('projActualBuildDate').value  = '';
@@ -7046,6 +7090,7 @@ function saveProject() {
   const name            = document.getElementById('projName').value.trim();
   const jiraUrl         = document.getElementById('projJiraUrl').value.trim();
   const releaseDate     = document.getElementById('projReleaseDate').value;
+  const component       = document.getElementById('projComponent').value;
   const devPod          = document.getElementById('projDevPod').value;
   const goAheadBy       = document.getElementById('projGoAheadBy').value;
   const qaLead          = document.getElementById('projQaLead').value;
@@ -7072,7 +7117,7 @@ function saveProject() {
       const oldName           = proj.name;
       const prevActualBuild   = proj.actualBuildDate || '';
       proj.name = name; proj.jiraUrl = jiraUrl;
-      proj.releaseDate = releaseDate; proj.devPod = devPod; proj.goAheadBy = goAheadBy; proj.qaLead = qaLead;
+      proj.releaseDate = releaseDate; proj.component = component; proj.devPod = devPod; proj.goAheadBy = goAheadBy; proj.qaLead = qaLead;
       proj.actualBuildDate  = actualBuildDate;
       proj.plannedBuildDate = plannedBuildDate;
       // buildDate (used for delay calc) = manually entered planned OR test-plan synced
@@ -7173,7 +7218,7 @@ function saveProject() {
   } else {
     snapshotState(`Add release item: ${name}`);
     state.projects.push({
-      id: uid(), name, jiraUrl, releaseDate, devPod, goAheadBy, qaLead,
+      id: uid(), name, jiraUrl, releaseDate, component, devPod, goAheadBy, qaLead,
       actualBuildDate, plannedBuildDate,
       buildDate: plannedBuildDate || '', effort: '', status: 'Not started'
     });
@@ -8632,7 +8677,7 @@ async function exportSummaryReport() {
           ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:#94a3b8;">—</span>'}
         </td>
         <td style="padding:8px 10px; font-weight:600; color:#0f172a; font-size:12px; white-space:nowrap;">${escapeHtml(proj.name)}</td>
-        <td style="padding:8px 10px; white-space:nowrap;">${proj.devPod ? `<span style="background:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[0]};color:${(POD_COLORS_RPT[proj.devPod]||['#f1f5f9','#475569'])[1]};padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;">${escapeHtml(proj.devPod)}</span>` : '<span style="color:#94a3b8;">—</span>'}</td>
+        <td style="padding:8px 10px; white-space:nowrap;">${proj.component ? `<span style="background:#f0fdf4;color:#15803d;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;">${escapeHtml(proj.component)}</span>` : '<span style="color:#94a3b8;">—</span>'}</td>
         <td style="padding:8px 10px; white-space:nowrap;">${jiraCell}</td>
         <td style="padding:8px 10px; text-align:center; white-space:nowrap;">${buildDelayBadgeReport(proj.plannedBuildDate || proj.buildDate, proj.actualBuildDate)}</td>
         <td style="padding:8px 10px; text-align:center; white-space:nowrap;">
@@ -8809,6 +8854,9 @@ function renderProjects() {
   if (selectedReleaseDate) filtered = filtered.filter(p => p.releaseDate === selectedReleaseDate);
   if (selectedDevPod) filtered = filtered.filter(p => p.devPod === selectedDevPod);
   if (selectedReleaseStatus) filtered = filtered.filter(p => p.status === selectedReleaseStatus);
+  if (selectedComponentFilter) filtered = filtered.filter(p => p.component === selectedComponentFilter);
+  const compSel = document.getElementById('componentFilterSelect');
+  if (compSel) compSel.value = selectedComponentFilter || '';
 
 
   if (state.projects.length === 0) {
@@ -9017,6 +9065,13 @@ function getWorkingOnItGrouped(projectName) {
   }
 
   return { leads, qas };
+}
+
+let selectedComponentFilter = null;
+function setComponentFilter(val) {
+  selectedComponentFilter = val || null;
+  projectsPage = 1;
+  renderProjects();
 }
 
 function setDevPodFilter(pod) {
@@ -10537,12 +10592,16 @@ function renderSummary() {
   // Sync Status dropdown
   const stSel = document.getElementById('summaryStatusSelect');
   if (stSel) stSel.value = selectedSummaryStatus || '';
+  // Sync Component dropdown
+  const compSel2 = document.getElementById('summaryComponentSelect');
+  if (compSel2) compSel2.value = selectedSummaryComponent || '';
 
   // All projects — active + completed
   let projects = state.projects;
   if (selectedSummaryReleaseDate) projects = projects.filter(p => p.releaseDate === selectedSummaryReleaseDate);
   if (selectedSummaryDevPod) projects = projects.filter(p => p.devPod === selectedSummaryDevPod);
   if (selectedSummaryStatus) projects = projects.filter(p => p.status === selectedSummaryStatus);
+  if (selectedSummaryComponent) projects = projects.filter(p => p.component === selectedSummaryComponent);
 
   if (state.projects.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
@@ -10604,6 +10663,7 @@ function renderSummary() {
           ${proj.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:2px 9px; border-radius:5px; font-size:11px; font-weight:600;">${formatDateDisplay(proj.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
         </td>
         <td style="font-weight:500;">${escapeHtml(proj.name)}</td>
+        <td style="white-space:nowrap;">${proj.component ? `<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;">${escapeHtml(proj.component)}</span>` : '<span style="color:var(--text-faint);">—</span>'}</td>
         <td>${podCell}</td>
         <td>${jiraCell}</td>
         <td style="text-align:center;">
@@ -10681,6 +10741,13 @@ function setDailyPlanPodFilter(pod) {
 
 function setSummaryReleaseDateFilter(date) {
   selectedSummaryReleaseDate = date || null;
+  summaryPage = 1;
+  renderSummary();
+}
+
+let selectedSummaryComponent = null;
+function setSummaryComponentFilter(val) {
+  selectedSummaryComponent = val || null;
   summaryPage = 1;
   renderSummary();
 }
