@@ -3733,8 +3733,9 @@ async function loadState() {
       state.notifications           = []; // loaded from push_notifications table separately
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
-      // Always enforce review gate after loading — prevents stale synced values
-      syncTestPlanToProjects();
+      // Enforce review gate — if not reviewed, clear synced values
+      const syncChanged = syncTestPlanToProjects();
+      if (syncChanged && currentUserRole === 'admin') saveState(); // persist clean state
       setTimeout(() => { updateBellBadge(); }, 400);
       setTimeout(() => {
       }, 300);
@@ -5388,7 +5389,6 @@ function toggleReviewApproval() {
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   const checkbox = document.getElementById('reviewCheckbox');
   if (!checkbox) return;
-  const proj = state.projects.find(p => p.id === selectedTestPlanProjectId);
 
   if (checkbox.checked) {
     plan.reviewed = true;
@@ -5401,12 +5401,14 @@ function toggleReviewApproval() {
           : r
       );
     }
-    saveState();
+    // Sync first — then save so synced values are persisted for all users
     syncTestPlanToProjects();
+    saveState();
+    clearRenderCache();
     renderTestPlan();
-    markDirty('projects','summary','dashboard');
-    renderTab('projects');
-    showToastMsg('✅ Test plan reviewed — Release tab data updated');
+    renderProjects();
+    renderSummary();
+    showToastMsg('✅ Test plan reviewed — Release tab updated');
   } else {
     clearReviewApproval();
   }
@@ -5423,21 +5425,12 @@ function clearReviewApproval() {
   plan.reviewedBy = '';
   plan.reviewedAt = '';
 
-  // Immediately clear proj fields so UI updates without needing refresh
-  const proj = state.projects.find(p => p.id === selectedTestPlanProjectId);
-  if (proj) {
-    proj.effort = '';
-    proj.goAheadDate = '';
-    proj.completionDate = '';
-    if (proj.buildDate && !proj.plannedBuildDate) proj.buildDate = '';
-  }
-
-  saveState();
+  // Sync first clears fields — then save so all users get updated state
   syncTestPlanToProjects();
-  renderTestPlan();
+  saveState();
   clearRenderCache();
-  markDirty('projects','summary','dashboard');
-  renderTab('projects');
+  renderTestPlan();
+  renderProjects();
   renderSummary();
   showToastMsg('↩ Review removed — Release tab data cleared');
 }
