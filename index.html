@@ -594,7 +594,7 @@
   .chat-fab:hover { transform:scale(1.12) rotate(-5deg); box-shadow:0 12px 36px rgba(124,58,237,0.7); }
   .chat-fab:active { transform:scale(0.95); }
   .chat-fab-badge { position:absolute; top:-6px; right:-6px; background:linear-gradient(135deg,#ef4444,#dc2626); color:white; font-size:10px; font-weight:800; min-width:20px; height:20px; border-radius:10px; display:none; align-items:center; justify-content:center; padding:0 5px; border:2.5px solid var(--bg); font-family:'Inter',sans-serif; letter-spacing:0; animation:badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 2px 8px rgba(239,68,68,0.5); }
-  .chat-window { position:fixed; bottom:96px; right:28px; z-index:8001; width:370px; height:520px; border-radius:24px; background:var(--panel); border:1px solid rgba(124,58,237,0.18); box-shadow:0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04); display:none; flex-direction:column; overflow:hidden; animation:chatSlideIn 0.3s cubic-bezier(0.16,1,0.3,1); font-family:'Inter',sans-serif; transition:right 0.2s ease; }
+  .chat-window { position:fixed; bottom:96px; right:28px; z-index:8001; width:370px; height:520px; border-radius:24px; background:var(--panel); border:1px solid rgba(124,58,237,0.18); box-shadow:0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04); display:none; flex-direction:column; overflow:visible; animation:chatSlideIn 0.3s cubic-bezier(0.16,1,0.3,1); font-family:'Inter',sans-serif; transition:right 0.2s ease; }
   /* Shift chat when notification panel is open */
   .notif-open .chat-fab    { right:336px; }
   .notif-open .chat-window { right:336px; }
@@ -627,8 +627,7 @@
   .chat-tabs {
     display:flex; gap:5px; padding:10px 14px;
     border-bottom:1px solid rgba(255,255,255,0.06);
-    flex-shrink:0; overflow-x:auto; scrollbar-width:none;
-    background:rgba(0,0,0,0.08);
+    flex-shrink:0; overflow:visible; background:rgba(0,0,0,0.08);
   }
   .chat-tabs::-webkit-scrollbar{display:none;}
   .chat-tab {
@@ -675,7 +674,7 @@
     font-family:'Inter',sans-serif; font-weight:400;
     background:rgba(255,255,255,0.07);
     border:1px solid rgba(255,255,255,0.08);
-    word-break:break-word; position:relative;
+    position:relative; max-width:78%;
     box-shadow:0 1px 4px rgba(0,0,0,0.1);
   }
   .chat-msg.mine .chat-bubble {
@@ -757,6 +756,20 @@
     transition:background 0.15s; white-space:nowrap;
   }
   .chat-dropdown-item:hover { background:rgba(124,58,237,0.1); color:#a78bfa; }
+  .chat-msg-actions {
+    display:none; position:absolute; top:-8px; right:-4px;
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:8px; padding:2px 4px; gap:2px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  }
+  .chat-msg.mine .chat-msg-actions { right:auto; left:-4px; }
+  .chat-msg:hover .chat-msg-actions { display:flex; }
+  .chat-msg-actions button {
+    background:transparent; border:none; cursor:pointer;
+    font-size:12px; padding:3px 5px; border-radius:5px;
+    transition:background 0.15s; line-height:1;
+  }
+  .chat-msg-actions button:hover { background:rgba(124,58,237,0.12); }
   .chat-archived {
     text-align:center; padding:9px 14px;
     background:rgba(245,158,11,0.07);
@@ -11301,21 +11314,53 @@ function buildMsgHtml(msg) {
   const initials = (msg.sender_name || msg.sender_email || '?').split(/[@. ]/)[0].slice(0,2).toUpperCase();
   const name = msg.sender_name || msg.sender_email.split('@')[0];
   const time = new Date(msg.created_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-
   const avatarColors = ['#7c3aed','#2563eb','#059669','#d97706','#db2777','#0891b2'];
   const colorIdx = name.charCodeAt(0) % avatarColors.length;
-  const avatarBg = isMine ? 'linear-gradient(135deg,#7c3aed,#2563eb)' : 'background:' + avatarColors[colorIdx];
+  const avatarStyle = isMine ? 'background:linear-gradient(135deg,#7c3aed,#2563eb)' : 'background:' + avatarColors[colorIdx];
 
-  return '<div class="chat-msg' + (isMine ? ' mine' : '') + '">' +
-    '<div class="chat-avatar" style="' + (isMine ? 'background:linear-gradient(135deg,#7c3aed,#2563eb)' : 'background:' + avatarColors[colorIdx]) + '">' + initials + '</div>' +
-    '<div>' +
+  // Edit/Delete actions — only for own messages
+  const actions = isMine && msg.id && !msg.id.startsWith('temp-') ? `
+    <div class="chat-msg-actions">
+      <button onclick="editChatMessage('${msg.id}','${escapeHtml(msg.text).replace(/'/g,"\\'")}')" title="Edit">✏️</button>
+      <button onclick="deleteChatMessage('${msg.id}')" title="Delete">🗑️</button>
+    </div>` : '';
+
+  return '<div class="chat-msg' + (isMine ? ' mine' : '') + '" data-id="' + (msg.id||'') + '">' +
+    '<div class="chat-avatar" style="' + avatarStyle + '">' + initials + '</div>' +
+    '<div style="position:relative;">' +
       '<div class="chat-meta">' +
         (!isMine ? '<span class="chat-sender-name">' + escapeHtml(name) + '</span>' : '') +
         '<span>' + time + '</span>' +
       '</div>' +
       '<div class="chat-bubble">' + escapeHtml(msg.text) + '</div>' +
+      actions +
     '</div>' +
   '</div>';
+}
+
+// ── Edit message ─────────────────────────────────────────
+async function editChatMessage(msgId, currentText) {
+  const newText = prompt('Edit message:', currentText);
+  if (!newText || newText.trim() === currentText) return;
+  try {
+    const { error } = await sbClient.from('chat_messages').update({ text: newText.trim() }).eq('id', msgId);
+    if (error) throw error;
+    // Update DOM
+    const msgEl = document.querySelector('.chat-msg[data-id="' + msgId + '"] .chat-bubble');
+    if (msgEl) msgEl.textContent = newText.trim();
+  } catch(e) { showToastMsg('Could not edit message'); }
+}
+
+// ── Delete message ────────────────────────────────────────
+async function deleteChatMessage(msgId) {
+  if (!confirm('Delete this message?')) return;
+  try {
+    const { error } = await sbClient.from('chat_messages').delete().eq('id', msgId);
+    if (error) throw error;
+    // Remove from DOM
+    const msgEl = document.querySelector('.chat-msg[data-id="' + msgId + '"]');
+    if (msgEl) msgEl.remove();
+  } catch(e) { showToastMsg('Could not delete message'); }
 }
 
 // ── Send message ─────────────────────────────────────────
