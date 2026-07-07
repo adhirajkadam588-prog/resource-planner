@@ -1295,6 +1295,19 @@
                 </select>
               </th>
               <th style="white-space:nowrap; min-width:160px;">Release</th>
+              <th style="white-space:nowrap; min-width:150px;">
+                Component
+                <select onchange="setComponentFilter(this.value || null)" id="componentFilterSelect" style="display:block; margin-top:4px; width:100%; font-size:10px; padding:3px 6px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#f1f5f9; color:#475569; font-weight:500; cursor:pointer;">
+                  <option value="">All components</option>
+                  <option>Desktop Client</option>
+                  <option>Mac Client</option>
+                  <option>HotFolder Server</option>
+                  <option>AppConnect Client</option>
+                  <option>AppConnect Server</option>
+                  <option>iOS</option>
+                  <option>Classification Migration</option>
+                </select>
+              </th>
               <th style="white-space:nowrap;">JIRA</th>
               <th style="white-space:nowrap; min-width:120px;">
                 Dev POD
@@ -2250,13 +2263,13 @@
           <span id="componentPlaceholder" style="color:var(--text-faint);font-size:13px;">— Select components —</span>
         </div>
         <div id="componentOptions" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9999;max-height:200px;overflow-y:auto;">
-          ${['Desktop Client','Mac Client','HotFolder Server','AppConnect Client','AppConnect Server','iOS','Classification Migration'].map(c =>
-            `<div class="component-option" data-value="${c}" onclick="toggleComponent('${c}')"
-              style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;"
-              onmouseover="this.style.background='rgba(124,58,237,0.08)'"
-              onmouseout="this.style.background=''">
-              <span class="comp-check" id="comp-check-${c.replace(/\s/g,'_')}" style="margin-right:8px;opacity:0;">✓</span>${c}
-            </div>`).join('')}
+          <div class="component-option" data-value="Desktop Client" onclick="toggleComponent('Desktop Client')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-Desktop_Client" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>Desktop Client</div>
+          <div class="component-option" data-value="Mac Client" onclick="toggleComponent('Mac Client')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-Mac_Client" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>Mac Client</div>
+          <div class="component-option" data-value="HotFolder Server" onclick="toggleComponent('HotFolder Server')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-HotFolder_Server" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>HotFolder Server</div>
+          <div class="component-option" data-value="AppConnect Client" onclick="toggleComponent('AppConnect Client')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-AppConnect_Client" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>AppConnect Client</div>
+          <div class="component-option" data-value="AppConnect Server" onclick="toggleComponent('AppConnect Server')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-AppConnect_Server" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>AppConnect Server</div>
+          <div class="component-option" data-value="iOS" onclick="toggleComponent('iOS')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-iOS" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>iOS</div>
+          <div class="component-option" data-value="Classification Migration" onclick="toggleComponent('Classification Migration')" style="padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.12s;" onmouseover="this.style.background='rgba(124,58,237,0.08)'" onmouseout="this.style.background=''"><span class="comp-check" id="comp-check-Classification_Migration" style="margin-right:8px;opacity:0;color:#7c3aed;font-weight:700;">✓</span>Classification Migration</div>
         </div>
       </div>
       <input type="hidden" id="projComponents" value="">
@@ -8959,6 +8972,9 @@ function renderProjects() {
   if (selectedDevPod) filtered = filtered.filter(p => p.devPod === selectedDevPod);
   if (selectedReleaseStatus) filtered = filtered.filter(p => p.status === selectedReleaseStatus);
   if (selectedComponentFilter) filtered = filtered.filter(p => (p.components||[]).includes(selectedComponentFilter));
+  // Sync component filter dropdown
+  const compSel = document.getElementById('componentFilterSelect');
+  if (compSel) compSel.value = selectedComponentFilter || '';
 
   if (state.projects.length === 0) {
     tbody.innerHTML = ''; empty.style.display = 'block'; return;
