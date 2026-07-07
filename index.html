@@ -1001,18 +1001,20 @@
         <div class="tagline" style="background:linear-gradient(90deg,#a78bfa,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;letter-spacing:0.01em;">One lens. Full picture.</div>
       </div>
       <button onclick="toggleNotificationPanel()" id="bellBtn" title="Notifications"
-        style="position:relative;width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(37,99,235,0.3));border:1px solid rgba(124,58,237,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.2s;"
-        onmouseover="this.style.background='linear-gradient(135deg,rgba(124,58,237,0.5),rgba(37,99,235,0.5))';this.style.transform='scale(1.08)'"
-        onmouseout="this.style.background='linear-gradient(135deg,rgba(124,58,237,0.3),rgba(37,99,235,0.3))';this.style.transform='scale(1)'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        style="position:relative;width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.2s;box-shadow:0 4px 14px rgba(124,58,237,0.4);"
+        onmouseover="this.style.transform='scale(1.1) rotate(-5deg)';this.style.boxShadow='0 6px 20px rgba(124,58,237,0.6)'"
+        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 14px rgba(124,58,237,0.4)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
-        <span id="bellBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border-radius:50%;min-width:17px;height:17px;font-size:9px;font-weight:700;align-items:center;justify-content:center;border:2px solid #0b1120;padding:0 2px;animation:badgePop 0.3s ease;"></span>
+        <span id="bellBadge" style="display:none;position:absolute;top:-7px;right:-7px;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border-radius:10px;min-width:20px;height:20px;font-size:10px;font-weight:800;align-items:center;justify-content:center;border:2.5px solid var(--bg);padding:0 4px;font-family:'Inter',sans-serif;box-shadow:0 2px 6px rgba(239,68,68,0.5);animation:badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1);"></span>
       </button>
       <style>
-        @keyframes badgePop { from { transform:scale(0); } to { transform:scale(1); } }
-        @keyframes bellRing { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-15deg)} 40%{transform:rotate(15deg)} 60%{transform:rotate(-10deg)} 80%{transform:rotate(10deg)} }
-        #bellBtn.has-unread svg { animation: bellRing 0.6s ease; }
+        @keyframes badgePop { from{transform:scale(0) rotate(-10deg);opacity:0} 70%{transform:scale(1.2);opacity:1} to{transform:scale(1);opacity:1} }
+        @keyframes bellRing { 0%,100%{transform:rotate(0)} 15%{transform:rotate(-18deg)} 35%{transform:rotate(18deg)} 55%{transform:rotate(-12deg)} 75%{transform:rotate(12deg)} 90%{transform:rotate(-5deg)} }
+        #bellBtn.has-unread { animation: bellGlow 2s ease infinite; }
+        #bellBtn.has-unread svg { animation: bellRing 0.7s ease; }
+        @keyframes bellGlow { 0%,100%{box-shadow:0 4px 14px rgba(124,58,237,0.4)} 50%{box-shadow:0 4px 20px rgba(239,68,68,0.6),0 0 0 4px rgba(239,68,68,0.1)} }
       </style>
     </div>
 
@@ -3684,7 +3686,7 @@ async function loadState() {
       state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
       state.knowledgeResources      = Array.isArray(parsed.knowledgeResources)      ? parsed.knowledgeResources      : [];
       state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
-      state.notifications           = Array.isArray(parsed.notifications)           ? parsed.notifications           : [];
+      state.notifications           = []; // loaded from push_notifications table separately
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
       setTimeout(() => { updateBellBadge(); }, 400);
@@ -3707,15 +3709,18 @@ async function saveState() {
   }
   const el = document.getElementById('lastSaved');
   try {
+    // IMPORTANT: exclude notifications from shared state
+    // Notifications are user-specific — stored in push_notifications table
+    const { notifications: _excluded, ...stateToSave } = state;
     const { error } = await sbClient
       .from('resource_planner')
-      .upsert({ id: 'shared', data: state, updated_at: new Date().toISOString() });
+      .upsert({ id: 'shared', data: stateToSave, updated_at: new Date().toISOString() });
     if (error) {
       console.error('Save error:', error);
       el.textContent = 'save failed: ' + error.message;
       return;
     }
-    _lastSavedAt = Date.now(); // mark our own save
+    _lastSavedAt = Date.now();
     el.textContent = 'saved ' + new Date().toLocaleTimeString();
     const toast = document.getElementById('saveToast');
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1200); }
@@ -9327,27 +9332,37 @@ function addNotification(type, title, detail, projectId) {
 
   if (!state.notifications) state.notifications = [];
 
-  // Check dismissed list — if user cleared this before, don't add again
+  // Check dismissed list
   const dismissedKey = 'tl_notif_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
   let dismissed = [];
   try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
   const notifKey = type + '|' + (projectId||'') + '|' + title;
   if (dismissed.includes(notifKey)) return;
 
-  // Dedup — same type+project+title already exists
+  // Dedup
   if (state.notifications.some(n => n.type === type && n.projectId === projectId && n.title === title)) return;
 
-  state.notifications.unshift({
-    id: uid(), type, title, detail,
-    projectId: projectId || null,
-    read: false,
-    createdAt: new Date().toISOString()
-  });
-  if (state.notifications.length > 100) state.notifications = state.notifications.slice(0, 100);
-  saveState();
-  updateBellBadge();
-  const panel = document.getElementById('notificationPanel');
-  if (panel && panel.style.display === 'flex') renderNotificationList();
+  // Save to push_notifications table (self) so it persists properly
+  if (sbClient && currentUserEmail) {
+    sbClient.from('push_notifications').insert({
+      to_email: currentUserEmail, from_email: currentUserEmail,
+      type, title, detail, project_id: projectId || null
+    }).then(() => {}).catch(() => {
+      // Fallback: add to local state only
+      state.notifications.unshift({ id: uid(), type, title, detail, projectId: projectId||null, read: false, createdAt: new Date().toISOString() });
+      if (state.notifications.length > 100) state.notifications = state.notifications.slice(0, 100);
+      updateBellBadge();
+      const panel = document.getElementById('notificationPanel');
+      if (panel && panel.style.display === 'flex') renderNotificationList();
+    });
+  } else {
+    // No Supabase — local only
+    state.notifications.unshift({ id: uid(), type, title, detail, projectId: projectId||null, read: false, createdAt: new Date().toISOString() });
+    if (state.notifications.length > 100) state.notifications = state.notifications.slice(0, 100);
+    updateBellBadge();
+    const panel = document.getElementById('notificationPanel');
+    if (panel && panel.style.display === 'flex') renderNotificationList();
+  }
 }
 
 function updateBellBadge() {
@@ -9355,18 +9370,18 @@ function updateBellBadge() {
   const bell  = document.getElementById('bellBtn');
   if (!badge) return;
 
-  // Count only unread assigned + milestone notifications
+  // Count only unread assigned + milestone
   const unread = (state.notifications || []).filter(n =>
     !n.read && (n.type === 'assigned' || n.type === 'milestone')
   ).length;
 
   if (unread > 0) {
-    badge.removeAttribute('style');
-    badge.style.cssText = 'display:flex !important;';
+    badge.style.cssText = 'position:absolute;top:-7px;right:-7px;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border-radius:10px;min-width:20px;height:20px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2.5px solid var(--bg);padding:0 4px;font-family:Inter,sans-serif;box-shadow:0 2px 6px rgba(239,68,68,0.5);';
     badge.textContent = unread > 9 ? '9+' : String(unread);
     if (bell) bell.classList.add('has-unread');
   } else {
     badge.style.display = 'none';
+    badge.textContent = '';
     if (bell) bell.classList.remove('has-unread');
   }
 }
