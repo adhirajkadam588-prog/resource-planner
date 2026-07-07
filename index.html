@@ -2657,14 +2657,23 @@ function initRealtime() {
       console.log('[Realtime] Change received from another user — reloading...');
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
-        // Double-check user is not typing before reloading
+        // If user is typing, wait and retry
         const el = document.activeElement;
         if (el && ['INPUT','TEXTAREA','SELECT'].includes(el.tagName)) {
-          console.log('[Realtime] Deferred reload — user typing, will retry');
+          console.log('[Realtime] User typing — retrying in 3s');
+          setTimeout(async () => {
+            await loadState();
+            const changed = syncTestPlanToProjects();
+            if (changed) await saveState();
+            markAllDirty();
+            renderAll();
+            showSyncToast();
+          }, 3000);
           return;
         }
         await loadState();
-        syncTestPlanToProjects();
+        const changed = syncTestPlanToProjects();
+        if (changed) await saveState();
         markAllDirty();
         renderAll();
         showSyncToast();
@@ -3748,9 +3757,11 @@ async function loadState() {
       state.notifications           = []; // loaded from push_notifications table separately
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
-      // Enforce review gate — if not reviewed, clear synced values
+      // Enforce review gate — clear values if not reviewed
       const syncChanged = syncTestPlanToProjects();
-      if (syncChanged && currentUserRole === 'admin') saveState(); // persist clean state
+      if (syncChanged && (currentUserRole === 'admin' || Object.values(currentUserPermissions).some(v => v === 'edit'))) {
+        saveState();
+      }
       setTimeout(() => { updateBellBadge(); }, 400);
       setTimeout(() => {
       }, 300);
@@ -5050,6 +5061,20 @@ function requestReview(projectId) {
     requestedAt: new Date().toISOString(),
     status: 'pending'
   });
+
+  // Push notification to QA Lead
+  if (proj.qaLead) {
+    const lead = state.people.find(p => p.name && p.name.toLowerCase() === proj.qaLead.toLowerCase());
+    if (lead && lead.email && lead.email.toLowerCase() !== currentUserEmail.toLowerCase()) {
+      pushNotificationTo(
+        lead.email,
+        'assigned',
+        '📋 Review requested — ' + proj.name,
+        'Requested by ' + currentUserEmail.split('@')[0],
+        projectId
+      );
+    }
+  }
 
   saveState();
   markDirty('dashboard');
