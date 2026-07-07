@@ -2861,6 +2861,8 @@ async function initApp(user) {
   buildChatTabs();
   subscribeAllChatRooms();
   initChatPresence();
+  await loadPushNotifications();
+  subscribePushNotifications();
 }
 
 function seedVMData() {
@@ -7561,11 +7563,14 @@ function saveTestRow() {
   editingTestRowId = null;
   closeModal('testRowModal');
 
-  // Add assigned notification — assignee will see it when they open the app
+  // Push assigned notification to the actual assignee
   if (assigneeId) {
     const assignee = state.people.find(p => p.id === assigneeId);
     const projName = (state.projects.find(p => p.id === selectedTestPlanProjectId) || {}).name || '';
-    if (assignee) {
+    if (assignee && assignee.email && assignee.email.toLowerCase() !== currentUserEmail.toLowerCase()) {
+      pushNotificationTo(assignee.email, 'assigned', 'You were assigned to ' + name, projName, selectedTestPlanProjectId);
+    } else if (assignee) {
+      // Self-assign — add locally
       addNotification('assigned', 'You were assigned to ' + name, projName, selectedTestPlanProjectId);
     }
   }
@@ -7618,13 +7623,23 @@ function saveBufferValues() {
   plan.testPrepAssigneeIds.forEach(id => {
     if (oldPrepIds.includes(id)) return;
     const assignee = state.people.find(p => p.id === id);
-    if (assignee) addNotification('assigned', 'You were assigned to Test prep', projName, selectedTestPlanProjectId);
+    if (!assignee) return;
+    if (assignee.email && assignee.email.toLowerCase() !== currentUserEmail.toLowerCase()) {
+      pushNotificationTo(assignee.email, 'assigned', 'You were assigned to Test prep', projName, selectedTestPlanProjectId);
+    } else {
+      addNotification('assigned', 'You were assigned to Test prep', projName, selectedTestPlanProjectId);
+    }
   });
 
   plan.testEnvAssigneeIds.forEach(id => {
     if (oldEnvIds.includes(id)) return;
     const assignee = state.people.find(p => p.id === id);
-    if (assignee) addNotification('assigned', 'You were assigned to Test env & Data prep', projName, selectedTestPlanProjectId);
+    if (!assignee) return;
+    if (assignee.email && assignee.email.toLowerCase() !== currentUserEmail.toLowerCase()) {
+      pushNotificationTo(assignee.email, 'assigned', 'You were assigned to Test env & Data prep', projName, selectedTestPlanProjectId);
+    } else {
+      addNotification('assigned', 'You were assigned to Test env & Data prep', projName, selectedTestPlanProjectId);
+    }
   });
 
   if (reviewed) {
@@ -9175,6 +9190,88 @@ function switchTimelineView(view) {
 }
 
 // ── Notification System ─────────────────────────────────────
+// ── Push Notifications — Send to specific user ────────────
+async function pushNotificationTo(toEmail, type, title, detail, projectId) {
+  if (!sbClient || !toEmail) return;
+  try {
+    await sbClient.from('push_notifications').insert({
+      to_email:   toEmail,
+      from_email: currentUserEmail,
+      type, title, detail,
+      project_id: projectId || null,
+    });
+  } catch(e) { console.warn('Push notification failed:', e); }
+}
+
+// ── Subscribe to incoming push notifications ──────────────
+function subscribePushNotifications() {
+  if (!sbClient || !currentUserEmail) return;
+  sbClient.channel('push-notif:' + currentUserEmail)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'push_notifications',
+      filter: 'to_email=eq.' + currentUserEmail
+    }, (payload) => {
+      const n = payload.new;
+      // Add to local state and show
+      if (!state.notifications) state.notifications = [];
+      state.notifications.unshift({
+        id:        n.id,
+        type:      n.type,
+        title:     n.title,
+        detail:    n.detail,
+        projectId: n.project_id,
+        read:      false,
+        createdAt: n.created_at,
+      });
+      if (state.notifications.length > 50) state.notifications = state.notifications.slice(0, 50);
+      updateBellBadge();
+      const panel = document.getElementById('notificationPanel');
+      if (panel && panel.style.display === 'flex') renderNotificationList();
+    })
+    .subscribe();
+}
+
+// ── Load push notifications from Supabase on login ────────
+async function loadPushNotifications() {
+  if (!sbClient || !currentUserEmail) return;
+  try {
+    const { data, error } = await sbClient
+      .from('push_notifications')
+      .select('*')
+      .eq('to_email', currentUserEmail)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    if (!data || data.length === 0) return;
+
+    const existing = new Set((state.notifications || []).map(n => n.id));
+    const newOnes = data
+      .filter(n => !existing.has(n.id))
+      .map(n => ({
+        id:        n.id,
+        type:      n.type,
+        title:     n.title,
+        detail:    n.detail,
+        projectId: n.project_id,
+        read:      n.read,
+        createdAt: n.created_at,
+      }));
+
+    if (newOnes.length > 0) {
+      state.notifications = [...newOnes, ...(state.notifications || [])].slice(0, 50);
+      updateBellBadge();
+    }
+  } catch(e) { console.warn('loadPushNotifications:', e); }
+}
+
+// ── Mark push notification as read in Supabase ────────────
+async function markPushNotifRead(notifId) {
+  if (!sbClient) return;
+  try {
+    await sbClient.from('push_notifications').update({ read: true }).eq('id', notifId);
+  } catch(e) {}
+}
+
 function addNotification(type, title, detail, projectId) {
   if (!state.notifications) state.notifications = [];
   // Only admin bypasses filter — Lead and QA must be associated
@@ -11130,6 +11227,9 @@ function initChat() {
   // Show FAB immediately — no waiting for DB
   const fab = document.getElementById('chatFab');
   if (fab) { fab.removeAttribute('style'); fab.style.display = 'flex'; }
+  // Set mute button icon from saved preference
+  const muteBtn = document.getElementById('chatMuteBtn');
+  if (muteBtn) muteBtn.textContent = _chatSoundMuted ? '🔇' : '🔔';
   updateChatOnline();
   // Build tabs and load messages safely
   try { buildChatTabs(); } catch(e) { console.warn('buildChatTabs error:', e); }
@@ -11212,10 +11312,12 @@ function buildChatTabs() {
 async function switchChatRoom(roomId) {
   _chatRoom = roomId;
 
-  // Update active tab
-  document.querySelectorAll('.chat-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.room === roomId);
-  });
+  // Rebuild tabs — updates active state + button label
+  buildChatTabs();
+
+  // Close dropdown if open
+  const dd = document.getElementById('chatDropdown');
+  if (dd) dd.style.display = 'none';
 
   // Check if completed release (read-only)
   const proj = (state.projects || []).find(p => p.id === roomId);
@@ -11316,12 +11418,14 @@ function subscribeChatRoom(roomId) {
       const msg = payload.new;
       if (!_chatMessages[roomId]) _chatMessages[roomId] = [];
       _chatMessages[roomId].push(msg);
-      // Only append if this is the current open room
+      // Skip own messages — already shown via tempMsg optimistically
+      if (msg.sender_email === currentUserEmail) return;
       if (_chatRoom === roomId) appendChatMessage(msg);
       // Badge + notification for messages from others
       if (msg.sender_email !== currentUserEmail) {
         _chatUnread++;
         updateChatBadge();
+        playChatSound();
         // Browser notification if window not focused
         showChatNotification(msg, roomId);
       }
@@ -11366,13 +11470,44 @@ function subscribeAllChatRooms() {
         }
         _chatUnread++;
         updateChatBadge();
+        playChatSound();
         showChatNotification(msg, roomId);
       })
       .subscribe();
   });
 }
 
-// ── Show notification ────────────────────────────────────
+// ── Chat Sound ───────────────────────────────────────────
+let _chatSoundMuted = localStorage.getItem('tl_chat_muted') === 'true';
+
+function playChatSound() {
+  if (_chatSoundMuted) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Friendly "pop" sound — two tones
+    [880, 1100].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.08 + 0.01);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.08 + 0.12);
+      osc.start(ctx.currentTime + i * 0.08);
+      osc.stop(ctx.currentTime + i * 0.08 + 0.15);
+    });
+  } catch(e) {}
+}
+
+function toggleChatSound() {
+  _chatSoundMuted = !_chatSoundMuted;
+  localStorage.setItem('tl_chat_muted', _chatSoundMuted);
+  const btn = document.getElementById('chatMuteBtn');
+  if (btn) btn.textContent = _chatSoundMuted ? '🔇' : '🔔';
+  if (!_chatSoundMuted) playChatSound(); // preview sound
+}
 function showChatNotification(msg, roomId) {
   const senderName = msg.sender_name || msg.sender_email.split('@')[0];
   const roomName = roomId === 'global' ? 'Global' :
@@ -11804,7 +11939,10 @@ function updateChatOnline() {
         <div style="font-size:10.5px;color:var(--text-faint);font-family:'Inter',sans-serif;" id="chatOnlineCount">Loading...</div>
       </div>
     </div>
-    <button class="chat-header-close" onclick="toggleChat()">✕ Close</button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button id="chatMuteBtn" onclick="toggleChatSound()" title="Toggle sound" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text-faint);font-size:14px;cursor:pointer;padding:4px 8px;line-height:1;transition:all 0.15s;font-family:inherit;">🔔</button>
+      <button class="chat-header-close" onclick="toggleChat()">✕ Close</button>
+    </div>
   </div>
 
   <!-- Tabs -->
