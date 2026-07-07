@@ -7882,31 +7882,35 @@ function renderTestPlan() {
     <div class="stat-card"><div class="label">No of people / Total CD</div><div class="value">${noOfPeople} <span style="font-size:14px; color:var(--text-faint);">/ ${totalCD}</span></div></div>
   `;
 
-  // Auto-sync: push values from this Test plan into the linked project on
-  // the Projects tab, so they don't need to be entered manually twice.
-  // - Total PDs with buffer -> Total QA efforts
-  // - BVT completion milestone -> BVT completion date
-  // - Execution completion with buffer milestone -> QA completion date
-  // - Merged build go ahead milestone -> Go ahead date
-  // Only write and re-render if something actually changed, to avoid loops.
+  // Auto-sync: push values from Test plan into linked project ONLY if reviewed
   const linkedProject = state.projects.find(p => p.id === selectedTestPlanProjectId);
   if (linkedProject) {
+    const isReviewed = plan.reviewed === true;
     let changed = false;
-    if (linkedProject.effort !== totalPDsWithBuffer) {
-      linkedProject.effort = totalPDsWithBuffer;
-      changed = true;
-    }
-    if (plan.milestones.bvtCompletion && linkedProject.bvtCompletionDate !== plan.milestones.bvtCompletion) {
-      linkedProject.bvtCompletionDate = plan.milestones.bvtCompletion;
-      changed = true;
-    }
-    if (plan.milestones.execWithBuffer && linkedProject.completionDate !== plan.milestones.execWithBuffer) {
-      linkedProject.completionDate = plan.milestones.execWithBuffer;
-      changed = true;
-    }
-    if (plan.milestones.mergedBuildGoAhead && linkedProject.goAheadDate !== plan.milestones.mergedBuildGoAhead) {
-      linkedProject.goAheadDate = plan.milestones.mergedBuildGoAhead;
-      changed = true;
+
+    if (isReviewed) {
+      // Only sync these values after lead review
+      if (linkedProject.effort !== totalPDsWithBuffer) {
+        linkedProject.effort = totalPDsWithBuffer;
+        changed = true;
+      }
+      if (plan.milestones.bvtCompletion && linkedProject.bvtCompletionDate !== plan.milestones.bvtCompletion) {
+        linkedProject.bvtCompletionDate = plan.milestones.bvtCompletion;
+        changed = true;
+      }
+      if (plan.milestones.execWithBuffer && linkedProject.completionDate !== plan.milestones.execWithBuffer) {
+        linkedProject.completionDate = plan.milestones.execWithBuffer;
+        changed = true;
+      }
+      if (plan.milestones.mergedBuildGoAhead && linkedProject.goAheadDate !== plan.milestones.mergedBuildGoAhead) {
+        linkedProject.goAheadDate = plan.milestones.mergedBuildGoAhead;
+        changed = true;
+      }
+    } else {
+      // Not reviewed — clear synced values
+      if (linkedProject.effort !== '')         { linkedProject.effort         = ''; changed = true; }
+      if (linkedProject.goAheadDate !== '')    { linkedProject.goAheadDate    = ''; changed = true; }
+      if (linkedProject.completionDate !== '') { linkedProject.completionDate = ''; changed = true; }
     }
     if (changed) {
       saveState();
@@ -9907,8 +9911,8 @@ function renderGantt() {
     const plan = state.testPlans?.[proj.id];
 
     const buildDate = proj.buildDate || '';
-    const qaDate    = (plan?.milestones?.execWithBuffer || proj.completionDate);
-    const gaDate    = (plan?.milestones?.mergedBuildGoAhead || proj.goAheadDate);
+    const qaDate    = proj.completionDate || '';
+    const gaDate    = proj.goAheadDate || '';
     const relDate   = proj.releaseDate;
 
     const color = STATUS_COLORS[proj.status] || '#94a3b8';
@@ -9994,16 +9998,10 @@ function renderReleaseHealth() {
     const qaComplete  = proj.completionDate || '';
     const goAhead     = proj.goAheadDate || '';
 
-    // Also pull from test plan milestones
-    const plan = state.testPlans && state.testPlans[proj.id];
-    const tpBuildPickup  = plan?.milestones?.buildPickup  || '';
-    const tpGoAhead      = plan?.milestones?.mergedBuildGoAhead || '';
-    const tpQAComplete   = plan?.milestones?.execWithBuffer || '';
-
-    // Use test plan dates if available, fallback to release item dates
-    const effectiveBuild    = tpBuildPickup || buildDate;
-    const effectiveGoAhead  = tpGoAhead || goAhead;
-    const effectiveQADone   = tpQAComplete || qaComplete;
+    // Use proj fields only — gated by review approval
+    const effectiveBuild    = buildDate;
+    const effectiveGoAhead  = goAhead;
+    const effectiveQADone   = qaComplete;
 
     // ---- Risk checks ----
     const risks = [];
