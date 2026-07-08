@@ -5445,6 +5445,7 @@ function requestReview(projectId) {
     }
   }
 
+  saveTestPlan(projectId, getTestPlanForProject(projectId));
   saveState();
   markDirty('dashboard');
   renderTab('dashboard');
@@ -5844,6 +5845,9 @@ function clearReviewApproval() {
 
   // Sync first clears fields — then save so all users get updated state
   syncTestPlanToProjects();
+  saveTestPlan(selectedTestPlanProjectId, plan);
+  const updProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
+  if (updProj) saveRelease(updProj);
   saveState();
   clearRenderCache();
   renderTestPlan();
@@ -8158,6 +8162,7 @@ function saveBufferValues() {
   }
 
   syncTestPlanToProjects();
+  saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
   debouncedSave();
   renderTestPlan();
   markDirty('projects');
@@ -8171,7 +8176,8 @@ async function saveMilestones() {
   plan.milestones.execNoBuffer       = document.getElementById('msExecNoBuffer').value;
   plan.milestones.execWithBuffer     = document.getElementById('msExecWithBuffer').value;
   plan.milestones.mergedBuildGoAhead = document.getElementById('msMergedBuildGoAhead').value;
-  syncTestPlanToProjects(); // enforce review gate on dates
+  syncTestPlanToProjects();
+  saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
   await saveState();
   renderTestPlan();
 }
@@ -8642,6 +8648,7 @@ function buildTestPlanProjectSectionHtml(proj) {
         ${(proj.goAheadBy || proj.goAheadDate || proj.buildDate || proj.completionDate) ? `
         <div class="meta-pills">
           ${proj.jiraUrl ? `<span class="meta-pill"><span class="pill-icon">🎫</span> JIRA: <strong><a href="${escapeHtml(proj.jiraUrl)}" target="_blank" style="color:#1d4ed8; text-decoration:none;">${extractJiraId(proj.jiraUrl) || proj.jiraUrl}</a></strong></span>` : ''}
+          ${proj.component ? `<span class="meta-pill" style="background:#f0fdf4;border-color:#86efac;"><span class="pill-icon">🧩</span> Component: <strong style="color:#15803d;">${escapeHtml(proj.component)}</strong></span>` : ''}
           ${proj.completionDate ? `<span class="meta-pill"><span class="pill-icon">🏁</span> QA done: <strong>${formatDateDisplay(proj.completionDate)}</strong></span>` : ''}
           ${proj.goAheadDate ? `<span class="meta-pill"><span class="pill-icon">🚀</span> Go ahead: <strong>${formatDateDisplay(proj.goAheadDate)}</strong></span>` : ''}
           ${proj.goAheadBy ? `<span class="meta-pill"><span class="pill-icon">👤</span> By: <strong>${escapeHtml(proj.goAheadBy)}</strong></span>` : ''}
