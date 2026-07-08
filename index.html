@@ -1704,16 +1704,13 @@
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:16px;">📝</span>
           <div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);">Unsaved changes</div>
-            <div style="font-size:11px;color:var(--text-faint);" id="draftLastSaved">Draft not saved yet</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">Changes saved locally</div>
+            <div style="font-size:11px;color:var(--text-faint);" id="draftLastSaved">Click Publish to sync with all users</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;">
           <button onclick="discardDraft()" style="background:transparent;color:var(--text-faint);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
             🗑️ Discard
-          </button>
-          <button onclick="saveDraft()" style="background:rgba(124,58,237,0.12);color:#7c3aed;border:1px solid rgba(124,58,237,0.3);border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">
-            💾 Save Draft
           </button>
           <button onclick="publishDraft()" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
             🚀 Publish
@@ -8263,7 +8260,12 @@ function saveBufferValues() {
   syncTestPlanToProjects();
   saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
   debouncedSave();
-  markTestPlanDirty(); // Show draft bar
+  // Auto-save draft locally
+  if (selectedTestPlanProjectId) {
+    const plan = getTestPlanForProject(selectedTestPlanProjectId);
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
+  }
+  markTestPlanDirty();
   renderTestPlan();
   markDirty('projects');
 }
@@ -8279,6 +8281,11 @@ async function saveMilestones() {
   syncTestPlanToProjects();
   saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
   await saveState();
+  // Auto-save draft locally
+  if (selectedTestPlanProjectId) {
+    const plan = getTestPlanForProject(selectedTestPlanProjectId);
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
+  }
   markTestPlanDirty();
   renderTestPlan();
 }
