@@ -2637,6 +2637,9 @@ let realtimeChannel = null;
 let _realtimeDebounce = null;
 let _lastSavedAt = null; // timestamp of our own last save — to skip self-updates
 
+let _isSaving = false;
+let _lastSaveTimestamp = null;
+
 function initRealtime() {
   if (realtimeChannel) {
     sbClient.removeChannel(realtimeChannel);
@@ -2651,41 +2654,21 @@ function initRealtime() {
       table: 'resource_planner',
       filter: 'id=eq.shared'
     }, (payload) => {
-      // Skip if WE saved in last 5s — prevents overwriting own input
-      if (_lastSavedAt && Date.now() - _lastSavedAt < 5000) {
+      // Skip if WE saved recently
+      if (_lastSavedAt && Date.now() - _lastSavedAt < 3000) {
         console.log('[Realtime] Skipping own save echo');
-        return;
-      }
-
-      // Skip if user is actively typing in any input/textarea/select
-      const activeEl = document.activeElement;
-      if (activeEl && ['INPUT','TEXTAREA','SELECT'].includes(activeEl.tagName)) {
-        console.log('[Realtime] Skipping — user is actively typing');
         return;
       }
 
       console.log('[Realtime] Change received from another user — reloading...');
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
-        // If user is typing, wait and retry
-        const el = document.activeElement;
-        if (el && ['INPUT','TEXTAREA','SELECT'].includes(el.tagName)) {
-          console.log('[Realtime] User typing — retrying in 3s');
-          setTimeout(async () => {
-            await loadState();
-            syncTestPlanToProjects();
-            markAllDirty();
-            renderAll();
-            showSyncToast();
-          }, 3000);
-          return;
-        }
         await loadState();
         syncTestPlanToProjects();
         markAllDirty();
         renderAll();
         showSyncToast();
-      }, 1500); // longer debounce — 1.5s
+      }, 800);
     })
     .subscribe((status) => {
       const indicator = document.getElementById('realtimeIndicator');
@@ -3802,8 +3785,6 @@ async function saveState() {
   }
   const el = document.getElementById('lastSaved');
   try {
-    // IMPORTANT: exclude notifications from shared state
-    // Notifications are user-specific — stored in push_notifications table
     const { notifications: _excluded, ...stateToSave } = state;
     const { error } = await sbClient
       .from('resource_planner')
