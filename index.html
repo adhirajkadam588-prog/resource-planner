@@ -2405,8 +2405,18 @@
 <div class="modal-overlay" id="activityLogModal">
   <div class="modal" style="width:580px;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-      <h3 style="margin:0;">📋 Activity log</h3>
+      <h3 style="margin:0;" id="activityLogTitle">📋 Activity log</h3>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <select id="actTypeFilter" onchange="renderActivityList()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-family:inherit;cursor:pointer;">
+          <option value="">All activities</option>
+          <option value="Release">📁 Release</option>
+          <option value="Daily plan">📅 Daily plan</option>
+          <option value="Leave">🏖️ Leave</option>
+          <option value="Person">👤 People</option>
+          <option value="Note">📝 Notes</option>
+          <option value="Build">🔄 Build delay/early</option>
+          <option value="Bulk">🗑️ Bulk actions</option>
+        </select>
         <span style="font-size:12px; color:var(--text-faint);">Show last:</span>
         <div style="display:flex; gap:5px;">
           <button onclick="filterActivityLog(1)"   id="actPill1"   style="padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid #0f172a; background:#0f172a; color:white; font-family:inherit;">Today</button>
@@ -3378,17 +3388,23 @@ let _activityDayFilter = 0; // 0 = All
 async function openActivityLog() {
   const listEl = document.getElementById('activityLogList');
   listEl.innerHTML = `<div style="color:var(--text-faint); font-size:12px; padding:16px; text-align:center;">Loading…</div>`;
+  // Update title based on role
+  const titleEl = document.getElementById('activityLogTitle');
+  if (titleEl) titleEl.textContent = '📋 Activity log';
   document.getElementById('activityLogModal').classList.add('show');
 
   let logs = [];
   let supabaseLoaded = false;
 
   try {
-    const { data, error } = await sbClient
+    let query = sbClient
       .from('activity_log')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(500);
+
+
+    const { data, error } = await query;
     if (!error && data && data.length > 0) {
       logs = data;
       supabaseLoaded = true;
@@ -3403,8 +3419,10 @@ async function openActivityLog() {
   }
 
   _activityLogs = logs;
-  _activityDayFilter = 1; // default — Today
+  _activityDayFilter = 1;
   document.getElementById('actCustomDays').value = '';
+  const typeSel = document.getElementById('actTypeFilter');
+  if (typeSel) typeSel.value = '';
   setActivityPill(1);
   renderActivityList();
 }
@@ -3440,6 +3458,13 @@ function renderActivityList() {
   if (!listEl) return;
 
   let logs = _activityLogs;
+
+  // Apply activity type filter
+  const typeSel = document.getElementById('actTypeFilter');
+  const selectedType = typeSel ? typeSel.value : '';
+  if (selectedType) {
+    logs = logs.filter(l => l.action && l.action.toLowerCase().includes(selectedType.toLowerCase()));
+  }
 
   // Apply day filter
   if (_activityDayFilter > 0) {
