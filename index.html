@@ -2654,6 +2654,214 @@ let _lastSavedAt = null; // timestamp of our own last save — to skip self-upda
 let _isSaving = false;
 let _lastSaveTimestamp = null;
 
+
+// ── Separate table functions ──────────────────────────────
+
+// Save individual release to releases table
+async function saveRelease(proj) {
+  if (!sbClient || !proj || !proj.id) return;
+  try {
+    await sbClient.from('releases').upsert({
+      id: proj.id,
+      data: proj,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveRelease error:', e); }
+}
+
+// Delete release from releases table
+async function deleteRelease(projId) {
+  if (!sbClient || !projId) return;
+  try {
+    await sbClient.from('releases').delete().eq('id', projId);
+  } catch(e) { console.warn('deleteRelease error:', e); }
+}
+
+// Save individual test plan
+async function saveTestPlan(projectId, plan) {
+  if (!sbClient || !projectId) return;
+  try {
+    await sbClient.from('test_plans').upsert({
+      project_id: projectId,
+      data: plan,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveTestPlan error:', e); }
+}
+
+// Delete test plan
+async function deleteTestPlan(projectId) {
+  if (!sbClient || !projectId) return;
+  try {
+    await sbClient.from('test_plans').delete().eq('project_id', projectId);
+  } catch(e) { console.warn('deleteTestPlan error:', e); }
+}
+
+// Save individual daily plan entry
+async function saveDailyPlanEntry(entry) {
+  if (!sbClient || !entry || !entry.id) return;
+  try {
+    await sbClient.from('daily_plan').upsert({
+      id: entry.id,
+      data: entry,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveDailyPlanEntry error:', e); }
+}
+
+// Delete daily plan entry
+async function deleteDailyPlanEntry(entryId) {
+  if (!sbClient || !entryId) return;
+  try {
+    await sbClient.from('daily_plan').delete().eq('id', entryId);
+  } catch(e) { console.warn('deleteDailyPlanEntry error:', e); }
+}
+
+// Load all releases from releases table
+async function loadReleases() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('releases')
+      .select('data')
+      .order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) {
+      state.projects = data.map(r => r.data);
+    }
+  } catch(e) { console.warn('loadReleases error:', e); }
+}
+
+// Load all test plans from test_plans table
+async function loadTestPlans() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('test_plans')
+      .select('project_id, data');
+    if (error) throw error;
+    if (data && data.length > 0) {
+      state.testPlans = {};
+      data.forEach(r => { state.testPlans[r.project_id] = r.data; });
+    }
+  } catch(e) { console.warn('loadTestPlans error:', e); }
+}
+
+// Load all daily plan entries
+async function loadDailyPlan() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('daily_plan')
+      .select('data')
+      .order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) {
+      state.dailyPlan = data.map(r => r.data);
+    }
+  } catch(e) { console.warn('loadDailyPlan error:', e); }
+}
+
+// Migrate existing data from resource_planner to separate tables
+async function migrateToSeparateTables() {
+  console.log('[Migration] Starting...');
+  try {
+    // Migrate projects
+    if (state.projects && state.projects.length > 0) {
+      for (const proj of state.projects) {
+        await saveRelease(proj);
+      }
+      console.log('[Migration] Projects migrated:', state.projects.length);
+    }
+
+    // Migrate test plans
+    if (state.testPlans && Object.keys(state.testPlans).length > 0) {
+      for (const [projId, plan] of Object.entries(state.testPlans)) {
+        await saveTestPlan(projId, plan);
+      }
+      console.log('[Migration] Test plans migrated:', Object.keys(state.testPlans).length);
+    }
+
+    // Migrate daily plan
+    if (state.dailyPlan && state.dailyPlan.length > 0) {
+      for (const entry of state.dailyPlan) {
+        if (entry.id) await saveDailyPlanEntry(entry);
+      }
+      console.log('[Migration] Daily plan migrated:', state.dailyPlan.length);
+    }
+
+    // Mark migration done
+    localStorage.setItem('tl_migrated_v2', 'true');
+    console.log('[Migration] Complete!');
+    showToastMsg('✅ Data migrated to separate tables!');
+  } catch(e) {
+    console.error('[Migration] Failed:', e);
+  }
+}
+
+// Subscribe to realtime changes for separate tables
+function initSeparateTableRealtime() {
+  if (!sbClient) return;
+
+  // Releases realtime
+  sbClient.channel('releases-changes')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'releases'
+    }, async (payload) => {
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const proj = payload.new?.data;
+        if (!proj) return;
+        const idx = state.projects.findIndex(p => p.id === proj.id);
+        if (idx >= 0) state.projects[idx] = proj;
+        else state.projects.push(proj);
+      } else if (payload.eventType === 'DELETE') {
+        state.projects = state.projects.filter(p => p.id !== payload.old?.id);
+      }
+      markDirty('projects', 'summary', 'dashboard', 'archive', 'testplan');
+      renderAll();
+    })
+    .subscribe();
+
+  // Test plans realtime
+  sbClient.channel('test-plans-changes')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'test_plans'
+    }, async (payload) => {
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const projId = payload.new?.project_id;
+        const plan = payload.new?.data;
+        if (projId && plan) state.testPlans[projId] = plan;
+      } else if (payload.eventType === 'DELETE') {
+        delete state.testPlans[payload.old?.project_id];
+      }
+      syncTestPlanToProjects();
+      markDirty('testplan', 'projects', 'summary', 'dashboard');
+      renderAll();
+    })
+    .subscribe();
+
+  // Daily plan realtime
+  sbClient.channel('daily-plan-changes')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'daily_plan'
+    }, async (payload) => {
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const entry = payload.new?.data;
+        if (!entry) return;
+        const idx = state.dailyPlan.findIndex(e => e.id === entry.id);
+        if (idx >= 0) state.dailyPlan[idx] = entry;
+        else state.dailyPlan.push(entry);
+      } else if (payload.eventType === 'DELETE') {
+        state.dailyPlan = state.dailyPlan.filter(e => e.id !== payload.old?.id);
+      }
+      markDirty('dailyplan', 'dashboard');
+      renderAll();
+    })
+    .subscribe();
+
+  console.log('[Realtime] Separate table subscriptions active');
+}
+
 function initRealtime() {
   if (realtimeChannel) {
     sbClient.removeChannel(realtimeChannel);
@@ -2937,6 +3145,12 @@ async function initApp(user) {
   initChatPresence();
   await loadPushNotifications();
   subscribePushNotifications();
+  // Initialize separate table realtime
+  initSeparateTableRealtime();
+  // Migrate existing data if not done yet
+  if (!localStorage.getItem('tl_migrated_v2')) {
+    await migrateToSeparateTables();
+  }
 
   // Run notification checks ONCE per session
   if (!window._notifCheckedThisSession) {
@@ -3779,7 +3993,9 @@ async function loadState() {
       state.notifications           = []; // loaded from push_notifications table separately
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
-      // Enforce review gate — clear values if not reviewed
+      // Load from separate tables (overrides shared state)
+      await Promise.all([loadReleases(), loadTestPlans(), loadDailyPlan()]);
+      // Enforce review gate
       syncTestPlanToProjects();
       setTimeout(() => { updateBellBadge(); }, 400);
       setTimeout(() => {
@@ -5592,8 +5808,11 @@ function toggleReviewApproval() {
           : r
       );
     }
-    // Sync first — then save so synced values are persisted for all users
     syncTestPlanToProjects();
+    // Save to separate tables
+    saveTestPlan(selectedTestPlanProjectId, plan);
+    const updatedProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
+    if (updatedProj) saveRelease(updatedProj);
     saveState();
     clearRenderCache();
     renderTestPlan();
@@ -7441,6 +7660,14 @@ function saveProject() {
   editingProjectId = null;
   closeModal('projectModal');
   syncTestPlanToProjects();
+
+  // Save to releases table (separate table for simultaneous editing)
+  const savedProj = state.projects.find(p => p.id === (editingProjectId || state.projects[state.projects.length-1]?.id));
+  const projToSave = editingProjectId
+    ? state.projects.find(p => p.id === editingProjectId)
+    : state.projects[state.projects.length - 1];
+  if (projToSave) saveRelease(projToSave);
+
   saveState();
   renderAll();
 }
@@ -7457,6 +7684,9 @@ function deleteProject(id) {
   }
   delete state.testPlans[id];
   if (selectedTestPlanProjectId === id) selectedTestPlanProjectId = null;
+  // Delete from separate tables
+  deleteRelease(id);
+  deleteTestPlan(id);
   saveState();
   renderAll();
 }
@@ -7847,6 +8077,7 @@ function saveTestRow() {
   }
 
   syncTestPlanToProjects();
+  saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
   saveState();
   renderTestPlan();
   markDirty('projects');
@@ -7857,6 +8088,7 @@ function deleteTestRow(id) {
   const row = plan.rows.find(r => r.id === id);
   snapshotState(`Delete test row: ${row?.name || id}`);
   plan.rows = plan.rows.filter(r => r.id !== id);
+  saveTestPlan(selectedTestPlanProjectId, plan);
   saveState();
   renderTestPlan();
 }
@@ -11283,7 +11515,11 @@ function saveDailyPlan() {
   }
   dates.forEach(date => {
     const alreadyExists = state.dailyPlan.some(d => d.personId === personId && d.project === project && d.task === task && d.date === date);
-    if (!alreadyExists) state.dailyPlan.push({ id: uid(), personId, project, task: task || '', date });
+    if (!alreadyExists) {
+      const newEntry = { id: uid(), personId, project, task: task || '', date };
+      state.dailyPlan.push(newEntry);
+      saveDailyPlanEntry(newEntry); // Save to separate table
+    }
   });
   logActivity('Daily plan assigned', {
     name: person?.name || personId, project,
@@ -11300,8 +11536,11 @@ function clearDailyPlanCell(personId, date, entryId) {
   snapshotState(`Clear daily plan: ${person?.name || ''} on ${formatDateDisplay(date)}`);
   if (entryId) {
     state.dailyPlan = state.dailyPlan.filter(d => d.id !== entryId);
+    deleteDailyPlanEntry(entryId); // Delete from separate table
   } else {
+    const toDelete = state.dailyPlan.filter(d => d.personId === personId && d.date === date);
     state.dailyPlan = state.dailyPlan.filter(d => !(d.personId === personId && d.date === date));
+    toDelete.forEach(d => { if (d.id) deleteDailyPlanEntry(d.id); });
   }
   if (entry) {
     logActivity('Daily plan cleared', {
