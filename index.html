@@ -1699,28 +1699,6 @@
         </table>
       </div>
 
-      <!-- Draft / Publish buttons -->
-      <div id="testPlanDraftBar" style="display:none;background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(37,99,235,0.04));border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:16px;">📝</span>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);">Changes saved locally</div>
-            <div style="font-size:11px;color:var(--text-faint);" id="draftLastSaved">Click Publish to sync with all users</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="discardDraft()" style="background:transparent;color:var(--text-faint);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
-            🗑️ Discard
-          </button>
-          <button onclick="publishDraft()" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
-            🚀 Publish
-          </button>
-          <button id="draftRequestReviewBtn" onclick="requestReview(selectedTestPlanProjectId)" style="display:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(245,158,11,0.3);">
-            📋 Request Review
-          </button>
-        </div>
-      </div>
-
       <!-- Review by Lead panel -->
       <div class="panel" id="reviewPanel" style="border:1.5px solid var(--border-soft);">
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
@@ -2897,6 +2875,258 @@ function initSeparateTableRealtime() {
   console.log('[Realtime] Separate table subscriptions active');
 }
 
+
+// ── Test Plan Field-Level Save Functions ─────────────────
+
+async function saveEnvironmentRow(projId, row) {
+  if (!sbClient || !projId || !row || !row.id) return;
+  try {
+    await sbClient.from('test_plan_environments').upsert({
+      id: row.id,
+      project_id: projId,
+      name: row.name || '',
+      base_cases: row.baseCases || 0,
+      coverage: row.coverage || 0,
+      cases: row.cases || 0,
+      effort: row.effort || 0,
+      assignee_id: row.assigneeId || '',
+      assignee_ids: row.assigneeIds || [],
+      status: row.status || 'Not yet started',
+      sort_order: row.sortOrder || 0,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveEnvironmentRow error:', e); }
+}
+
+async function deleteEnvironmentRow(rowId) {
+  if (!sbClient || !rowId) return;
+  try {
+    await sbClient.from('test_plan_environments').delete().eq('id', rowId);
+  } catch(e) { console.warn('deleteEnvironmentRow error:', e); }
+}
+
+async function saveMilestonesRow(projId, ms) {
+  if (!sbClient || !projId) return;
+  try {
+    await sbClient.from('test_plan_milestones').upsert({
+      project_id: projId,
+      build_pickup: ms.buildPickup || '',
+      bvt_completion: ms.bvtCompletion || '',
+      exec_no_buffer: ms.execNoBuffer || '',
+      exec_with_buffer: ms.execWithBuffer || '',
+      merged_build_go_ahead: ms.mergedBuildGoAhead || '',
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveMilestonesRow error:', e); }
+}
+
+async function saveBufferRow(projId, plan) {
+  if (!sbClient || !projId) return;
+  try {
+    await sbClient.from('test_plan_buffer').upsert({
+      project_id: projId,
+      buffer_effort: plan.buffer?.effort || 0,
+      test_prep_effort: plan.testPrepEffort || 0,
+      test_prep_assignee_ids: plan.testPrepAssigneeIds || [],
+      test_prep_status: plan.testPrepStatus || 'Not yet started',
+      test_env_effort: plan.testEnvEffort || 0,
+      test_env_assignee_ids: plan.testEnvAssigneeIds || [],
+      test_env_status: plan.testEnvStatus || 'Not yet started',
+      reviewed: plan.reviewed || false,
+      reviewed_by: plan.reviewedBy || '',
+      reviewed_at: plan.reviewedAt || '',
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveBufferRow error:', e); }
+}
+
+async function loadEnvironments(projId) {
+  if (!sbClient || !projId) return [];
+  try {
+    const { data, error } = await sbClient
+      .from('test_plan_environments')
+      .select('*')
+      .eq('project_id', projId)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return (data || []).map(r => ({
+      id: r.id,
+      name: r.name,
+      baseCases: r.base_cases,
+      coverage: r.coverage,
+      cases: r.cases,
+      effort: r.effort,
+      assigneeId: r.assignee_id,
+      assigneeIds: r.assignee_ids || [],
+      status: r.status,
+      sortOrder: r.sort_order
+    }));
+  } catch(e) { console.warn('loadEnvironments error:', e); return []; }
+}
+
+async function loadMilestonesRow(projId) {
+  if (!sbClient || !projId) return null;
+  try {
+    const { data, error } = await sbClient
+      .from('test_plan_milestones')
+      .select('*')
+      .eq('project_id', projId)
+      .single();
+    if (error) return null;
+    return {
+      buildPickup: data.build_pickup || '',
+      bvtCompletion: data.bvt_completion || '',
+      execNoBuffer: data.exec_no_buffer || '',
+      execWithBuffer: data.exec_with_buffer || '',
+      mergedBuildGoAhead: data.merged_build_go_ahead || ''
+    };
+  } catch(e) { return null; }
+}
+
+async function loadBufferRow(projId) {
+  if (!sbClient || !projId) return null;
+  try {
+    const { data, error } = await sbClient
+      .from('test_plan_buffer')
+      .select('*')
+      .eq('project_id', projId)
+      .single();
+    if (error) return null;
+    return {
+      buffer: { effort: data.buffer_effort || 0 },
+      testPrepEffort: data.test_prep_effort || 0,
+      testPrepAssigneeIds: data.test_prep_assignee_ids || [],
+      testPrepStatus: data.test_prep_status || 'Not yet started',
+      testEnvEffort: data.test_env_effort || 0,
+      testEnvAssigneeIds: data.test_env_assignee_ids || [],
+      testEnvStatus: data.test_env_status || 'Not yet started',
+      reviewed: data.reviewed || false,
+      reviewedBy: data.reviewed_by || '',
+      reviewedAt: data.reviewed_at || ''
+    };
+  } catch(e) { return null; }
+}
+
+async function loadFullTestPlanFromDB(projId) {
+  if (!projId) return;
+  const [rows, ms, buf] = await Promise.all([
+    loadEnvironments(projId),
+    loadMilestonesRow(projId),
+    loadBufferRow(projId)
+  ]);
+  if (!state.testPlans) state.testPlans = {};
+  const existing = state.testPlans[projId] || {};
+  state.testPlans[projId] = {
+    ...existing,
+    rows: rows,
+    milestones: ms || existing.milestones || { buildPickup:'', bvtCompletion:'', execNoBuffer:'', execWithBuffer:'', mergedBuildGoAhead:'' },
+    buffer: buf?.buffer || existing.buffer || { effort: 0 },
+    testPrepEffort: buf?.testPrepEffort || existing.testPrepEffort || 0,
+    testPrepAssigneeIds: buf?.testPrepAssigneeIds || existing.testPrepAssigneeIds || [],
+    testPrepStatus: buf?.testPrepStatus || existing.testPrepStatus || 'Not yet started',
+    testEnvEffort: buf?.testEnvEffort || existing.testEnvEffort || 0,
+    testEnvAssigneeIds: buf?.testEnvAssigneeIds || existing.testEnvAssigneeIds || [],
+    testEnvStatus: buf?.testEnvStatus || existing.testEnvStatus || 'Not yet started',
+    reviewed: buf?.reviewed || existing.reviewed || false,
+    reviewedBy: buf?.reviewedBy || existing.reviewedBy || '',
+    reviewedAt: buf?.reviewedAt || existing.reviewedAt || ''
+  };
+}
+
+async function migrateTestPlanToFieldTables(projId, plan) {
+  if (!projId || !plan) return;
+  // Migrate environments
+  for (let i = 0; i < (plan.rows || []).length; i++) {
+    const row = { ...plan.rows[i], sortOrder: i };
+    await saveEnvironmentRow(projId, row);
+  }
+  // Migrate milestones
+  if (plan.milestones) await saveMilestonesRow(projId, plan.milestones);
+  // Migrate buffer
+  await saveBufferRow(projId, plan);
+  console.log('[Migration] Test plan migrated for project:', projId);
+}
+
+async function migrateAllTestPlansToFieldTables() {
+  if (localStorage.getItem('tl_migrated_v3')) return;
+  console.log('[Migration v3] Starting test plan field migration...');
+  for (const [projId, plan] of Object.entries(state.testPlans || {})) {
+    await migrateTestPlanToFieldTables(projId, plan);
+  }
+  localStorage.setItem('tl_migrated_v3', 'true');
+  console.log('[Migration v3] Complete!');
+  showToastMsg('✅ Test plans migrated to field-level tables!');
+}
+
+function initFieldLevelRealtime() {
+  if (!sbClient) return;
+
+  // Environments realtime
+  sbClient.channel('env-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'test_plan_environments' }, async (payload) => {
+      const projId = payload.new?.project_id || payload.old?.project_id;
+      if (!projId || projId === selectedTestPlanProjectId) return; // Skip if user editing this plan
+      if (!state.testPlans) state.testPlans = {};
+      if (!state.testPlans[projId]) state.testPlans[projId] = { rows: [], milestones: {}, buffer: { effort: 0 } };
+      if (payload.eventType === 'DELETE') {
+        state.testPlans[projId].rows = (state.testPlans[projId].rows || []).filter(r => r.id !== payload.old?.id);
+      } else {
+        const row = { id: payload.new.id, name: payload.new.name, baseCases: payload.new.base_cases, coverage: payload.new.coverage, cases: payload.new.cases, effort: payload.new.effort, assigneeId: payload.new.assignee_id, assigneeIds: payload.new.assignee_ids || [], status: payload.new.status, sortOrder: payload.new.sort_order };
+        const idx = (state.testPlans[projId].rows || []).findIndex(r => r.id === row.id);
+        if (idx >= 0) state.testPlans[projId].rows[idx] = row;
+        else state.testPlans[projId].rows = [...(state.testPlans[projId].rows || []), row];
+      }
+      syncTestPlanToProjects();
+      markDirty('summary', 'dashboard');
+      renderAll();
+    }).subscribe();
+
+  // Milestones realtime
+  sbClient.channel('milestone-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'test_plan_milestones' }, async (payload) => {
+      const projId = payload.new?.project_id || payload.old?.project_id;
+      if (!projId || projId === selectedTestPlanProjectId) return;
+      if (!state.testPlans) state.testPlans = {};
+      if (!state.testPlans[projId]) state.testPlans[projId] = { rows: [], milestones: {}, buffer: { effort: 0 } };
+      if (payload.new) {
+        state.testPlans[projId].milestones = { buildPickup: payload.new.build_pickup, bvtCompletion: payload.new.bvt_completion, execNoBuffer: payload.new.exec_no_buffer, execWithBuffer: payload.new.exec_with_buffer, mergedBuildGoAhead: payload.new.merged_build_go_ahead };
+      }
+      syncTestPlanToProjects();
+      const updProj = state.projects.find(p => p.id === projId);
+      if (updProj) saveRelease(updProj);
+      markDirty('projects', 'summary', 'dashboard');
+      renderAll();
+    }).subscribe();
+
+  // Buffer realtime
+  sbClient.channel('buffer-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'test_plan_buffer' }, async (payload) => {
+      const projId = payload.new?.project_id || payload.old?.project_id;
+      if (!projId || projId === selectedTestPlanProjectId) return;
+      if (!state.testPlans) state.testPlans = {};
+      if (!state.testPlans[projId]) state.testPlans[projId] = { rows: [], milestones: {}, buffer: { effort: 0 } };
+      if (payload.new) {
+        state.testPlans[projId].buffer = { effort: payload.new.buffer_effort };
+        state.testPlans[projId].testPrepEffort = payload.new.test_prep_effort;
+        state.testPlans[projId].testPrepAssigneeIds = payload.new.test_prep_assignee_ids || [];
+        state.testPlans[projId].testPrepStatus = payload.new.test_prep_status;
+        state.testPlans[projId].testEnvEffort = payload.new.test_env_effort;
+        state.testPlans[projId].testEnvAssigneeIds = payload.new.test_env_assignee_ids || [];
+        state.testPlans[projId].testEnvStatus = payload.new.test_env_status;
+        state.testPlans[projId].reviewed = payload.new.reviewed;
+        state.testPlans[projId].reviewedBy = payload.new.reviewed_by;
+        state.testPlans[projId].reviewedAt = payload.new.reviewed_at;
+      }
+      syncTestPlanToProjects();
+      const updProj = state.projects.find(p => p.id === projId);
+      if (updProj) saveRelease(updProj);
+      markDirty('projects', 'summary', 'dashboard', 'testplan');
+      renderAll();
+    }).subscribe();
+
+  console.log('[Realtime] Field-level test plan subscriptions active');
+}
+
 function initRealtime() {
   if (realtimeChannel) {
     sbClient.removeChannel(realtimeChannel);
@@ -3182,9 +3412,15 @@ async function initApp(user) {
   subscribePushNotifications();
   // Initialize separate table realtime
   initSeparateTableRealtime();
+  // Initialize field-level test plan realtime
+  initFieldLevelRealtime();
   // Migrate existing data if not done yet
   if (!localStorage.getItem('tl_migrated_v2')) {
     await migrateToSeparateTables();
+  }
+  // Migrate test plans to field tables if not done
+  if (!localStorage.getItem('tl_migrated_v3')) {
+    await migrateAllTestPlansToFieldTables();
   }
 
   // Run notification checks ONCE per session
@@ -5450,7 +5686,7 @@ function requestReview(projectId) {
     }
   }
 
-  saveTestPlan(projectId, getTestPlanForProject(projectId));
+  saveBufferRow(projectId, getTestPlanForProject(projectId));
   saveState();
   markDirty('dashboard');
   renderTab('dashboard');
@@ -5822,8 +6058,8 @@ function toggleReviewApproval() {
       );
     }
     syncTestPlanToProjects();
-    // Save to separate tables
-    saveTestPlan(selectedTestPlanProjectId, plan);
+    // Save to field tables
+    saveBufferRow(selectedTestPlanProjectId, plan);
     const updatedProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
     if (updatedProj) saveRelease(updatedProj);
     saveState();
@@ -5850,9 +6086,9 @@ function clearReviewApproval() {
 
   // Sync first clears fields — then save so all users get updated state
   syncTestPlanToProjects();
-  saveTestPlan(selectedTestPlanProjectId, plan);
-  const updProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
-  if (updProj) saveRelease(updProj);
+  saveBufferRow(selectedTestPlanProjectId, plan);
+  const updProj2 = state.projects.find(p => p.id === selectedTestPlanProjectId);
+  if (updProj2) saveRelease(updProj2);
   saveState();
   clearRenderCache();
   renderTestPlan();
@@ -7883,8 +8119,16 @@ function setTestPlanReleaseFilter(date) {
 
 function onTestPlanProjectChange() {
   selectedTestPlanProjectId = document.getElementById('testPlanProjectSelect').value;
-  loadDraftIfExists(selectedTestPlanProjectId);
-  renderTestPlan();
+  clearDraftBar();
+  // Load fresh data from field-level tables
+  if (selectedTestPlanProjectId) {
+    loadFullTestPlanFromDB(selectedTestPlanProjectId).then(() => {
+      syncTestPlanToProjects();
+      renderTestPlan();
+    });
+  } else {
+    renderTestPlan();
+  }
 }
 
 function openTestRowModal(id) {
@@ -8176,12 +8420,15 @@ function saveTestRow() {
   }
 
   syncTestPlanToProjects();
-  // Auto-save draft locally
-  if (selectedTestPlanProjectId) {
-    const plan = getTestPlanForProject(selectedTestPlanProjectId);
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
-  }
-  markTestPlanDirty();
+  // Save environment row directly to DB
+  const savedPlan = getTestPlanForProject(selectedTestPlanProjectId);
+  const savedRow = editingTestRowId
+    ? savedPlan.rows.find(r => r.id === editingTestRowId)
+    : savedPlan.rows[savedPlan.rows.length - 1];
+  if (savedRow) saveEnvironmentRow(selectedTestPlanProjectId, { ...savedRow, sortOrder: savedPlan.rows.indexOf(savedRow) });
+  if (selectedTestPlanProjectId) localStorage.removeItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
+  clearDraftBar();
+  debouncedSave();
   renderTestPlan();
   markDirty('projects');
 }
@@ -8191,11 +8438,11 @@ function deleteTestRow(id) {
   const row = plan.rows.find(r => r.id === id);
   snapshotState(`Delete test row: ${row?.name || id}`);
   plan.rows = plan.rows.filter(r => r.id !== id);
-  // Auto-save draft locally
-  if (selectedTestPlanProjectId) {
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
-  }
-  markTestPlanDirty();
+  // Delete from environments table directly
+  deleteEnvironmentRow(id);
+  if (selectedTestPlanProjectId) localStorage.removeItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
+  clearDraftBar();
+  debouncedSave();
   renderTestPlan();
 }
 
@@ -8257,12 +8504,12 @@ function saveBufferValues() {
   }
 
   syncTestPlanToProjects();
-  // Auto-save draft locally only — DB mein tab jaayega jab Publish karein
-  if (selectedTestPlanProjectId) {
-    const plan = getTestPlanForProject(selectedTestPlanProjectId);
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
-  }
-  markTestPlanDirty();
+  // Save directly to field-level table — no draft needed
+  saveBufferRow(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
+  debouncedSave();
+  // Clear any existing draft
+  if (selectedTestPlanProjectId) localStorage.removeItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
+  clearDraftBar();
   renderTestPlan();
   markDirty('projects');
 }
@@ -8276,12 +8523,13 @@ async function saveMilestones() {
   plan.milestones.execWithBuffer     = document.getElementById('msExecWithBuffer').value;
   plan.milestones.mergedBuildGoAhead = document.getElementById('msMergedBuildGoAhead').value;
   syncTestPlanToProjects();
-  // Auto-save draft locally only — DB mein tab jaayega jab Publish karein
-  if (selectedTestPlanProjectId) {
-    const plan = getTestPlanForProject(selectedTestPlanProjectId);
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
-  }
-  markTestPlanDirty();
+  // Save directly to milestones table — no draft needed
+  saveMilestonesRow(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId).milestones);
+  const updProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
+  if (updProj) saveRelease(updProj);
+  debouncedSave();
+  if (selectedTestPlanProjectId) localStorage.removeItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
+  clearDraftBar();
   renderTestPlan();
 }
 
