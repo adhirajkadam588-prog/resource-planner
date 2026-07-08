@@ -1984,6 +1984,20 @@
   <!-- ADMIN TAB -->
   <div class="tab-content" id="tab-admin" style="display:none;">
 
+    <!-- Backup & Restore -->
+    <div class="panel" style="margin-bottom:16px;border:1.5px solid #10b98144;">
+      <div class="panel-head">
+        <div>
+          <h3>💾 Backup & Restore</h3>
+          <div class="desc">Auto-backup saves every 5 saves or 10 minutes. Restore anytime if data is lost.</div>
+        </div>
+        <button class="action" onclick="manualBackup()" style="background:linear-gradient(135deg,#10b981,#059669);">💾 Backup now</button>
+      </div>
+      <div id="backupList" style="margin-top:8px;">
+        <div style="color:var(--text-faint);font-size:12px;">Loading backups…</div>
+      </div>
+    </div>
+
     <!-- Add new user role -->
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head">
@@ -3740,11 +3754,13 @@ async function loadState() {
   try {
     const { data, error } = await sbClient
       .from('resource_planner')
-      .select('data')
+      .select('data, updated_at')
       .eq('id', 'shared')
       .single();
     if (error) throw error;
     if (data && data.data && Object.keys(data.data).length > 0) {
+      // Track version for conflict detection
+      _stateVersion = data.updated_at || null;
       const parsed = data.data;
       state.people = Array.isArray(parsed.people) ? parsed.people : [];
       state.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
@@ -3777,6 +3793,8 @@ async function loadState() {
   }
 }
 
+let _stateVersion = null; // Track DB version we loaded from
+
 async function saveState() {
   const hasAnyEdit = Object.values(currentUserPermissions).some(v => v === 'edit');
   if (currentUserRole !== 'admin' && !hasAnyEdit) {
@@ -3786,15 +3804,66 @@ async function saveState() {
   const el = document.getElementById('lastSaved');
   try {
     const { notifications: _excluded, ...stateToSave } = state;
+    const now = new Date().toISOString();
+
+    // Check version conflict
+    if (_stateVersion) {
+      const { data: current } = await sbClient
+        .from('resource_planner')
+        .select('updated_at')
+        .eq('id', 'shared')
+        .single();
+
+      if (current && current.updated_at !== _stateVersion) {
+        const { data: latest } = await sbClient
+          .from('resource_planner')
+          .select('data, updated_at')
+          .eq('id', 'shared')
+          .single();
+
+        if (latest) {
+          const latestState = latest.data;
+          stateToSave.projects    = state.projects;
+          stateToSave.testPlans   = state.testPlans;
+          stateToSave.dailyPlan   = state.dailyPlan;
+          stateToSave.allocations = state.allocations;
+          stateToSave.people      = latestState.people      || state.people;
+          stateToSave.leaves      = latestState.leaves      || state.leaves;
+          stateToSave.holidays    = latestState.holidays    || state.holidays;
+          stateToSave.vms         = latestState.vms         || state.vms;
+          stateToSave.knowledgeResources = latestState.knowledgeResources || state.knowledgeResources;
+          stateToSave.importantLinks     = latestState.importantLinks     || state.importantLinks;
+        }
+      }
+    }
+
+    // Save to main table
     const { error } = await sbClient
       .from('resource_planner')
-      .upsert({ id: 'shared', data: stateToSave, updated_at: new Date().toISOString() });
+      .upsert({ id: 'shared', data: stateToSave, updated_at: now });
+
     if (error) {
       console.error('Save error:', error);
       el.textContent = 'save failed: ' + error.message;
       return;
     }
+
     _lastSavedAt = Date.now();
+    _stateVersion = now;
+
+    // Auto-backup every 5 saves or every 10 minutes
+    _saveCount = (_saveCount || 0) + 1;
+    const lastBackupTime = parseInt(localStorage.getItem('tl_last_backup') || '0');
+    if (_saveCount % 5 === 0 || Date.now() - lastBackupTime > 10 * 60 * 1000) {
+      sbClient.from('backups').insert({
+        saved_by: currentUserEmail,
+        data: stateToSave
+      }).then(() => {
+        localStorage.setItem('tl_last_backup', Date.now().toString());
+        console.log('[Backup] Auto-backup saved');
+      }).catch(e => console.warn('[Backup] Failed:', e));
+    }
+
     el.textContent = 'saved ' + new Date().toLocaleTimeString();
     const toast = document.getElementById('saveToast');
     if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1200); }
@@ -3970,6 +4039,82 @@ const SECTIONS_LIST = [
   { key: 'vmrepo',    label: 'Infra Hub' },
   { key: 'archive',   label: 'Release Vault' },
 ];
+
+// ── Backup & Restore ──────────────────────────────────────
+let _saveCount = 0;
+
+async function manualBackup() {
+  try {
+    const { notifications: _excluded, ...stateToSave } = state;
+    const { error } = await sbClient.from('backups').insert({
+      saved_by: currentUserEmail,
+      data: stateToSave
+    });
+    if (error) throw error;
+    localStorage.setItem('tl_last_backup', Date.now().toString());
+    showToastMsg('💾 Backup saved!');
+    loadBackupList();
+  } catch(e) {
+    showToastMsg('❌ Backup failed: ' + e.message);
+  }
+}
+
+async function loadBackupList() {
+  const el = document.getElementById('backupList');
+  if (!el) return;
+  try {
+    const { data, error } = await sbClient
+      .from('backups')
+      .select('id, saved_by, saved_at')
+      .order('saved_at', { ascending: false })
+      .limit(10);
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div style="color:var(--text-faint);font-size:12px;font-style:italic;">No backups yet — will auto-save every 5 saves.</div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;">' +
+      data.map(b => {
+        const d = new Date(b.saved_at);
+        const timeStr = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) + ' ' +
+          d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;">
+          <div>
+            <span style="font-size:12.5px;font-weight:600;color:var(--text);">📅 ${timeStr}</span>
+            <span style="font-size:11px;color:var(--text-faint);margin-left:8px;">by ${escapeHtml((b.saved_by||'').split('@')[0])}</span>
+          </div>
+          <button onclick="restoreBackup('${b.id}')" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:6px;padding:4px 12px;font-size:11.5px;font-weight:600;cursor:pointer;">↩ Restore</button>
+        </div>`;
+      }).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--text-faint);font-size:12px;">Could not load backups.</div>';
+  }
+}
+
+async function restoreBackup(backupId) {
+  if (!confirm('Restore this backup? Current data will be replaced.')) return;
+  try {
+    const { data, error } = await sbClient
+      .from('backups').select('data, saved_at').eq('id', backupId).single();
+    if (error) throw error;
+    const restoreTime = new Date(data.saved_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    // Save current as backup first
+    const { notifications: _excl, ...cur } = state;
+    await sbClient.from('backups').insert({ saved_by: currentUserEmail + ' (pre-restore)', data: cur });
+    // Restore
+    const now = new Date().toISOString();
+    const { error: saveErr } = await sbClient
+      .from('resource_planner').upsert({ id: 'shared', data: data.data, updated_at: now });
+    if (saveErr) throw saveErr;
+    _stateVersion = now;
+    Object.assign(state, data.data);
+    state.notifications = [];
+    markAllDirty(); clearRenderCache(); renderAll();
+    showToastMsg('✅ Restored to ' + restoreTime);
+  } catch(e) {
+    showToastMsg('❌ Restore failed: ' + e.message);
+  }
+}
 
 function renderAdminPanel() {
   const tbody = document.getElementById('adminUsersTableBody');
@@ -6431,7 +6576,8 @@ function renderTab(tab) {
     case 'dashboard':  renderDashboard(); break;
     case 'help':       renderHelp(); break;
     case 'vmrepo':     renderVMRepo(); break;
-    case 'knowledge':   renderKnowledge(); break;
+    case 'knowledge':  renderKnowledge(); break;
+    case 'admin':      fetchAllUserRoles().then(renderAdminPanel); loadBackupList(); break;
   }
 }
 
