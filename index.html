@@ -1699,6 +1699,28 @@
         </table>
       </div>
 
+      <!-- Draft / Publish buttons -->
+      <div id="testPlanDraftBar" style="display:none;background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(37,99,235,0.04));border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">📝</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">Unsaved changes</div>
+            <div style="font-size:11px;color:var(--text-faint);" id="draftLastSaved">Draft not saved yet</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="discardDraft()" style="background:transparent;color:var(--text-faint);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+            🗑️ Discard
+          </button>
+          <button onclick="saveDraft()" style="background:rgba(124,58,237,0.12);color:#7c3aed;border:1px solid rgba(124,58,237,0.3);border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">
+            💾 Save Draft
+          </button>
+          <button onclick="publishDraft()" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
+            🚀 Publish
+          </button>
+        </div>
+      </div>
+
       <!-- Review by Lead panel -->
       <div class="panel" id="reviewPanel" style="border:1.5px solid var(--border-soft);">
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
@@ -7878,6 +7900,7 @@ function setTestPlanReleaseFilter(date) {
 
 function onTestPlanProjectChange() {
   selectedTestPlanProjectId = document.getElementById('testPlanProjectSelect').value;
+  loadDraftIfExists(selectedTestPlanProjectId);
   renderTestPlan();
 }
 
@@ -8043,6 +8066,82 @@ function updateCalculatedCasesPreview() {
   document.getElementById('trCalculatedCasesPreview').textContent = calculated;
 }
 
+// ── Test Plan Draft System ────────────────────────────────
+const DRAFT_KEY_PREFIX = 'tl_testplan_draft_';
+
+function markTestPlanDirty() {
+  const bar = document.getElementById('testPlanDraftBar');
+  if (bar) bar.style.display = 'flex';
+  const lastSavedEl = document.getElementById('draftLastSaved');
+  if (lastSavedEl) lastSavedEl.textContent = 'Changes not published yet';
+}
+
+function clearDraftBar() {
+  const bar = document.getElementById('testPlanDraftBar');
+  if (bar) bar.style.display = 'none';
+}
+
+function saveDraft() {
+  if (!selectedTestPlanProjectId) return;
+  const plan = getTestPlanForProject(selectedTestPlanProjectId);
+  const key = DRAFT_KEY_PREFIX + selectedTestPlanProjectId;
+  try {
+    localStorage.setItem(key, JSON.stringify(plan));
+    const now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    const el = document.getElementById('draftLastSaved');
+    if (el) el.textContent = '💾 Draft saved at ' + now + ' — click Publish to sync to all users';
+    showToastMsg('💾 Draft saved locally!');
+  } catch(e) {
+    showToastMsg('❌ Draft save failed');
+  }
+}
+
+async function publishDraft() {
+  if (!selectedTestPlanProjectId) return;
+  try {
+    // Save to DB
+    const plan = getTestPlanForProject(selectedTestPlanProjectId);
+    syncTestPlanToProjects();
+    await saveTestPlan(selectedTestPlanProjectId, plan);
+    const updProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
+    if (updProj) await saveRelease(updProj);
+    await saveState();
+    // Clear draft
+    localStorage.removeItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
+    clearDraftBar();
+    renderTestPlan();
+    markDirty('projects', 'summary');
+    showToastMsg('🚀 Published! All users will see the latest changes.');
+  } catch(e) {
+    showToastMsg('❌ Publish failed: ' + (e.message || e));
+  }
+}
+
+function loadDraftIfExists(projectId) {
+  if (!projectId) return;
+  const key = DRAFT_KEY_PREFIX + projectId;
+  const draft = localStorage.getItem(key);
+  if (!draft) { clearDraftBar(); return; }
+  try {
+    const plan = JSON.parse(draft);
+    if (!state.testPlans) state.testPlans = {};
+    state.testPlans[projectId] = plan;
+    const bar = document.getElementById('testPlanDraftBar');
+    if (bar) bar.style.display = 'flex';
+    const el = document.getElementById('draftLastSaved');
+    if (el) el.textContent = '📝 Local draft loaded — Publish to sync to all users';
+    showToastMsg('📝 Local draft restored — click Publish when ready');
+  } catch(e) {}
+}
+
+function discardDraft() {
+  if (!selectedTestPlanProjectId) return;
+  localStorage.removeItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
+  clearDraftBar();
+  loadTestPlans().then(() => { syncTestPlanToProjects(); renderTestPlan(); });
+  showToastMsg('🗑️ Draft discarded — DB version loaded');
+}
+
 function saveTestRow() {
   const name = document.getElementById('trName').value.trim();
   if (!name) return;
@@ -8164,6 +8263,7 @@ function saveBufferValues() {
   syncTestPlanToProjects();
   saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
   debouncedSave();
+  markTestPlanDirty(); // Show draft bar
   renderTestPlan();
   markDirty('projects');
 }
@@ -8179,6 +8279,7 @@ async function saveMilestones() {
   syncTestPlanToProjects();
   saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
   await saveState();
+  markTestPlanDirty();
   renderTestPlan();
 }
 
@@ -8323,6 +8424,8 @@ function renderTestPlan() {
       if (linkedProject.completionDate !== '') { linkedProject.completionDate = ''; changed = true; }
     }
     if (changed) {
+      const updProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
+      if (updProj) saveRelease(updProj);
       saveState();
       renderProjects();
       renderSummary();
