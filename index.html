@@ -8148,15 +8148,38 @@ function setTestPlanReleaseFilter(date) {
 
 function onTestPlanProjectChange() {
   selectedTestPlanProjectId = document.getElementById('testPlanProjectSelect').value;
-  clearDraftBar();
-  // Load fresh data from field-level tables
-  if (selectedTestPlanProjectId) {
+  if (!selectedTestPlanProjectId) { renderTestPlan(); return; }
+
+  // Check if local draft exists — use it, don't overwrite with DB
+  const draftKey = DRAFT_KEY_PREFIX + selectedTestPlanProjectId;
+  const draft = localStorage.getItem(draftKey);
+
+  if (draft) {
+    // Draft exists — load it and show draft bar
+    try {
+      const plan = JSON.parse(draft);
+      if (!state.testPlans) state.testPlans = {};
+      state.testPlans[selectedTestPlanProjectId] = plan;
+      markTestPlanDirty();
+      syncTestPlanToProjects();
+      renderTestPlan();
+      showToastMsg('📝 Local draft restored — Publish when ready');
+    } catch(e) {
+      // Draft corrupt — load from DB
+      localStorage.removeItem(draftKey);
+      loadFullTestPlanFromDB(selectedTestPlanProjectId).then(() => {
+        clearDraftBar();
+        syncTestPlanToProjects();
+        renderTestPlan();
+      });
+    }
+  } else {
+    // No draft — load fresh from DB
+    clearDraftBar();
     loadFullTestPlanFromDB(selectedTestPlanProjectId).then(() => {
       syncTestPlanToProjects();
       renderTestPlan();
     });
-  } else {
-    renderTestPlan();
   }
 }
 
@@ -8571,6 +8594,18 @@ async function saveMilestones() {
 function renderTestPlan() {
   populateTestPlanProjectSelect();
   if (!selectedTestPlanProjectId) return;
+
+  // Check draft — show it if exists
+  const draftKey = DRAFT_KEY_PREFIX + selectedTestPlanProjectId;
+  const draft = localStorage.getItem(draftKey);
+  if (draft) {
+    try {
+      const plan = JSON.parse(draft);
+      if (!state.testPlans) state.testPlans = {};
+      state.testPlans[selectedTestPlanProjectId] = plan;
+      markTestPlanDirty();
+    } catch(e) { localStorage.removeItem(draftKey); }
+  }
 
   const plan = getTestPlanForProject(selectedTestPlanProjectId);
   const tbody = document.getElementById('testRowTableBody');
