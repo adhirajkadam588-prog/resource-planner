@@ -3166,7 +3166,20 @@ function initRealtime() {
       console.log('[Realtime] Change received from another user — reloading...');
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
+        // Save current test plan state before reload — preserve drafts
+        const savedTestPlans = { ...state.testPlans };
+        const draftKeys = Object.keys(localStorage).filter(k => k.startsWith(DRAFT_KEY_PREFIX));
+
         await loadState();
+
+        // Restore test plans that have local drafts — don't overwrite user's work
+        draftKeys.forEach(key => {
+          const projId = key.replace(DRAFT_KEY_PREFIX, '');
+          if (savedTestPlans[projId]) {
+            state.testPlans[projId] = savedTestPlans[projId];
+          }
+        });
+
         syncTestPlanToProjects();
         markAllDirty();
         renderAll();
