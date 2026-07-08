@@ -2827,6 +2827,7 @@ function initSeparateTableRealtime() {
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'test_plans'
     }, async (payload) => {
+      if (!state.testPlans) state.testPlans = {};
       if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
         const projId = payload.new?.project_id;
         const plan = payload.new?.data;
@@ -2835,6 +2836,12 @@ function initSeparateTableRealtime() {
         delete state.testPlans[payload.old?.project_id];
       }
       syncTestPlanToProjects();
+      // Update release in releases table with synced values
+      const projId = payload.new?.project_id || payload.old?.project_id;
+      if (projId) {
+        const updProj = state.projects.find(p => p.id === projId);
+        if (updProj) saveRelease(updProj);
+      }
       markDirty('testplan', 'projects', 'summary', 'dashboard');
       renderAll();
     })
@@ -7657,14 +7664,14 @@ function saveProject() {
     });
     logActivity('Release item added', { name, devPod, releaseDate });
   }
+  const _savedEditingId = editingProjectId; // capture before null
   editingProjectId = null;
   closeModal('projectModal');
   syncTestPlanToProjects();
 
-  // Save to releases table (separate table for simultaneous editing)
-  const savedProj = state.projects.find(p => p.id === (editingProjectId || state.projects[state.projects.length-1]?.id));
-  const projToSave = editingProjectId
-    ? state.projects.find(p => p.id === editingProjectId)
+  // Save to releases table
+  const projToSave = _savedEditingId
+    ? state.projects.find(p => p.id === _savedEditingId)
     : state.projects[state.projects.length - 1];
   if (projToSave) saveRelease(projToSave);
 
