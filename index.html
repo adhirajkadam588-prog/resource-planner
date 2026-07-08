@@ -2853,12 +2853,19 @@ function initSeparateTableRealtime() {
       if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
         const projId = payload.new?.project_id;
         const plan = payload.new?.data;
-        if (projId && plan) state.testPlans[projId] = plan;
+        if (projId && plan) {
+          // Don't overwrite if user has a local draft for this project
+          const hasDraft = !!localStorage.getItem(DRAFT_KEY_PREFIX + projId);
+          if (!hasDraft) {
+            state.testPlans[projId] = plan;
+          } else {
+            console.log('[Realtime] Skipping — local draft exists for', projId);
+          }
+        }
       } else if (payload.eventType === 'DELETE') {
         delete state.testPlans[payload.old?.project_id];
       }
       syncTestPlanToProjects();
-      // Update release in releases table with synced values
       const projId = payload.new?.project_id || payload.old?.project_id;
       if (projId) {
         const updProj = state.projects.find(p => p.id === projId);
