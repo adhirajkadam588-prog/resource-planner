@@ -1715,6 +1715,9 @@
           <button onclick="publishDraft()" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
             🚀 Publish
           </button>
+          <button id="draftRequestReviewBtn" onclick="requestReview(selectedTestPlanProjectId)" style="display:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(245,158,11,0.3);">
+            📋 Request Review
+          </button>
         </div>
       </div>
 
@@ -8070,7 +8073,13 @@ function markTestPlanDirty() {
   const bar = document.getElementById('testPlanDraftBar');
   if (bar) bar.style.display = 'flex';
   const lastSavedEl = document.getElementById('draftLastSaved');
-  if (lastSavedEl) lastSavedEl.textContent = 'Changes not published yet';
+  if (lastSavedEl) lastSavedEl.textContent = 'Click Publish to sync with all users';
+  // Show Request Review button only for non-leads (QA members)
+  const reviewBtn = document.getElementById('draftRequestReviewBtn');
+  if (reviewBtn) {
+    const isLead = isCurrentUserLead();
+    reviewBtn.style.display = (!isLead && currentUserRole !== 'admin') ? 'block' : 'none';
+  }
 }
 
 function clearDraftBar() {
@@ -8184,8 +8193,12 @@ function saveTestRow() {
   }
 
   syncTestPlanToProjects();
-  saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
-  saveState();
+  // Auto-save draft locally
+  if (selectedTestPlanProjectId) {
+    const plan = getTestPlanForProject(selectedTestPlanProjectId);
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
+  }
+  markTestPlanDirty();
   renderTestPlan();
   markDirty('projects');
 }
@@ -8195,8 +8208,11 @@ function deleteTestRow(id) {
   const row = plan.rows.find(r => r.id === id);
   snapshotState(`Delete test row: ${row?.name || id}`);
   plan.rows = plan.rows.filter(r => r.id !== id);
-  saveTestPlan(selectedTestPlanProjectId, plan);
-  saveState();
+  // Auto-save draft locally
+  if (selectedTestPlanProjectId) {
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
+  }
+  markTestPlanDirty();
   renderTestPlan();
 }
 
@@ -8258,9 +8274,7 @@ function saveBufferValues() {
   }
 
   syncTestPlanToProjects();
-  saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
-  debouncedSave();
-  // Auto-save draft locally
+  // Auto-save draft locally only — DB mein tab jaayega jab Publish karein
   if (selectedTestPlanProjectId) {
     const plan = getTestPlanForProject(selectedTestPlanProjectId);
     localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
@@ -8279,9 +8293,7 @@ async function saveMilestones() {
   plan.milestones.execWithBuffer     = document.getElementById('msExecWithBuffer').value;
   plan.milestones.mergedBuildGoAhead = document.getElementById('msMergedBuildGoAhead').value;
   syncTestPlanToProjects();
-  saveTestPlan(selectedTestPlanProjectId, getTestPlanForProject(selectedTestPlanProjectId));
-  await saveState();
-  // Auto-save draft locally
+  // Auto-save draft locally only — DB mein tab jaayega jab Publish karein
   if (selectedTestPlanProjectId) {
     const plan = getTestPlanForProject(selectedTestPlanProjectId);
     localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
