@@ -7140,6 +7140,22 @@ function togglePinResource(id) {
 
 // ── End Launchpad ───────────────────────────────────────
 
+function _clearBuildAck(projectId) {
+  // Remove a specific projectId from ALL users' localStorage ack lists
+  // This ensures new build delay shows even if previously dismissed
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('tl_build_ack_')) {
+      try {
+        let acked = JSON.parse(localStorage.getItem(key) || '[]');
+        const newAcked = acked.filter(id => id !== projectId);
+        if (newAcked.length !== acked.length) {
+          localStorage.setItem(key, JSON.stringify(newAcked));
+        }
+      } catch(e) {}
+    }
+  });
+}
+
 function acknowledgeBuildDelay(projectId) {
   // Save acknowledged per-user in localStorage — NOT in shared state
   const key = 'tl_build_ack_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
@@ -7257,6 +7273,8 @@ function saveProject() {
                 plannedDate: plannedBuild, actualDate: actualBuildDate,
                 shiftedAt: new Date().toISOString(), acknowledged: false
               });
+              // Remove from localStorage ack so new alert shows
+              _clearBuildAck(proj.id);
               logActivity('Build delay — milestones shifted', { name, delayDays: lateDays, planned: formatDateDisplay(plannedBuild), actual: formatDateDisplay(actualBuildDate) });
               showToastMsg(`⚠️ Build delayed by ${lateDays} working day(s) — milestones shifted for "${name}"`);
             } else {
@@ -7268,6 +7286,8 @@ function saveProject() {
                 plannedDate: plannedBuild, actualDate: actualBuildDate,
                 shiftedAt: new Date().toISOString(), acknowledged: false
               });
+              // Remove from localStorage ack so new alert shows
+              _clearBuildAck(proj.id);
               logActivity('Build early — milestones shifted earlier', { name, earlyDays, planned: formatDateDisplay(plannedBuild), actual: formatDateDisplay(actualBuildDate) });
               showToastMsg(`🎉 Build arrived ${earlyDays} working day(s) early — milestones shifted earlier for "${name}"`);
             }
