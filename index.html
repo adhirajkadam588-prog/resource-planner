@@ -5983,9 +5983,9 @@ function renderHelp() {
       <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v1.0</span>
     </div>
     <h1 style="font-family:'Inter Tight',sans-serif;font-size:28px;font-weight:800;margin:0 0 10px;letter-spacing:-0.03em;">TeamLens Help Center</h1>
-    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide — planning, tracking, test plans, build delays, knowledge base, VM management, AI assistant and more.</p>
+    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide — people, releases, test plans, build delays, chat, notifications, knowledge base, VM management and more.</p>
     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
-      ${[['15','Tabs'],['10+','Shortcuts'],['Real-time','Sync'],['AI','Assistant'],['🚀','Launchpad']].map(([v,l])=>`
+      ${[['13','Tabs'],['Real-time','Sync'],['AI','Assistant'],['💬','Team Chat'],['🔔','Notifications']].map(([v,l])=>`
         <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;backdrop-filter:blur(4px);">
           <div style="font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${l}</div>
           <div style="font-size:18px;font-weight:800;">${v}</div>
@@ -6011,8 +6011,8 @@ function renderHelp() {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       ${[['1','👥','Add your team','People tab → + Add person → name, title, email, Dev POD, Daily Plan toggle.','#4f46e5'],
-         ['2','📁','Add release items','Release tab → + Add release item → name, JIRA, release date, Dev POD. Just 4 fields!','#0ea5e9'],
-         ['3','✅','Build test plan','Test Plan → select release item → add environments → set effort, coverage, assignee, status.','#10b981'],
+         ['2','📁','Add release items','Release tab → + Add release item → name, JIRA, release date, component, Dev POD.','#0ea5e9'],
+         ['3','✅','Build test plan','Test Plan → select release → add environments → set effort, assignees, milestones.','#10b981'],
          ['4','🏖️','Mark leaves','Leave Calendar → click day → PL (amber) → UPL (red) → empty (click again).','#f59e0b'],
          ['5','📅','Plan daily work','Daily Plan → POD filter → + Assign → pick person, project, date range.','#8b5cf6']].map(([n,icon,title,desc,color])=>`
       <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;">
@@ -6029,10 +6029,8 @@ function renderHelp() {
     </div>
   </div>
 
-  <!-- Tab Guide Grid — 3 cols row 1 -->
+  <!-- Row 1: Dashboard, People, Release -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
-
-    <!-- Dashboard -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(37,99,235,0.2));border:1px solid #7c3aed33;display:flex;align-items:center;justify-content:center;font-size:17px;">🏠</div>
@@ -6041,19 +6039,17 @@ function renderHelp() {
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">
         ${[['📊','4 stat cards — free today, at-risk, VMs expiring, assigned today'],
-           ['📅','Today\'s assignments — QA sees own, Lead sees associated, Admin sees all'],
-           ['🏷️','Task badges — 📝✍️🗂️🔬▶️ shown per assignment'],
-           ['⚠️','Build Alerts — late/early builds with milestone shift info (role-filtered)'],
+           ['📅',"Today's assignments — QA sees own, Lead sees associated, Admin sees all"],
+           ['⚠️','Build Alerts — late/early builds, role-filtered, per-user Got it'],
            ['🚨','General Alerts — VM expiry, QA overdue, release soon (role-filtered)'],
            ['📋','Pending lead reviews panel (leads/admin only)'],
-           ['🔔','Notification bell — build delays, reviews, milestones, assignments']].map(([i,t])=>`
+           ['🔔','Bell icon — assigned + milestone notifications only']].map(([i,t])=>`
           <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text-dim);padding:3px 0;">
             <span style="flex-shrink:0;">${i}</span><span>${t}</span>
           </div>`).join('')}
       </div>
     </div>
 
-    <!-- People -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:rgba(139,92,246,0.15);border:1px solid #7c3aed33;display:flex;align-items:center;justify-content:center;font-size:17px;">👥</div>
@@ -6062,7 +6058,7 @@ function renderHelp() {
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
         Add name, title, email, Dev POD for each team member<br>
-        <strong>Daily Plan toggle</strong> — turn OFF for PM/Managers to hide them from the Daily Plan calendar<br>
+        <strong>Daily Plan toggle</strong> — turn OFF for PM/Managers<br>
         Workload panel shows current month assignments per person
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
@@ -6070,52 +6066,41 @@ function renderHelp() {
       </div>
     </div>
 
-    <!-- Release -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#0ea5e920;border:1px solid #0ea5e933;display:flex;align-items:center;justify-content:center;font-size:17px;">📁</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release</div>
-        <div style="font-size:11px;color:var(--text-faint);">Track all active releases</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Release items + build tracking</div></div>
       </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        🎫 JIRA URL auto-extracts ticket ID as a clickable badge<br>
-        📅 <strong>Planned Dev to QA</strong> — manually enter expected date from Dev<br>
-        📥 <strong>Actual Dev to QA</strong> — enter when build received → auto calculates delay<br>
-        ⏱ Build Delay badge — working days only (excludes weekends + holidays)<br>
-        🔄 Milestones auto-shift when build is late (gaps preserved)<br>
-        ☑️ Bulk select → 🗑 delete multiple items<br>
-        Paginated <strong>15 items/page</strong> · filter by date, POD, status
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.85;">
+        Mandatory fields: <strong>Name, JIRA URL, Release date</strong><br>
+        <strong>Component</strong> — tag each release (Desktop Client, Mac Client, HotFolder Server, AppConnect Server/Client, Classification Migration, iOS Device)<br>
+        Filter by Date, Component, Dev POD, Status<br>
+        Build delay badge auto-calculated from planned vs actual Dev→QA dates<br>
+        QA effort + dates <strong>auto-sync from Test Plan after Lead review</strong><br>
+        Select multiple → Bulk delete
       </div>
     </div>
-
   </div>
 
-  <!-- Row 2 -->
+  <!-- Row 2: Test Plan, Leave, Daily Plan -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
-
-    <!-- Test Plan -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#10b98120;border:1px solid #10b98133;display:flex;align-items:center;justify-content:center;font-size:17px;">✅</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Test Plan</div>
-        <div style="font-size:11px;color:var(--text-faint);">Environment matrix + milestones</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Environments, effort, milestones</div></div>
       </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Fixed rows: 📋 Test prep · 🔧 Test env & data prep — <strong>multi-select assignees</strong><br>
-        Environment rows — single assignee, coverage %, cases, effort, status<br>
-        Buffer + Total rows auto-calculated · Total rounds up to nearest 0.5<br>
-        Milestones: build pickup, BVT, exec (with/without buffer), go ahead<br>
-        <strong>👁 View all plans</strong> — accordion with all filtered items<br>
-        <strong>📋 Copy plan</strong> — clone environments to another release<br>
-        <strong>Review by Lead</strong> — locks status & dates until approved<br>
-        After review: dates + effort auto-sync to Release tab
-      </div>
-      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
-        ${[['Not yet started','#f1f5f9','#64748b'],['In progress','#fef3c7','#b45309'],['Done','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.85;">
+        Select release → add test environments with assignees<br>
+        <strong>Test Prep + Test Env/Data Prep</strong> — extra assignment rows<br>
+        Milestones: Build pickup, BVT, Execution, Go-ahead date<br>
+        <strong>Build delay/early</strong> → milestones auto-shift + review resets<br>
+        QA sends review request → Lead approves → dates sync to Release tab<br>
+        Download report / Open in new tab
       </div>
     </div>
 
-    <!-- Leave -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#f59e0b20;border:1px solid #f59e0b33;display:flex;align-items:center;justify-content:center;font-size:17px;">🏖️</div>
@@ -6132,7 +6117,6 @@ function renderHelp() {
       <div style="font-size:11.5px;color:var(--text-dim);">H = Holiday &nbsp;·&nbsp; · = Weekend<br>Leave is reflected in Dashboard availability badges</div>
     </div>
 
-    <!-- Daily Plan -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#6366f120;border:1px solid #6366f133;display:flex;align-items:center;justify-content:center;font-size:17px;">📅</div>
@@ -6141,41 +6125,37 @@ function renderHelp() {
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
         Filter by Dev POD · compact grid view<br>
-        Click empty cell → modal opens with person + date pre-filled<br>
-        Assign: Person + Release item + <strong>Task type</strong> (📝✍️🗂️🔬▶️) + dates<br>
+        🟢 <strong>Resource availability</strong> — next free date per person<br>
+        Click empty cell → modal with person + date pre-filled<br>
+        Assign: Person + Release + Task type (📝✍️🗂️🔬▶️) + dates<br>
         Hover assigned cell → ✎ Edit / ✕ Remove<br>
-        QA (read only) → no add/edit/remove options<br>
-        <strong>📄 Share report</strong> — calendar grid with task names<br>
-        <strong>✨ AI Assistant</strong> — natural language queries about team
+        <strong>📄 Share report</strong> · <strong>✨ AI Assistant</strong>
       </div>
     </div>
-
   </div>
 
-  <!-- Row 3 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
-
-    <!-- Summary -->
+  <!-- Row 3: Summary, Vault, Launchpad, Infra -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:#22d3ee20;border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">📊</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Summary</div>
-        <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Table · Share with manager</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Table</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
         Shows <strong>all releases</strong> including completed<br>
         🏥 Release Health — per-item risk cards (active only)<br>
         📅 Gantt timeline — today line, all releases<br>
-        📋 Summary table — <strong>Build Delay column</strong> (working days)<br>
-        Paginated <strong>10/page</strong> · filter by date, POD, status<br>
-        📄 <strong>Share Report</strong> — matches UI column order exactly
+        📋 Summary table — filter by date, Component, POD, status<br>
+        <strong>Component column</strong> with filter dropdown<br>
+        Comments column with author + timestamp<br>
+        Paginated <strong>10/page</strong> · 📄 Share Report
       </div>
       <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
         ${[['🔴 At risk','#fee2e2','#dc2626'],['🟡 Needs attention','#fef9c3','#a16207'],['🟢 On track','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
       </div>
     </div>
 
-    <!-- Release Vault -->
     <div class="panel" style="margin:0;border:1.5px solid #fbbf2444;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.3),rgba(245,158,11,0.2));border:1px solid #fbbf2433;display:flex;align-items:center;justify-content:center;font-size:17px;">🔐</div>
@@ -6184,15 +6164,16 @@ function renderHelp() {
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
         Items appear when: status = <strong>Completed</strong> AND all envs = <strong>Done</strong><br>
+        Accordion — environments, milestones, effort, component badge<br>
+        <strong>💬 Chat History</strong> — archived read-only messages per release<br>
         Filter by Release date or Dev POD<br>
-        Accordion — environments, buffer, total effort, milestones per item<br>
-        <strong>↩ Revert</strong> — move back to active releases (Admin/Lead only)<br>
-        Paginated <strong>15 items/page</strong><br>
-        <strong>⬇ Download Report</strong> / <strong>🔗 Open in new tab</strong>
+        <strong>↩ Revert</strong> — move back to active (Admin/Lead only)<br>
+        ⬇ Download Report / 🔗 Open in new tab
       </div>
     </div>
+  </div>
 
-    <!-- Launchpad -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
     <div class="panel" style="margin:0;border:1.5px solid #10b98144;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(59,130,246,0.2));border:1px solid #10b98133;display:flex;align-items:center;justify-content:center;font-size:17px;">🚀</div>
@@ -6200,16 +6181,14 @@ function renderHelp() {
         <div style="font-size:11px;color:var(--text-faint);">Quick links + Knowledge base</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        ⚡ <strong>Quick Links</strong> — JIRA, Jenkins, Confluence etc. · click to open<br>
+        ⚡ <strong>Quick Links</strong> — JIRA, Jenkins, Confluence etc.<br>
         📘 <strong>Knowledge Base</strong> — training docs, guides, SOPs<br>
         Categories: Testing / Onboarding / Tools / Process / Templates<br>
-        Search + filter by category · 📌 Pin important docs on top<br>
-        Admin/Lead: Add, edit, delete, pin resources and links<br>
-        All users: view and open resources
+        Search + filter by category · 📌 Pin important docs<br>
+        Admin/Lead: Add, edit, delete, pin resources
       </div>
     </div>
 
-    <!-- Infra Hub -->
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
         <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(6,182,212,0.2),rgba(99,102,241,0.2));border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">🖥️</div>
@@ -6220,7 +6199,7 @@ function renderHelp() {
         Group/filter by POD · status filter (in use / free / expiring)<br>
         <strong>In-use toggle</strong> — click in table to flip instantly<br>
         <strong>Auto-free</strong> — VM auto-marks free when End Date passes<br>
-        VM details parsed: OS badge, Office version, IP address<br>
+        VM details: OS badge, Office version, IP address<br>
         <strong>✎ Manage groups</strong> — add, rename, or delete POD groups
       </div>
       <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
@@ -6230,7 +6209,48 @@ function renderHelp() {
         <span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">⚠ Expiring</span>
       </div>
     </div>
+  </div>
 
+  <!-- Chat -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed33;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;font-size:20px;">💬</div>
+      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Team Chat</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Real-time messaging — Global + per release rooms</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      ${[['💬 Rooms','Global room for all + separate room per active release. Completed releases removed from chat.'],
+         ['✏️ Edit / Delete','Hover your own message → ✏️ edit or 🗑️ delete. Your messages only.'],
+         ['🔔 Notifications','New message → purple toast + FAB badge. Click toast → jump to that room.'],
+         ['🔇 Mute sound','🔔 button in chat header → toggle notification sound on/off. Saved in browser.'],
+         ['🔐 Vault history','Completed release chat → archived in Release Vault accordion. Read-only.'],
+         ['🟢 Online','Green dot shows how many team members are online now.']].map(([t,d])=>`
+        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">${t}</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #ec489933;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:20px;">🔔</div>
+      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Notification Center</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Assignment + Milestone notifications only</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      ${[['👤 Assigned','When you are assigned to any test row, Test Prep, or Test Env/Data Prep — notification goes ONLY to you.'],
+         ['📅 Milestone','When milestone dates are due today/tomorrow — goes to QA Lead + all assignees of that release.'],
+         ['🧹 Clear','Clear your notifications → only YOUR notifications clear. Others are unaffected.'],
+         ['✅ Read','Mark all read → only YOUR unread count clears. Badge goes to 0.'],
+         ['🔕 Per-user','Notifications are user-specific. No shared state — each user has their own list.'],
+         ['🚫 No spam','Build delays, review requests etc. do NOT create bell notifications — only assigned + milestone.']].map(([t,d])=>`
+        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">${t}</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
+        </div>`).join('')}
+    </div>
   </div>
 
   <!-- Review Workflow -->
@@ -6238,17 +6258,18 @@ function renderHelp() {
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
       <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">🔒</div>
       <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Review by Lead — How it Works</h2>
-      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Dates and status are locked until a lead approves the test plan</div></div>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Dates and effort locked until lead approves</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-      ${[['1','QA builds test plan','Adds environments, effort, milestones — all editable'],
-         ['2','Request review','Non-leads see "Request Lead Review" button — sends to lead\'s dashboard'],
-         ['3','Lead approves','Lead opens the plan, reviews, checks "Mark as reviewed"'],
-         ['4','Data unlocks','Dates + effort + status sync to Release tab automatically']].map(([n,t,d])=>`
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
+      ${[['1','QA builds plan','Adds environments, effort, milestones'],
+         ['2','Request review','QA sends request → Lead gets bell notification'],
+         ['3','Lead approves','Checks "Mark as reviewed" in Test Plan'],
+         ['4','Data syncs','Effort + dates appear in Release + Summary tab'],
+         ['5','Build delay?','Milestones shift → review auto-resets → QA must re-request']].map(([n,t,d])=>`
         <div style="background:var(--panel-2);border-radius:10px;padding:12px;border:1px solid var(--border-soft);">
           <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">${n}</div>
-          <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:4px;">${t}</div>
-          <div style="font-size:11.5px;color:var(--text-faint);line-height:1.6;">${d}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;">${t}</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
         </div>`).join('')}
     </div>
   </div>
@@ -6262,7 +6283,7 @@ function renderHelp() {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       ${[['Who is free today?','Shows available team members with no assignments'],
-         ['Which releases are at risk?','Lists releases missing dates, effort, or behind schedule'],
+         ['Which releases are at risk?','Lists releases missing dates or behind schedule'],
          ['What is the total effort for DareDevils?','Sums up test plan effort by POD'],
          ['Who is working on CAD Removal this week?','Pulls from Daily Plan assignments']].map(([q,a])=>`
         <div style="background:var(--panel-2);border-radius:8px;padding:10px 12px;border:1px solid var(--border-soft);">
@@ -6271,11 +6292,11 @@ function renderHelp() {
         </div>`).join('')}
     </div>
     <div style="background:var(--panel-2);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11.5px;color:var(--text-faint);">
-      ℹ️ Knows your team, releases, daily plan, leaves, VMs · Multi-turn conversation (last 10 messages) · Needs active internet connection
+      ℹ️ Knows your team, releases, daily plan, leaves, VMs · Multi-turn conversation · Requires internet connection
     </div>
   </div>
 
-  <!-- Keyboard Shortcuts -->
+  <!-- Shortcuts -->
   <div class="panel" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <div style="width:40px;height:40px;border-radius:12px;background:#f43f5e22;border:1px solid #f43f5e33;display:flex;align-items:center;justify-content:center;font-size:20px;">⌨️</div>
@@ -6309,14 +6330,14 @@ function renderHelp() {
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">↩️ Undo System</div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Last <strong>20 actions</strong> are remembered.<br>A toast appears → click ↩ Undo or Ctrl+Z.<br>Data is restored in Supabase automatically.</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Last <strong>20 actions</strong> remembered.<br>Toast appears → click ↩ Undo or Ctrl+Z.<br>Data restored in Supabase automatically.</div>
       <div style="display:flex;flex-direction:column;gap:3px;">
-        ${['Release add / edit / delete','Bulk status / delete','Test row add / edit / delete','Daily plan assign / clear','VM add / edit / delete'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">✓ ${t}</div>`).join('')}
+        ${['Release add / edit / delete','Bulk delete','Test row add / edit / delete','Daily plan assign / clear','VM add / edit / delete'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">✓ ${t}</div>`).join('')}
       </div>
     </div>
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">📋 Activity Log</div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Open from sidebar → 📋 Activity log.<br>All users' actions visible to admins.<br>Saved in Supabase + localStorage backup.</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Open from sidebar → 📋 Activity log.<br>Saved in Supabase. No duplicates.<br>Filter by Today / Yesterday / Custom.</div>
       <div style="display:flex;flex-direction:column;gap:3px;">
         ${['➕ Release added / edited / deleted','📅 Daily plan assigned / cleared','🏖️ Leave marked (PL / UPL)','📝 Notes added','👤 People changes','🔄 Bulk status update'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">${t}</div>`).join('')}
       </div>
@@ -6324,47 +6345,18 @@ function renderHelp() {
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">⚙️ Settings & Sync</div>
       <div style="display:flex;flex-direction:column;gap:7px;">
-        ${[['🌙','Dark Mode','Toggle in sidebar · Shift+D · Preference saved permanently'],
-           ['🟢','Real-time Sync','Green dot = live · Changes appear across all users in under 1 second'],
-           ['🔍','Search','Sidebar search bar · finds people, releases, VMs · completed items → Release Vault'],
+        ${[['🌙','Dark Mode','Toggle in sidebar · Shift+D · Saved permanently'],
+           ['🟢','Real-time Sync','Changes appear across all users instantly'],
+           ['🔍','Search','Sidebar · finds people, releases, VMs → Release Vault'],
            ['🔒','Password','Sidebar footer → Change password'],
-           ['👤','Permissions','Admin tab → per-user tab access · Copy from another user'],
-           ['💾','Tab Memory','Refresh = same page · localStorage remembers last open tab instantly'],
-           ['🔔','Notifications','Bell icon top-right · role-filtered · Today/Yesterday/Earlier grouped']].map(([i,t,d])=>`
-          <div style="padding:8px 10px;background:var(--panel-2);border-radius:8px;">
+           ['👤','Permissions','Admin tab → per-user tab access + copy from user'],
+           ['💾','Tab Memory','Refresh = same page · localStorage remembers last tab'],
+           ['🔔','Notifications','Bell → assigned + milestone only · per-user · grouped']].map(([i,t,d])=>`
+          <div style="padding:7px 10px;background:var(--panel-2);border-radius:8px;">
             <div style="font-size:12px;font-weight:600;color:var(--text);">${i} ${t}</div>
             <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${d}</div>
           </div>`).join('')}
       </div>
-    </div>
-  </div>
-
-  <!-- What's New v1.0 -->
-  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed44;background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(37,99,235,0.02));">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">🚀</div>
-      <div>
-        <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">What's New in v1.0</h2>
-        <div style="font-size:11.5px;color:var(--text-faint);margin-top:2px;">Seclore QA Team · July 2026</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      ${[['🔔','Smart Notifications','Role-filtered bell notifications — build delays, review requests, milestone due dates, assignments'],
-         ['🔄','Review Gate','Test plan must be reviewed by Lead before dates sync to Release tab. Build delay auto-resets review.'],
-         ['⚡','Instant Tab Restore','Refresh = same page, zero flash. localStorage remembers your last tab instantly.'],
-         ['📊','Batch Notes Fetch','Summary & Vault load all comments in 1 request instead of N separate calls.'],
-         ['↩','Revert from Vault','Accidentally marked Completed? Revert button brings release back to active.'],
-         ['🔗','Open in New Tab','Test Plan & Release Vault reports open in new tab with full data.'],
-         ['👥','Role-Based Alerts','Build alerts, today\'s assignments, general alerts — each role sees only their releases.'],
-         ['🗑','Bulk Delete Only','Simplified bulk action — just delete. Status changes done per-item for accuracy.']
-      ].map(([i,t,d])=>`
-        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);display:flex;gap:10px;align-items:flex-start;">
-          <span style="font-size:18px;flex-shrink:0;">${i}</span>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">${t}</div>
-            <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
-          </div>
-        </div>`).join('')}
     </div>
   </div>
 
@@ -6375,14 +6367,14 @@ function renderHelp() {
       <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Common Questions</h2>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${[['Release tab dates not showing?','Dates sync from Test Plan only after a lead has reviewed and approved the plan.'],
+      ${[['Release tab dates not showing?','Dates sync from Test Plan only after a Lead has reviewed and approved the plan.'],
          ['Build delay badge not showing?','Enter both Planned Dev to QA and Actual Dev to QA dates in the Release tab edit modal.'],
-         ['Milestones not shifting after build delay?','Milestones only shift when Actual Dev to QA > Planned Dev to QA (late). On time and early keep original dates (early case shifts earlier).'],
-         ['Item not appearing in Release Vault?','Both conditions must be met: Release status = Completed AND every environment in the Test Plan (including Test prep and Test env) = Done.'],
-         ['"Working on it" column empty?','Shows people from Daily Plan within a ±30 day window. Assign people in the Daily Plan tab first.'],
-         ['AI Assistant not responding?','Check your internet connection. The AI uses the Anthropic API and requires active internet access.'],
-         ['Build alerts not visible to QA?','QA sees alerts only for releases where they are owner or assigned in the test plan environments.'],
-         ['Launchpad resources not saving?','Only Admin/Lead can add resources. Make sure you are logged in with the correct role.']].map(([q,a])=>`
+         ['Review request notification not received by Lead?','Make sure the release item has QA Lead field set and the Lead has their email in People tab.'],
+         ['Item not appearing in Release Vault?','Both: Release status = Completed AND every environment in Test Plan (including Test prep and Test env) = Done.'],
+         ['Chat edit/delete not showing?','Only your own messages show edit/delete on hover. Older messages show after reopening the chat window.'],
+         ['"Working on it" column empty?','Shows people from Daily Plan within ±30 day window. Assign people in Daily Plan tab first.'],
+         ['Build alert disappeared for someone else?','Each user dismisses their own build alert independently — "Got it" only affects the user who clicked it.'],
+         ['Notification came back after clearing?','Cleared notifications are saved to dismissed list per user and will not return. Refresh once to confirm.']].map(([q,a])=>`
         <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:10px;padding:12px 14px;">
           <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:5px;display:flex;gap:6px;">
             <span style="color:#7c3aed;flex-shrink:0;">Q</span>${q}
@@ -6397,8 +6389,9 @@ function renderHelp() {
   <!-- Footer -->
   <div style="text-align:center;padding:28px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:16px;border:1px solid var(--border-soft);">
     <div style="font-size:28px;margin-bottom:8px;">🔍</div>
-    <div style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">TeamLens v3.0</div>
-    <div style="font-size:12px;color:var(--text-faint);">Built for QA teams · <span style="color:#7c3aed;font-weight:600;">One lens. Full picture.</span></div>
+    <div style="font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">TeamLens v1.0</div>
+    <div style="font-size:12px;color:var(--text-faint);">Built for Seclore QA · <span style="color:#7c3aed;font-weight:600;">One lens. Full picture.</span></div>
+    <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Built with ❤️ by Akash Kadam</div>
   </div>
 
   `;
