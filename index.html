@@ -2850,28 +2850,27 @@ function initSeparateTableRealtime() {
       event: '*', schema: 'public', table: 'test_plans'
     }, async (payload) => {
       if (!state.testPlans) state.testPlans = {};
+      const projId = payload.new?.project_id || payload.old?.project_id;
+
+      // Never auto-update the currently open test plan — user is working on it
+      // They will see changes when they switch to a different release or refresh
+      if (projId && projId === selectedTestPlanProjectId) {
+        console.log('[Realtime] Skipping — user is actively editing this test plan');
+        return;
+      }
+
       if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-        const projId = payload.new?.project_id;
         const plan = payload.new?.data;
-        if (projId && plan) {
-          // Don't overwrite if user has a local draft for this project
-          const hasDraft = !!localStorage.getItem(DRAFT_KEY_PREFIX + projId);
-          if (!hasDraft) {
-            state.testPlans[projId] = plan;
-          } else {
-            console.log('[Realtime] Skipping — local draft exists for', projId);
-          }
-        }
+        if (projId && plan) state.testPlans[projId] = plan;
       } else if (payload.eventType === 'DELETE') {
-        delete state.testPlans[payload.old?.project_id];
+        delete state.testPlans[projId];
       }
       syncTestPlanToProjects();
-      const projId = payload.new?.project_id || payload.old?.project_id;
       if (projId) {
         const updProj = state.projects.find(p => p.id === projId);
         if (updProj) saveRelease(updProj);
       }
-      markDirty('testplan', 'projects', 'summary', 'dashboard');
+      markDirty('projects', 'summary', 'dashboard');
       renderAll();
     })
     .subscribe();
@@ -4012,30 +4011,28 @@ async function loadState() {
       // Track version for conflict detection
       _stateVersion = data.updated_at || null;
       const parsed = data.data;
-      state.people = Array.isArray(parsed.people) ? parsed.people : [];
-      state.projects = Array.isArray(parsed.projects) ? parsed.projects : [];
+      state.people      = Array.isArray(parsed.people)      ? parsed.people      : [];
+      // state.projects → loaded from releases table below
+      // state.testPlans → loaded from test_plans table below
+      // state.dailyPlan → loaded from daily_plan table below
       state.allocations = Array.isArray(parsed.allocations) ? parsed.allocations : [];
-      state.leaves = (parsed.leaves && typeof parsed.leaves === 'object') ? parsed.leaves : {};
-      state.dailyPlan = Array.isArray(parsed.dailyPlan) ? parsed.dailyPlan : [];
-      state.holidays = Array.isArray(parsed.holidays) ? parsed.holidays : [];
-      state.testPlans = (parsed.testPlans && typeof parsed.testPlans === 'object') ? parsed.testPlans : {};
-      state.vms       = Array.isArray(parsed.vms) ? parsed.vms : [];
-      state.vmPods    = Array.isArray(parsed.vmPods) ? parsed.vmPods :
+      state.leaves      = (parsed.leaves && typeof parsed.leaves === 'object') ? parsed.leaves : {};
+      state.holidays    = Array.isArray(parsed.holidays)    ? parsed.holidays    : [];
+      state.vms         = Array.isArray(parsed.vms)         ? parsed.vms         : [];
+      state.vmPods      = Array.isArray(parsed.vmPods)      ? parsed.vmPods      :
         ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
-      state.reviewRequests          = Array.isArray(parsed.reviewRequests) ? parsed.reviewRequests : [];
+      state.reviewRequests          = Array.isArray(parsed.reviewRequests)          ? parsed.reviewRequests          : [];
       state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
       state.knowledgeResources      = Array.isArray(parsed.knowledgeResources)      ? parsed.knowledgeResources      : [];
       state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
-      state.notifications           = []; // loaded from push_notifications table separately
+      state.notifications           = [];
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
-      el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
-      // Load from separate tables (overrides shared state)
+      // Load from separate tables
       await Promise.all([loadReleases(), loadTestPlans(), loadDailyPlan()]);
+      el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
       // Enforce review gate
       syncTestPlanToProjects();
       setTimeout(() => { updateBellBadge(); }, 400);
-      setTimeout(() => {
-      }, 300);
     } else {
       el.textContent = 'no data yet — start by adding people';
     }
@@ -4055,41 +4052,20 @@ async function saveState() {
   }
   const el = document.getElementById('lastSaved');
   try {
-    const { notifications: _excluded, ...stateToSave } = state;
+    // Exclude notifications (user-specific) AND separate table data
+    // projects → releases table
+    // testPlans → test_plans table  
+    // dailyPlan → daily_plan table
+    const {
+      notifications: _n,
+      projects: _p,
+      testPlans: _t,
+      dailyPlan: _d,
+      ...stateToSave
+    } = state;
+
     const now = new Date().toISOString();
 
-    // Check version conflict
-    if (_stateVersion) {
-      const { data: current } = await sbClient
-        .from('resource_planner')
-        .select('updated_at')
-        .eq('id', 'shared')
-        .single();
-
-      if (current && current.updated_at !== _stateVersion) {
-        const { data: latest } = await sbClient
-          .from('resource_planner')
-          .select('data, updated_at')
-          .eq('id', 'shared')
-          .single();
-
-        if (latest) {
-          const latestState = latest.data;
-          stateToSave.projects    = state.projects;
-          stateToSave.testPlans   = state.testPlans;
-          stateToSave.dailyPlan   = state.dailyPlan;
-          stateToSave.allocations = state.allocations;
-          stateToSave.people      = latestState.people      || state.people;
-          stateToSave.leaves      = latestState.leaves      || state.leaves;
-          stateToSave.holidays    = latestState.holidays    || state.holidays;
-          stateToSave.vms         = latestState.vms         || state.vms;
-          stateToSave.knowledgeResources = latestState.knowledgeResources || state.knowledgeResources;
-          stateToSave.importantLinks     = latestState.importantLinks     || state.importantLinks;
-        }
-      }
-    }
-
-    // Save to main table
     const { error } = await sbClient
       .from('resource_planner')
       .upsert({ id: 'shared', data: stateToSave, updated_at: now });
@@ -4103,13 +4079,13 @@ async function saveState() {
     _lastSavedAt = Date.now();
     _stateVersion = now;
 
-    // Auto-backup every 5 saves or every 10 minutes
+    // Auto-backup every 5 saves or 10 minutes
     _saveCount = (_saveCount || 0) + 1;
     const lastBackupTime = parseInt(localStorage.getItem('tl_last_backup') || '0');
     if (_saveCount % 5 === 0 || Date.now() - lastBackupTime > 10 * 60 * 1000) {
       sbClient.from('backups').insert({
         saved_by: currentUserEmail,
-        data: stateToSave
+        data: { ...stateToSave, projects: state.projects, testPlans: state.testPlans, dailyPlan: state.dailyPlan }
       }).then(() => {
         localStorage.setItem('tl_last_backup', Date.now().toString());
         console.log('[Backup] Auto-backup saved');
