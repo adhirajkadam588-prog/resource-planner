@@ -4630,16 +4630,23 @@ async function loadState() {
       // Track version for conflict detection
       _stateVersion = data.updated_at || null;
       const parsed = data.data;
-      // people/leaves/holidays/vms/knowledge/links → loaded from field tables below
-      // projects/testPlans/dailyPlan → loaded from separate tables
-      state.allocations = Array.isArray(parsed.allocations) ? parsed.allocations : [];
-      state.vmPods      = Array.isArray(parsed.vmPods)      ? parsed.vmPods      :
+      // Load from resource_planner as fallback (for migration)
+      // After migration, field tables will override these
+      state.people             = Array.isArray(parsed.people)             ? parsed.people             : [];
+      state.leaves             = (parsed.leaves && typeof parsed.leaves === 'object') ? parsed.leaves : {};
+      state.holidays           = Array.isArray(parsed.holidays)           ? parsed.holidays           : [];
+      state.vms                = Array.isArray(parsed.vms)                ? parsed.vms                : [];
+      state.knowledgeResources = Array.isArray(parsed.knowledgeResources) ? parsed.knowledgeResources : [];
+      state.importantLinks     = Array.isArray(parsed.importantLinks)     ? parsed.importantLinks     : [];
+      state.allocations        = Array.isArray(parsed.allocations)        ? parsed.allocations        : [];
+      state.vmPods             = Array.isArray(parsed.vmPods)             ? parsed.vmPods             :
         ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
       state.reviewRequests          = Array.isArray(parsed.reviewRequests)          ? parsed.reviewRequests          : [];
       state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
       state.notifications           = [];
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
-      // Load all data from field-level tables
+
+      // Load from field tables — will override resource_planner data if rows exist
       await Promise.all([
         loadPeople(),
         loadLeaves(),
