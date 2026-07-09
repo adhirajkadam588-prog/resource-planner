@@ -2824,14 +2824,18 @@ function initSeparateTableRealtime() {
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'releases'
     }, async (payload) => {
-      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+      if (payload.eventType === 'DELETE') {
+        const deletedId = payload.old?.id;
+        if (deletedId) {
+          state.projects = state.projects.filter(p => p.id !== deletedId);
+          delete state.testPlans[deletedId];
+        }
+      } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
         const proj = payload.new?.data;
         if (!proj) return;
         const idx = state.projects.findIndex(p => p.id === proj.id);
         if (idx >= 0) state.projects[idx] = proj;
         else state.projects.push(proj);
-      } else if (payload.eventType === 'DELETE') {
-        state.projects = state.projects.filter(p => p.id !== payload.old?.id);
       }
       markDirty('projects', 'summary', 'dashboard', 'archive', 'testplan');
       renderAll();
@@ -8438,6 +8442,8 @@ function deleteProject(id) {
   const proj = state.projects.find(p => p.id === id);
   if (!confirm(`Remove "${proj?.name}"? Related allocations, daily plan entries, and test plan will also be removed.`)) return;
   snapshotState(`Delete release item: ${proj?.name}`);
+
+  // Remove from local state immediately
   state.projects = state.projects.filter(p => p.id !== id);
   if (proj) {
     state.allocations = state.allocations.filter(a => a.project !== proj.name);
@@ -8446,10 +8452,14 @@ function deleteProject(id) {
   }
   delete state.testPlans[id];
   if (selectedTestPlanProjectId === id) selectedTestPlanProjectId = null;
-  // Delete from separate tables
+
+  // Delete from field tables — NO saveState() to avoid realtime race condition
+  // releases table DELETE → realtime → other users see it removed ✅
   deleteRelease(id);
   deleteTestPlan(id);
-  saveState();
+  // Delete daily plan entries from table
+  (state.dailyPlan || []).forEach(d => { if (d.project === proj?.name) deleteDailyPlanEntry(d.id); });
+
   renderAll();
 }
 
