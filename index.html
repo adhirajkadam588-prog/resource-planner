@@ -3143,6 +3143,349 @@ function initFieldLevelRealtime() {
   console.log('[Realtime] Field-level test plan subscriptions active');
 }
 
+
+// ════════════════════════════════════════════════════════════
+// FIELD-LEVEL SAVE FUNCTIONS — People, Leaves, Holidays, VMs
+// Knowledge, Links — each record saved independently
+// Zero overwrite, zero race conditions
+// ════════════════════════════════════════════════════════════
+
+// ── PEOPLE ───────────────────────────────────────────────
+async function savePeopleRecord(person) {
+  if (!sbClient || !person?.id) return;
+  try {
+    await sbClient.from('people').upsert({
+      id: person.id,
+      data: person,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('savePeopleRecord error:', e); }
+}
+
+async function deletePeopleRecord(personId) {
+  if (!sbClient || !personId) return;
+  try {
+    await sbClient.from('people').delete().eq('id', personId);
+  } catch(e) { console.warn('deletePeopleRecord error:', e); }
+}
+
+async function loadPeople() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('people').select('data').order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) state.people = data.map(r => r.data);
+  } catch(e) { console.warn('loadPeople error:', e); }
+}
+
+// ── LEAVES ───────────────────────────────────────────────
+async function saveLeaveRecord(personId, dateKey, type) {
+  if (!sbClient || !personId || !dateKey) return;
+  try {
+    if (!type) {
+      // Clear — delete the record
+      await sbClient.from('leaves')
+        .delete()
+        .eq('person_id', personId)
+        .eq('date', dateKey);
+    } else {
+      // Set PL or UPL
+      await sbClient.from('leaves').upsert({
+        person_id: personId,
+        date: dateKey,
+        type: type,
+        updated_at: new Date().toISOString()
+      });
+    }
+  } catch(e) { console.warn('saveLeaveRecord error:', e); }
+}
+
+async function loadLeaves() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient.from('leaves').select('*');
+    if (error) throw error;
+    if (data && data.length > 0) {
+      state.leaves = {};
+      data.forEach(r => {
+        if (!state.leaves[r.person_id]) state.leaves[r.person_id] = {};
+        state.leaves[r.person_id][r.date] = r.type;
+      });
+    }
+  } catch(e) { console.warn('loadLeaves error:', e); }
+}
+
+// ── HOLIDAYS ─────────────────────────────────────────────
+async function saveHolidayRecord(holiday) {
+  if (!sbClient || !holiday?.id) return;
+  try {
+    await sbClient.from('holidays').upsert({
+      id: holiday.id,
+      data: holiday,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveHolidayRecord error:', e); }
+}
+
+async function deleteHolidayRecord(holidayId) {
+  if (!sbClient || !holidayId) return;
+  try {
+    await sbClient.from('holidays').delete().eq('id', holidayId);
+  } catch(e) { console.warn('deleteHolidayRecord error:', e); }
+}
+
+async function loadHolidays() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('holidays').select('data').order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) {
+      state.holidays = data.map(r => r.data);
+      state.holidays.sort((a, b) => a.date.localeCompare(b.date));
+    }
+  } catch(e) { console.warn('loadHolidays error:', e); }
+}
+
+// ── VMs ──────────────────────────────────────────────────
+async function saveVMRecord(vm) {
+  if (!sbClient || !vm?.id) return;
+  try {
+    await sbClient.from('vms').upsert({
+      id: vm.id,
+      data: vm,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveVMRecord error:', e); }
+}
+
+async function deleteVMRecord(vmId) {
+  if (!sbClient || !vmId) return;
+  try {
+    await sbClient.from('vms').delete().eq('id', vmId);
+  } catch(e) { console.warn('deleteVMRecord error:', e); }
+}
+
+async function loadVMs() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('vms').select('data').order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) state.vms = data.map(r => r.data);
+  } catch(e) { console.warn('loadVMs error:', e); }
+}
+
+// ── KNOWLEDGE RESOURCES ──────────────────────────────────
+async function saveKnowledgeRecord(resource) {
+  if (!sbClient || !resource?.id) return;
+  try {
+    await sbClient.from('knowledge_resources').upsert({
+      id: resource.id,
+      data: resource,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveKnowledgeRecord error:', e); }
+}
+
+async function deleteKnowledgeRecord(resourceId) {
+  if (!sbClient || !resourceId) return;
+  try {
+    await sbClient.from('knowledge_resources').delete().eq('id', resourceId);
+  } catch(e) { console.warn('deleteKnowledgeRecord error:', e); }
+}
+
+async function loadKnowledgeResources() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('knowledge_resources').select('data').order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) state.knowledgeResources = data.map(r => r.data);
+  } catch(e) { console.warn('loadKnowledgeResources error:', e); }
+}
+
+// ── IMPORTANT LINKS ──────────────────────────────────────
+async function saveLinkRecord(link) {
+  if (!sbClient || !link?.id) return;
+  try {
+    await sbClient.from('important_links').upsert({
+      id: link.id,
+      data: link,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveLinkRecord error:', e); }
+}
+
+async function deleteLinkRecord(linkId) {
+  if (!sbClient || !linkId) return;
+  try {
+    await sbClient.from('important_links').delete().eq('id', linkId);
+  } catch(e) { console.warn('deleteLinkRecord error:', e); }
+}
+
+async function loadImportantLinks() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('important_links').select('data').order('updated_at', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) state.importantLinks = data.map(r => r.data);
+  } catch(e) { console.warn('loadImportantLinks error:', e); }
+}
+
+// ── MIGRATE ALL TO NEW TABLES ────────────────────────────
+async function migrateToFieldTables() {
+  if (localStorage.getItem('tl_migrated_v4')) return;
+  console.log('[Migration v4] Starting field-level migration...');
+  try {
+    // People
+    for (const p of (state.people || [])) await savePeopleRecord(p);
+    console.log('[Migration v4] People:', state.people?.length);
+
+    // Leaves
+    for (const [personId, dates] of Object.entries(state.leaves || {})) {
+      for (const [date, type] of Object.entries(dates || {})) {
+        await saveLeaveRecord(personId, date, type);
+      }
+    }
+    console.log('[Migration v4] Leaves done');
+
+    // Holidays
+    for (const h of (state.holidays || [])) await saveHolidayRecord(h);
+    console.log('[Migration v4] Holidays:', state.holidays?.length);
+
+    // VMs
+    for (const vm of (state.vms || [])) await saveVMRecord(vm);
+    console.log('[Migration v4] VMs:', state.vms?.length);
+
+    // Knowledge
+    for (const r of (state.knowledgeResources || [])) await saveKnowledgeRecord(r);
+    console.log('[Migration v4] Knowledge:', state.knowledgeResources?.length);
+
+    // Links
+    for (const l of (state.importantLinks || [])) await saveLinkRecord(l);
+    console.log('[Migration v4] Links:', state.importantLinks?.length);
+
+    localStorage.setItem('tl_migrated_v4', 'true');
+    console.log('[Migration v4] Complete!');
+    showToastMsg('✅ All data migrated to field-level tables!');
+  } catch(e) {
+    console.error('[Migration v4] Failed:', e);
+  }
+}
+
+// ── REALTIME for new tables ──────────────────────────────
+function initFieldTablesRealtime() {
+  if (!sbClient) return;
+
+  // People realtime
+  sbClient.channel('people-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'people' }, (payload) => {
+      if (!state.people) state.people = [];
+      if (payload.eventType === 'DELETE') {
+        state.people = state.people.filter(p => p.id !== payload.old?.id);
+      } else {
+        const person = payload.new?.data;
+        if (!person) return;
+        const idx = state.people.findIndex(p => p.id === person.id);
+        if (idx >= 0) state.people[idx] = person;
+        else state.people.push(person);
+      }
+      markDirty('people', 'dailyplan', 'leave', 'dashboard', 'summary');
+      renderAll();
+    }).subscribe();
+
+  // Leaves realtime
+  sbClient.channel('leaves-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'leaves' }, (payload) => {
+      if (!state.leaves) state.leaves = {};
+      const personId = payload.new?.person_id || payload.old?.person_id;
+      const date = payload.new?.date || payload.old?.date;
+      if (!personId || !date) return;
+      if (!state.leaves[personId]) state.leaves[personId] = {};
+      if (payload.eventType === 'DELETE') {
+        delete state.leaves[personId][date];
+      } else {
+        state.leaves[personId][date] = payload.new?.type;
+      }
+      markDirty('leave', 'dashboard', 'dailyplan');
+      renderAll();
+    }).subscribe();
+
+  // Holidays realtime
+  sbClient.channel('holidays-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'holidays' }, (payload) => {
+      if (!state.holidays) state.holidays = [];
+      if (payload.eventType === 'DELETE') {
+        state.holidays = state.holidays.filter(h => h.id !== payload.old?.id);
+      } else {
+        const holiday = payload.new?.data;
+        if (!holiday) return;
+        const idx = state.holidays.findIndex(h => h.id === holiday.id);
+        if (idx >= 0) state.holidays[idx] = holiday;
+        else state.holidays.push(holiday);
+        state.holidays.sort((a, b) => a.date.localeCompare(b.date));
+      }
+      markDirty('holidays', 'leave', 'dashboard', 'dailyplan');
+      renderAll();
+    }).subscribe();
+
+  // VMs realtime
+  sbClient.channel('vms-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'vms' }, (payload) => {
+      if (!state.vms) state.vms = [];
+      if (payload.eventType === 'DELETE') {
+        state.vms = state.vms.filter(v => v.id !== payload.old?.id);
+      } else {
+        const vm = payload.new?.data;
+        if (!vm) return;
+        const idx = state.vms.findIndex(v => v.id === vm.id);
+        if (idx >= 0) state.vms[idx] = vm;
+        else state.vms.push(vm);
+      }
+      markDirty('vmrepo', 'dashboard');
+      renderAll();
+    }).subscribe();
+
+  // Knowledge realtime
+  sbClient.channel('knowledge-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'knowledge_resources' }, (payload) => {
+      if (!state.knowledgeResources) state.knowledgeResources = [];
+      if (payload.eventType === 'DELETE') {
+        state.knowledgeResources = state.knowledgeResources.filter(r => r.id !== payload.old?.id);
+      } else {
+        const resource = payload.new?.data;
+        if (!resource) return;
+        const idx = state.knowledgeResources.findIndex(r => r.id === resource.id);
+        if (idx >= 0) state.knowledgeResources[idx] = resource;
+        else state.knowledgeResources.push(resource);
+      }
+      markDirty('knowledge');
+      renderAll();
+    }).subscribe();
+
+  // Links realtime
+  sbClient.channel('links-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'important_links' }, (payload) => {
+      if (!state.importantLinks) state.importantLinks = [];
+      if (payload.eventType === 'DELETE') {
+        state.importantLinks = state.importantLinks.filter(l => l.id !== payload.old?.id);
+      } else {
+        const link = payload.new?.data;
+        if (!link) return;
+        const idx = state.importantLinks.findIndex(l => l.id === link.id);
+        if (idx >= 0) state.importantLinks[idx] = link;
+        else state.importantLinks.push(link);
+      }
+      markDirty('knowledge');
+      renderAll();
+    }).subscribe();
+
+  console.log('[Realtime] Field tables subscriptions active');
+}
+
 function initRealtime() {
   if (realtimeChannel) {
     sbClient.removeChannel(realtimeChannel);
@@ -3157,27 +3500,30 @@ function initRealtime() {
       table: 'resource_planner',
       filter: 'id=eq.shared'
     }, (payload) => {
-      // Skip if WE saved recently
-      if (_lastSavedAt && Date.now() - _lastSavedAt < 3000) {
-        console.log('[Realtime] Skipping own save echo');
+      // Compare against the exact timestamp WE wrote — not a blind time window
+      // This correctly distinguishes our echo from another user's change
+      if (_stateVersion && payload.new?.updated_at === _stateVersion) {
+        console.log('[Realtime] Skipping own save echo (timestamp match)');
         return;
       }
 
       console.log('[Realtime] Change received from another user — reloading...');
       clearTimeout(_realtimeDebounce);
       _realtimeDebounce = setTimeout(async () => {
-        // Save current test plan state before reload — preserve drafts
-        const savedTestPlans = { ...state.testPlans };
+        // Save current test plan drafts before reload
         const draftKeys = Object.keys(localStorage).filter(k => k.startsWith(DRAFT_KEY_PREFIX));
+        const savedDrafts = {};
+        draftKeys.forEach(key => {
+          const projId = key.replace(DRAFT_KEY_PREFIX, '');
+          if (state.testPlans?.[projId]) savedDrafts[projId] = state.testPlans[projId];
+        });
 
         await loadState();
 
-        // Restore test plans that have local drafts — don't overwrite user's work
-        draftKeys.forEach(key => {
-          const projId = key.replace(DRAFT_KEY_PREFIX, '');
-          if (savedTestPlans[projId]) {
-            state.testPlans[projId] = savedTestPlans[projId];
-          }
+        // Restore drafts — don't let reload overwrite user's local work
+        Object.entries(savedDrafts).forEach(([projId, plan]) => {
+          if (!state.testPlans) state.testPlans = {};
+          state.testPlans[projId] = plan;
         });
 
         syncTestPlanToProjects();
@@ -3443,6 +3789,8 @@ async function initApp(user) {
   initSeparateTableRealtime();
   // Initialize field-level test plan realtime
   initFieldLevelRealtime();
+  // Initialize field tables realtime (people, leaves, holidays, vms, knowledge, links)
+  initFieldTablesRealtime();
   // Migrate existing data if not done yet
   if (!localStorage.getItem('tl_migrated_v2')) {
     await migrateToSeparateTables();
@@ -3450,6 +3798,10 @@ async function initApp(user) {
   // Migrate test plans to field tables if not done
   if (!localStorage.getItem('tl_migrated_v3')) {
     await migrateAllTestPlansToFieldTables();
+  }
+  // Migrate people/leaves/holidays/vms/knowledge/links to field tables
+  if (!localStorage.getItem('tl_migrated_v4')) {
+    await migrateToFieldTables();
   }
 
   // Run notification checks ONCE per session
@@ -4276,24 +4628,28 @@ async function loadState() {
       // Track version for conflict detection
       _stateVersion = data.updated_at || null;
       const parsed = data.data;
-      state.people      = Array.isArray(parsed.people)      ? parsed.people      : [];
-      // state.projects → loaded from releases table below
-      // state.testPlans → loaded from test_plans table below
-      // state.dailyPlan → loaded from daily_plan table below
+      // people/leaves/holidays/vms/knowledge/links → loaded from field tables below
+      // projects/testPlans/dailyPlan → loaded from separate tables
       state.allocations = Array.isArray(parsed.allocations) ? parsed.allocations : [];
-      state.leaves      = (parsed.leaves && typeof parsed.leaves === 'object') ? parsed.leaves : {};
-      state.holidays    = Array.isArray(parsed.holidays)    ? parsed.holidays    : [];
-      state.vms         = Array.isArray(parsed.vms)         ? parsed.vms         : [];
       state.vmPods      = Array.isArray(parsed.vmPods)      ? parsed.vmPods      :
         ['Akash','Dikshit','Regression VMs','Automation VMs','Insider Testing','KLA Machines','Hot Folder','BJ','AppConnect Server'];
       state.reviewRequests          = Array.isArray(parsed.reviewRequests)          ? parsed.reviewRequests          : [];
       state.buildDelayNotifications = Array.isArray(parsed.buildDelayNotifications) ? parsed.buildDelayNotifications : [];
-      state.knowledgeResources      = Array.isArray(parsed.knowledgeResources)      ? parsed.knowledgeResources      : [];
-      state.importantLinks          = Array.isArray(parsed.importantLinks)          ? parsed.importantLinks          : [];
       state.notifications           = [];
       state.dismissedAlerts         = Array.isArray(parsed.dismissedAlerts)         ? parsed.dismissedAlerts         : [];
-      // Load from separate tables
-      await Promise.all([loadReleases(), loadTestPlans(), loadDailyPlan()]);
+      // Load all data from field-level tables
+      await Promise.all([
+        loadPeople(),
+        loadLeaves(),
+        loadHolidays(),
+        loadVMs(),
+        loadKnowledgeResources(),
+        loadImportantLinks(),
+        loadReleases(),
+        loadDailyPlan()
+      ]);
+      // Load test plans from field-level tables for all projects
+      await Promise.all(state.projects.map(p => loadFullTestPlanFromDB(p.id)));
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
       // Enforce review gate
       syncTestPlanToProjects();
@@ -4317,15 +4673,18 @@ async function saveState() {
   }
   const el = document.getElementById('lastSaved');
   try {
-    // Exclude notifications (user-specific) AND separate table data
-    // projects → releases table
-    // testPlans → test_plans table  
-    // dailyPlan → daily_plan table
+    // Exclude ALL data that has dedicated tables — prevent blob overwrite
     const {
       notifications: _n,
       projects: _p,
       testPlans: _t,
       dailyPlan: _d,
+      people: _pe,
+      leaves: _l,
+      holidays: _h,
+      vms: _v,
+      knowledgeResources: _k,
+      importantLinks: _i,
       ...stateToSave
     } = state;
 
@@ -6376,18 +6735,19 @@ function saveVM() {
   const usedBy   = document.getElementById('vmUsedBy').value.trim();
   const notes    = document.getElementById('vmNotes').value.trim();
   if (!details) return;
-
   if (!state.vms) state.vms = [];
-
+  let vm;
   if (editingVMId) {
-    const vm = state.vms.find(v => v.id === editingVMId);
+    vm = state.vms.find(v => v.id === editingVMId);
     if (vm) Object.assign(vm, { pod, member, details, expiry, startDate, endDate, inUse, usedBy, notes });
   } else {
     snapshotState(`Add VM: ${details.slice(0,30)}`);
-    state.vms.push({ id: uid(), pod, member, details, expiry, startDate, endDate, inUse, usedBy, notes });
+    vm = { id: uid(), pod, member, details, expiry, startDate, endDate, inUse, usedBy, notes };
+    state.vms.push(vm);
   }
   editingVMId = null;
   closeModal('vmModal');
+  saveVMRecord(vm); // field-level save
   saveState();
   renderVMRepo();
 }
@@ -6397,6 +6757,7 @@ function deleteVM(id) {
   if (!confirm(`Remove VM: ${vm?.details || id}?`)) return;
   snapshotState(`Delete VM: ${vm?.details?.slice(0,30)}`);
   state.vms = state.vms.filter(v => v.id !== id);
+  deleteVMRecord(id); // field-level delete
   saveState();
   renderVMRepo();
 }
@@ -6405,6 +6766,7 @@ function toggleVMInUseRow(id) {
   const vm = (state.vms || []).find(v => v.id === id);
   if (!vm) return;
   vm.inUse = !vm.inUse;
+  saveVMRecord(vm); // field-level save
   saveState();
   renderVMRepo();
 }
@@ -7237,16 +7599,19 @@ function savePerson() {
   const devPod = document.getElementById('personDevPod').value;
   const showInDailyPlan = document.getElementById('personShowInDailyPlan').value !== 'false';
   if (!name) return;
+  let person;
   if (editingPersonId) {
-    const p = state.people.find(x => x.id === editingPersonId);
-    if (p) { p.name = name; p.title = title; p.email = email; p.devPod = devPod; p.showInDailyPlan = showInDailyPlan; }
+    person = state.people.find(x => x.id === editingPersonId);
+    if (person) { person.name = name; person.title = title; person.email = email; person.devPod = devPod; person.showInDailyPlan = showInDailyPlan; }
     logActivity('Person edited', { name, devPod });
   } else {
-    state.people.push({ id: uid(), name, title, email, devPod, showInDailyPlan });
+    person = { id: uid(), name, title, email, devPod, showInDailyPlan };
+    state.people.push(person);
     logActivity('Person added', { name, devPod });
   }
   editingPersonId = null;
   closeModal('personModal');
+  savePeopleRecord(person); // field-level save
   saveState();
   renderAll();
 }
@@ -7259,6 +7624,7 @@ function deletePerson(id) {
   state.dailyPlan = state.dailyPlan.filter(d => d.personId !== id);
   delete state.leaves[id];
   logActivity('Person deleted', { name: person?.name || id });
+  deletePeopleRecord(id); // field-level delete
   saveState();
   renderAll();
 }
@@ -7589,14 +7955,17 @@ function saveLink() {
   const icon  = document.getElementById('linkIcon').value.trim();
   if (!label || !url) { showToastMsg('Label and URL are required'); return; }
   if (!state.importantLinks) state.importantLinks = [];
+  let link;
   if (_editingLinkId) {
-    const l = state.importantLinks.find(x => x.id === _editingLinkId);
-    if (l) { l.label = label; l.url = url; l.icon = icon; }
+    link = state.importantLinks.find(x => x.id === _editingLinkId);
+    if (link) { link.label = label; link.url = url; link.icon = icon; }
   } else {
-    state.importantLinks.push({ id: uid(), label, url, icon });
+    link = { id: uid(), label, url, icon };
+    state.importantLinks.push(link);
   }
   _editingLinkId = null;
   closeModal('linkModal');
+  saveLinkRecord(link); // field-level save
   saveState();
   renderImportantLinks();
 }
@@ -7604,6 +7973,7 @@ function saveLink() {
 function deleteLink(id) {
   if (!confirm('Remove this link?')) return;
   state.importantLinks = (state.importantLinks||[]).filter(l => l.id !== id);
+  deleteLinkRecord(id); // field-level delete
   saveState();
   renderImportantLinks();
 }
@@ -7732,21 +8102,18 @@ function saveResource() {
   const category = document.getElementById('resCategory').value;
   const desc     = document.getElementById('resDesc').value.trim();
   if (!title || !url) { showToastMsg('Title and URL are required'); return; }
-
   if (!state.knowledgeResources) state.knowledgeResources = [];
-
+  let resource;
   if (_editingResourceId) {
-    const r = state.knowledgeResources.find(x => x.id === _editingResourceId);
-    if (r) { r.title = title; r.url = url; r.category = category; r.desc = desc; }
+    resource = state.knowledgeResources.find(x => x.id === _editingResourceId);
+    if (resource) { resource.title = title; resource.url = url; resource.category = category; resource.desc = desc; }
   } else {
-    state.knowledgeResources.push({
-      id: uid(), title, url, category, desc,
-      pinned: false, createdAt: new Date().toISOString(),
-      addedBy: currentUserEmail || ''
-    });
+    resource = { id: uid(), title, url, category, desc, pinned: false, createdAt: new Date().toISOString(), addedBy: currentUserEmail || '' };
+    state.knowledgeResources.push(resource);
   }
   _editingResourceId = null;
   closeModal('resourceModal');
+  saveKnowledgeRecord(resource); // field-level save
   saveState();
   renderKnowledge();
 }
@@ -7754,13 +8121,17 @@ function saveResource() {
 function deleteResource(id) {
   if (!confirm('Remove this resource?')) return;
   state.knowledgeResources = (state.knowledgeResources||[]).filter(r => r.id !== id);
+  deleteKnowledgeRecord(id); // field-level delete
   saveState();
   renderKnowledge();
 }
 
 function togglePinResource(id) {
   const r = (state.knowledgeResources||[]).find(x => x.id === id);
-  if (r) r.pinned = !r.pinned;
+  if (r) {
+    r.pinned = !r.pinned;
+    saveKnowledgeRecord(r); // field-level save
+  }
   saveState();
   renderKnowledge();
 }
@@ -8001,15 +8372,18 @@ function saveHoliday() {
     alert('A holiday is already added for this date.');
     return;
   }
-  state.holidays.push({ id: uid(), date, name });
+  const holiday = { id: uid(), date, name };
+  state.holidays.push(holiday);
   state.holidays.sort((a, b) => a.date.localeCompare(b.date));
   closeModal('holidayModal');
+  saveHolidayRecord(holiday); // field-level save
   saveState();
   renderAll();
 }
 
 function deleteHoliday(id) {
   state.holidays = state.holidays.filter(h => h.id !== id);
+  deleteHolidayRecord(id); // field-level delete
   saveState();
   renderAll();
 }
@@ -11692,6 +12066,7 @@ function toggleLeave(personId, dateKey) {
     type: newType
   });
 
+  saveLeaveRecord(personId, dateKey, newType === 'Cleared' ? '' : newType); // field-level save
   saveState();
   renderLeaveCalendar();
 }
