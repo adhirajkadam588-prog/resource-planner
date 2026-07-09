@@ -10464,11 +10464,7 @@ function getWorkingOnItGrouped(projectName) {
     else qas.push(person.name);
   });
 
-  // Also add qaLead if not already in daily plan
-  if (qaLeadName && !leads.includes(qaLeadName) && !qas.includes(qaLeadName)) {
-    leads.push(qaLeadName);
-  }
-
+  // NOTE: Do NOT auto-add qaLead — only show people actually assigned in Daily Plan
   return { leads, qas };
 }
 
