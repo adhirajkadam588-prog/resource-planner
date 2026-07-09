@@ -3082,7 +3082,7 @@ function initFieldLevelRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'test_plan_environments' }, async (payload) => {
       const projId = payload.new?.project_id || payload.old?.project_id;
       if (!projId) return;
-      // Skip only if user has a local draft for this project
+      // Skip only if user has a local draft for THIS project AND it's currently selected
       const hasDraft = !!localStorage.getItem(DRAFT_KEY_PREFIX + projId);
       if (hasDraft && projId === selectedTestPlanProjectId) return;
       if (!state.testPlans) state.testPlans = {};
@@ -3096,8 +3096,9 @@ function initFieldLevelRealtime() {
         else state.testPlans[projId].rows = [...(state.testPlans[projId].rows || []), row];
       }
       syncTestPlanToProjects();
+      // If this is the currently selected project — re-render test plan UI
       if (projId === selectedTestPlanProjectId) renderTestPlan();
-      markDirty('summary', 'dashboard');
+      markDirty('projects', 'summary', 'dashboard', 'testplan');
       renderAll();
     }).subscribe();
 
@@ -3117,7 +3118,7 @@ function initFieldLevelRealtime() {
       const updProj = state.projects.find(p => p.id === projId);
       if (updProj) saveRelease(updProj);
       if (projId === selectedTestPlanProjectId) renderTestPlan();
-      markDirty('projects', 'summary', 'dashboard');
+      markDirty('projects', 'summary', 'dashboard', 'testplan');
       renderAll();
     }).subscribe();
 
