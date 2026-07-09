@@ -10441,30 +10441,38 @@ function getWorkingOnItGrouped(projectName) {
   const window30After  = new Date(today); window30After.setDate(today.getDate() + 30);
   const from = toDateKey(window30Before);
   const to   = toDateKey(window30After);
+
+  // Case-insensitive project name match
+  const normalizedProject = (projectName || '').trim().toLowerCase();
+
   const personIds = new Set();
   state.dailyPlan.forEach(entry => {
-    if (entry.project !== projectName) return;
+    // Case-insensitive exact match — prevents wrong project entries
+    if ((entry.project || '').trim().toLowerCase() !== normalizedProject) return;
     const entryStart = entry.startDate || entry.date || '';
     const entryEnd   = entry.endDate   || entry.date || '';
     if (!entryStart) return;
     if (entryEnd >= from && entryStart <= to) personIds.add(entry.personId);
   });
 
-  // Get QA Lead from project directly
-  const proj = state.projects.find(p => p.name === projectName);
-  const qaLeadName = proj?.qaLead || '';
+  // Get QA Lead from project
+  const proj = state.projects.find(p => (p.name || '').trim().toLowerCase() === normalizedProject);
+  const qaLeadName = (proj?.qaLead || '').trim().toLowerCase();
 
   const leads = [], qas = [];
+
+  // Always add qaLead from release item — regardless of daily plan assignment
+  if (qaLeadName) leads.push(proj.qaLead);
+
   [...personIds].forEach(id => {
     const person = state.people.find(p => p.id === id);
     if (!person) return;
-    // Person is lead if they are the qaLead of this project
-    const isLead = person.name === qaLeadName;
-    if (isLead) leads.push(person.name);
-    else qas.push(person.name);
+    // Skip if already added as lead
+    const isLead = qaLeadName && (person.name || '').trim().toLowerCase() === qaLeadName;
+    if (isLead) return; // already in leads
+    qas.push(person.name);
   });
 
-  // NOTE: Do NOT auto-add qaLead — only show people actually assigned in Daily Plan
   return { leads, qas };
 }
 
