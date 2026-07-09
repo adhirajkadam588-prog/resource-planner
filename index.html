@@ -10458,8 +10458,8 @@ function getWorkingOnItGrouped(projectName) {
   [...personIds].forEach(id => {
     const person = state.people.find(p => p.id === id);
     if (!person) return;
-    const isLead = (person.title && person.title.toLowerCase().includes('lead'))
-                || (person.name === qaLeadName);
+    // Person is lead if they are the qaLead of this project
+    const isLead = person.name === qaLeadName;
     if (isLead) leads.push(person.name);
     else qas.push(person.name);
   });
