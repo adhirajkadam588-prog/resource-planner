@@ -3081,7 +3081,10 @@ function initFieldLevelRealtime() {
   sbClient.channel('env-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'test_plan_environments' }, async (payload) => {
       const projId = payload.new?.project_id || payload.old?.project_id;
-      if (!projId || projId === selectedTestPlanProjectId) return; // Skip if user editing this plan
+      if (!projId) return;
+      // Skip only if user has a local draft for this project
+      const hasDraft = !!localStorage.getItem(DRAFT_KEY_PREFIX + projId);
+      if (hasDraft && projId === selectedTestPlanProjectId) return;
       if (!state.testPlans) state.testPlans = {};
       if (!state.testPlans[projId]) state.testPlans[projId] = { rows: [], milestones: {}, buffer: { effort: 0 } };
       if (payload.eventType === 'DELETE') {
@@ -3093,6 +3096,7 @@ function initFieldLevelRealtime() {
         else state.testPlans[projId].rows = [...(state.testPlans[projId].rows || []), row];
       }
       syncTestPlanToProjects();
+      if (projId === selectedTestPlanProjectId) renderTestPlan();
       markDirty('summary', 'dashboard');
       renderAll();
     }).subscribe();
@@ -3101,7 +3105,9 @@ function initFieldLevelRealtime() {
   sbClient.channel('milestone-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'test_plan_milestones' }, async (payload) => {
       const projId = payload.new?.project_id || payload.old?.project_id;
-      if (!projId || projId === selectedTestPlanProjectId) return;
+      if (!projId) return;
+      const hasDraft = !!localStorage.getItem(DRAFT_KEY_PREFIX + projId);
+      if (hasDraft && projId === selectedTestPlanProjectId) return;
       if (!state.testPlans) state.testPlans = {};
       if (!state.testPlans[projId]) state.testPlans[projId] = { rows: [], milestones: {}, buffer: { effort: 0 } };
       if (payload.new) {
@@ -3110,6 +3116,7 @@ function initFieldLevelRealtime() {
       syncTestPlanToProjects();
       const updProj = state.projects.find(p => p.id === projId);
       if (updProj) saveRelease(updProj);
+      if (projId === selectedTestPlanProjectId) renderTestPlan();
       markDirty('projects', 'summary', 'dashboard');
       renderAll();
     }).subscribe();
@@ -3118,7 +3125,9 @@ function initFieldLevelRealtime() {
   sbClient.channel('buffer-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'test_plan_buffer' }, async (payload) => {
       const projId = payload.new?.project_id || payload.old?.project_id;
-      if (!projId || projId === selectedTestPlanProjectId) return;
+      if (!projId) return;
+      const hasDraft = !!localStorage.getItem(DRAFT_KEY_PREFIX + projId);
+      if (hasDraft && projId === selectedTestPlanProjectId) return;
       if (!state.testPlans) state.testPlans = {};
       if (!state.testPlans[projId]) state.testPlans[projId] = { rows: [], milestones: {}, buffer: { effort: 0 } };
       if (payload.new) {
@@ -3134,8 +3143,9 @@ function initFieldLevelRealtime() {
         state.testPlans[projId].reviewedAt = payload.new.reviewed_at;
       }
       syncTestPlanToProjects();
-      const updProj = state.projects.find(p => p.id === projId);
-      if (updProj) saveRelease(updProj);
+      const updProj2 = state.projects.find(p => p.id === projId);
+      if (updProj2) saveRelease(updProj2);
+      if (projId === selectedTestPlanProjectId) renderTestPlan();
       markDirty('projects', 'summary', 'dashboard', 'testplan');
       renderAll();
     }).subscribe();
