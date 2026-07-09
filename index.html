@@ -2987,8 +2987,8 @@ async function loadMilestonesRow(projId) {
       .from('test_plan_milestones')
       .select('*')
       .eq('project_id', projId)
-      .single();
-    if (error) return null;
+      .maybeSingle();
+    if (error || !data) return null;
     return {
       buildPickup: data.build_pickup || '',
       bvtCompletion: data.bvt_completion || '',
@@ -3006,8 +3006,8 @@ async function loadBufferRow(projId) {
       .from('test_plan_buffer')
       .select('*')
       .eq('project_id', projId)
-      .single();
-    if (error) return null;
+      .maybeSingle();
+    if (error || !data) return null;
     return {
       buffer: { effort: data.buffer_effort || 0 },
       testPrepEffort: data.test_prep_effort || 0,
@@ -3520,7 +3520,7 @@ function initRealtime() {
 
         await loadState();
 
-        // Restore drafts — don't let reload overwrite user's local work
+        // Restore drafts
         Object.entries(savedDrafts).forEach(([projId, plan]) => {
           if (!state.testPlans) state.testPlans = {};
           state.testPlans[projId] = plan;
@@ -3763,9 +3763,11 @@ async function initApp(user) {
   try {
     await fetchUserRole(user.id);
     await loadState();
+    // Load all test plans on initial load
+    await Promise.all(state.projects.map(p => loadFullTestPlanFromDB(p.id)));
     if (currentUserRole === 'admin') await fetchAllUserRoles();
     seedVMData();
-    if (syncTestPlanToProjects()) saveState();
+    syncTestPlanToProjects();
   } catch(e) {
     console.warn('initApp load error:', e);
   }
@@ -4648,8 +4650,10 @@ async function loadState() {
         loadReleases(),
         loadDailyPlan()
       ]);
-      // Load test plans from field-level tables for all projects
-      await Promise.all(state.projects.map(p => loadFullTestPlanFromDB(p.id)));
+      // Load test plans only for currently selected project — others load on demand
+      if (selectedTestPlanProjectId) {
+        await loadFullTestPlanFromDB(selectedTestPlanProjectId);
+      }
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
       // Enforce review gate
       syncTestPlanToProjects();
