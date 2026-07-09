@@ -11386,6 +11386,12 @@ function setArchivePage(page) {
 }
 
 function revertFromVault(projectId) {
+  // Only Admin and Lead can revert
+  if (currentUserRole !== 'admin' && !isCurrentUserLead()) {
+    showToastMsg('❌ Only Admin or Lead can revert from vault');
+    return;
+  }
+
   const proj = state.projects.find(p => p.id === projectId);
   if (!proj) return;
   if (!confirm('"' + proj.name + '" ko Release Vault se wapas Active releases mein move karein?\n\nStatus "In progress" ho jaayega.')) return;
@@ -11403,10 +11409,15 @@ function revertFromVault(projectId) {
     (plan.rows || []).forEach(r => {
       if (r.status === 'Done') r.status = 'In progress';
     });
+    // Save test plan to field tables — all users will see updated statuses
+    saveBufferRow(projectId, plan);
+    plan.rows.forEach((row, i) => saveEnvironmentRow(projectId, { ...row, sortOrder: i }));
   }
 
+  // Save release to releases table — all users will see it in Release tab
+  saveRelease(proj);
   saveState();
-  markDirty('projects', 'summary', 'archive', 'dashboard');
+  markDirty('projects', 'summary', 'archive', 'dashboard', 'testplan');
   renderTab('archive');
   showToastMsg('↩ "' + proj.name + '" moved back to active releases');
 }
