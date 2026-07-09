@@ -2355,14 +2355,18 @@
     <div class="field"><label>Release item</label><select id="dpProject"></select></div>
     <div class="field">
       <label>Task</label>
-      <select id="dpTask">
+      <select id="dpTask" onchange="toggleCustomTask()">
         <option value="">— Select task —</option>
-        <option value="Test Scenario Writing">Test Scenario Writing</option>
-        <option value="Test Case Writing">Test Case Writing</option>
-        <option value="Test Data Prep">Test Data Prep</option>
-        <option value="BVT">BVT</option>
-        <option value="Execution">Execution</option>
+        <option value="Test Scenario Writing">📝 Test Scenario Writing</option>
+        <option value="Test Case Writing">✍️ Test Case Writing</option>
+        <option value="Test Data Prep">🗂️ Test Data Prep</option>
+        <option value="BVT">🔬 BVT</option>
+        <option value="Execution">▶️ Execution</option>
+        <option value="__other__">✏️ Other (custom)</option>
       </select>
+      <div id="dpCustomTaskWrap" style="display:none;margin-top:6px;">
+        <input type="text" id="dpCustomTask" placeholder="e.g. Knowledge transfer, Code review..." style="width:100%;font-size:13px;padding:8px 10px;border-radius:var(--radius);border:1px solid var(--accent);background:var(--panel);color:var(--text);">
+      </div>
     </div>
     <div class="field"><label>Start date</label><input id="dpStart" type="date"></div>
     <div class="field"><label>End date</label><input id="dpEnd" type="date"></div>
@@ -9932,11 +9936,15 @@ function buildDailyPlanMonthGridHtml(year, month, podFilter) {
     people.forEach(p => {
       const leaveMap_ = getLeaveMap(p.id);
       const onLeave = Object.keys(leaveMap_).includes(dateKey);
+      const leaveType_ = onLeave ? (state.leaves?.[p.id]?.[dateKey] || 'PL') : null;
       const entries = state.dailyPlan.filter(e => e.personId === p.id && e.date === dateKey);
       if (nonWorking) {
         html += `<div class="cal-cell-r weekend-r"></div>`;
       } else if (onLeave) {
-        html += `<div class="cal-cell-r leave-r" style="text-align:left; padding-left:8px;">On leave</div>`;
+        const bg_ = leaveType_ === 'UPL' ? '#fef2f2' : '#fefce8';
+        const bd_ = leaveType_ === 'UPL' ? '#fecaca' : '#fde68a';
+        const fg_ = leaveType_ === 'UPL' ? '#dc2626' : '#a16207';
+        html += `<div class="cal-cell-r" style="background:${bg_};border:1px solid ${bd_};display:flex;align-items:center;justify-content:center;"><span style="color:${fg_};font-size:10.5px;font-weight:700;">${leaveType_}</span></div>`;
       } else if (entries.length > 0) {
         const TASK_ICONS = {'Test Scenario Writing':'📝','Test Case Writing':'✍️','Test Data Prep':'🗂️','BVT':'🔬','Execution':'▶️'};
         const segs = entries.map(e => {
@@ -12374,6 +12382,8 @@ function openDailyPlanModal(personId, dateKey) {
   document.getElementById('dpStart').value = startDate;
   document.getElementById('dpEnd').value   = startDate;
   document.getElementById('dpTask').value  = '';
+  document.getElementById('dpCustomTaskWrap').style.display = 'none';
+  document.getElementById('dpCustomTask').value = '';
 
   // Pre-select person if provided
   if (personId) sel.value = personId;
@@ -12383,7 +12393,15 @@ function openDailyPlanModal(personId, dateKey) {
     const existing = state.dailyPlan.find(e => e.personId === personId && e.date === dateKey);
     if (existing) {
       document.getElementById('dpProject').value = existing.project;
-      document.getElementById('dpTask').value    = existing.task || '';
+      const _standardTasks = ['Test Scenario Writing','Test Case Writing','Test Data Prep','BVT','Execution',''];
+      if (existing.task && !_standardTasks.includes(existing.task)) {
+        document.getElementById('dpTask').value = '__other__';
+        document.getElementById('dpCustomTask').value = existing.task || '';
+        document.getElementById('dpCustomTaskWrap').style.display = 'block';
+      } else {
+        document.getElementById('dpTask').value = existing.task || '';
+        document.getElementById('dpCustomTaskWrap').style.display = 'none';
+      }
     }
   }
 
@@ -12449,7 +12467,15 @@ function editDailyPlanEntry(entryId) {
   // Pre-fill with existing entry values
   document.getElementById('dpPerson').value  = entry.personId;
   document.getElementById('dpProject').value = entry.project;
-  document.getElementById('dpTask').value    = entry.task || '';
+  const _stdTasks = ['Test Scenario Writing','Test Case Writing','Test Data Prep','BVT','Execution',''];
+  if (entry.task && !_stdTasks.includes(entry.task)) {
+    document.getElementById('dpTask').value = '__other__';
+    document.getElementById('dpCustomTask').value = entry.task || '';
+    document.getElementById('dpCustomTaskWrap').style.display = 'block';
+  } else {
+    document.getElementById('dpTask').value = entry.task || '';
+    document.getElementById('dpCustomTaskWrap').style.display = 'none';
+  }
   document.getElementById('dpStart').value   = entry.date;
   document.getElementById('dpEnd').value     = entry.date;
 
@@ -12458,10 +12484,21 @@ function editDailyPlanEntry(entryId) {
   document.getElementById('dailyPlanModal').classList.add('show');
 }
 
+function toggleCustomTask() {
+  const sel = document.getElementById('dpTask');
+  const wrap = document.getElementById('dpCustomTaskWrap');
+  if (wrap) wrap.style.display = sel?.value === '__other__' ? 'block' : 'none';
+  if (sel?.value === '__other__') document.getElementById('dpCustomTask')?.focus();
+}
+
 function saveDailyPlan() {
   const personId = document.getElementById('dpPerson').value;
   const project  = document.getElementById('dpProject').value;
-  const task     = document.getElementById('dpTask').value;
+  const taskSel  = document.getElementById('dpTask').value;
+  // Get task — use custom text if "Other" selected
+  const task = taskSel === '__other__'
+    ? (document.getElementById('dpCustomTask')?.value?.trim() || 'Other')
+    : taskSel;
   const start    = document.getElementById('dpStart').value;
   const end      = document.getElementById('dpEnd').value;
   if (!personId || !project || !start || !end) return;
@@ -12806,12 +12843,18 @@ function renderDailyPlan() {
     filteredPeople.forEach(p => {
       const leaveMap_ = getLeaveMap(p.id); const leaveDays = Object.keys(leaveMap_);
       const onLeave = leaveDays.includes(dateKey);
+      const leaveType = onLeave ? (state.leaves?.[p.id]?.[dateKey] || 'PL') : null;
       const entries = state.dailyPlan.filter(e => e.personId === p.id && e.date === dateKey);
 
       if (nonWorking) {
         html += `<div class="cal-cell" style="background:var(--panel-2); color:var(--text-faint); opacity:0.5; text-align:left; padding-left:10px;">${holidayMatch ? escapeHtml(holidayMatch.name) : ''}</div>`;
       } else if (onLeave) {
-        html += `<div class="cal-cell leave" style="text-align:left; padding-left:10px;">On leave</div>`;
+        const leaveBg    = leaveType === 'UPL' ? '#fef2f2' : '#fefce8';
+        const leaveBorder= leaveType === 'UPL' ? '#fecaca' : '#fde68a';
+        const leaveColor = leaveType === 'UPL' ? '#dc2626' : '#a16207';
+        html += `<div class="cal-cell" style="background:${leaveBg};border:1px solid ${leaveBorder};text-align:center;display:flex;align-items:center;justify-content:center;">
+          <span style="background:${leaveBg};color:${leaveColor};border:1.5px solid ${leaveBorder};border-radius:5px;padding:1px 7px;font-size:10.5px;font-weight:700;">${leaveType}</span>
+        </div>`;
       } else if (entries.length > 0) {
         const segs = entries.map(e => {
           const color = colorForProject(e.project);
