@@ -4714,16 +4714,29 @@ async function saveState() {
     _lastSavedAt = Date.now();
     _stateVersion = now;
 
-    // Auto-backup every 5 saves or 10 minutes
+    // Auto-backup every 5 saves or 10 minutes — include ALL data from ALL tables
     _saveCount = (_saveCount || 0) + 1;
     const lastBackupTime = parseInt(localStorage.getItem('tl_last_backup') || '0');
     if (_saveCount % 5 === 0 || Date.now() - lastBackupTime > 10 * 60 * 1000) {
+      const fullBackup = {
+        ...stateToSave,
+        // Field table data — full snapshot
+        people:             state.people             || [],
+        leaves:             state.leaves             || {},
+        holidays:           state.holidays           || [],
+        vms:                state.vms                || [],
+        knowledgeResources: state.knowledgeResources || [],
+        importantLinks:     state.importantLinks     || [],
+        projects:           state.projects           || [],
+        testPlans:          state.testPlans          || {},
+        dailyPlan:          state.dailyPlan          || [],
+      };
       sbClient.from('backups').insert({
         saved_by: currentUserEmail,
-        data: { ...stateToSave, projects: state.projects, testPlans: state.testPlans, dailyPlan: state.dailyPlan }
+        data: fullBackup
       }).then(() => {
         localStorage.setItem('tl_last_backup', Date.now().toString());
-        console.log('[Backup] Auto-backup saved');
+        console.log('[Backup] Auto-backup saved — full snapshot');
       }).catch(e => console.warn('[Backup] Failed:', e));
     }
 
@@ -4908,14 +4921,29 @@ let _saveCount = 0;
 
 async function manualBackup() {
   try {
-    const { notifications: _excluded, ...stateToSave } = state;
+    // Full snapshot of ALL data from ALL tables
+    const fullBackup = {
+      people:             state.people             || [],
+      leaves:             state.leaves             || {},
+      holidays:           state.holidays           || [],
+      vms:                state.vms                || [],
+      knowledgeResources: state.knowledgeResources || [],
+      importantLinks:     state.importantLinks     || [],
+      projects:           state.projects           || [],
+      testPlans:          state.testPlans          || {},
+      dailyPlan:          state.dailyPlan          || [],
+      allocations:        state.allocations        || [],
+      vmPods:             state.vmPods             || [],
+      reviewRequests:     state.reviewRequests     || [],
+      buildDelayNotifications: state.buildDelayNotifications || [],
+    };
     const { error } = await sbClient.from('backups').insert({
       saved_by: currentUserEmail,
-      data: stateToSave
+      data: fullBackup
     });
     if (error) throw error;
     localStorage.setItem('tl_last_backup', Date.now().toString());
-    showToastMsg('💾 Backup saved!');
+    showToastMsg('💾 Full backup saved!');
     loadBackupList();
   } catch(e) {
     showToastMsg('❌ Backup failed: ' + e.message);
@@ -4961,19 +4989,74 @@ async function restoreBackup(backupId) {
       .from('backups').select('data, saved_at').eq('id', backupId).single();
     if (error) throw error;
     const restoreTime = new Date(data.saved_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    // Save current as backup first
-    const { notifications: _excl, ...cur } = state;
-    await sbClient.from('backups').insert({ saved_by: currentUserEmail + ' (pre-restore)', data: cur });
-    // Restore
+    const restored = data.data;
+
+    // Save current state as pre-restore backup
+    await manualBackup();
+
+    showToastMsg('⏳ Restoring backup...');
+
+    // Restore all field tables
+    const promises = [];
+
+    // People
+    if (restored.people?.length) {
+      for (const p of restored.people) promises.push(savePeopleRecord(p));
+    }
+
+    // Leaves
+    if (restored.leaves) {
+      for (const [personId, dates] of Object.entries(restored.leaves)) {
+        for (const [date, type] of Object.entries(dates || {})) {
+          promises.push(saveLeaveRecord(personId, date, type));
+        }
+      }
+    }
+
+    // Holidays
+    if (restored.holidays?.length) {
+      for (const h of restored.holidays) promises.push(saveHolidayRecord(h));
+    }
+
+    // VMs
+    if (restored.vms?.length) {
+      for (const v of restored.vms) promises.push(saveVMRecord(v));
+    }
+
+    // Knowledge
+    if (restored.knowledgeResources?.length) {
+      for (const k of restored.knowledgeResources) promises.push(saveKnowledgeRecord(k));
+    }
+
+    // Links
+    if (restored.importantLinks?.length) {
+      for (const l of restored.importantLinks) promises.push(saveLinkRecord(l));
+    }
+
+    // Projects (releases)
+    if (restored.projects?.length) {
+      for (const p of restored.projects) promises.push(saveRelease(p));
+    }
+
+    // Daily plan
+    if (restored.dailyPlan?.length) {
+      for (const d of restored.dailyPlan) promises.push(saveDailyPlanEntry(d));
+    }
+
+    await Promise.all(promises);
+
+    // Restore resource_planner (shared state)
     const now = new Date().toISOString();
-    const { error: saveErr } = await sbClient
-      .from('resource_planner').upsert({ id: 'shared', data: data.data, updated_at: now });
-    if (saveErr) throw saveErr;
+    await sbClient.from('resource_planner').upsert({ id: 'shared', data: restored, updated_at: now });
+
+    // Update local state
     _stateVersion = now;
-    Object.assign(state, data.data);
+    Object.assign(state, restored);
     state.notifications = [];
-    markAllDirty(); clearRenderCache(); renderAll();
-    showToastMsg('✅ Restored to ' + restoreTime);
+    markAllDirty();
+    clearRenderCache();
+    renderAll();
+    showToastMsg('✅ Restored to ' + restoreTime + ' — all data restored!');
   } catch(e) {
     showToastMsg('❌ Restore failed: ' + e.message);
   }
