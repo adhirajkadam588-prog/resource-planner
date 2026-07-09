@@ -12494,7 +12494,7 @@ function saveDailyPlan() {
     from: formatDateDisplay(start), to: formatDateDisplay(end)
   });
   closeModal('dailyPlanModal');
-  saveState();
+  // No saveState() — daily_plan table handles sync via realtime
   renderAll();
 }
 
@@ -12517,7 +12517,7 @@ function clearDailyPlanCell(personId, date, entryId) {
       date: formatDateDisplay(date)
     });
   }
-  saveState();
+  // No saveState() — daily_plan table handles sync via realtime
   renderDailyPlan();
 }
 
