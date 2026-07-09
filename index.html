@@ -4657,9 +4657,14 @@ async function loadState() {
         loadReleases(),
         loadDailyPlan()
       ]);
-      // Load test plans only for currently selected project — others load on demand
+      // Load test plans — skip currently selected project if draft exists
       if (selectedTestPlanProjectId) {
-        await loadFullTestPlanFromDB(selectedTestPlanProjectId);
+        const hasDraft = !!localStorage.getItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
+        if (!hasDraft) {
+          await loadFullTestPlanFromDB(selectedTestPlanProjectId);
+        } else {
+          console.log('[Realtime] Skipping test plan reload — local draft exists');
+        }
       }
       el.textContent = 'loaded — ' + state.people.length + ' people, ' + state.projects.length + ' projects';
       // Enforce review gate
@@ -8855,19 +8860,16 @@ async function publishDraft() {
     const plan = getTestPlanForProject(selectedTestPlanProjectId);
     syncTestPlanToProjects();
 
-    // Save to field-level tables — each field independently
+    // Save to field-level tables ONLY — no saveState() to avoid realtime overwrite
     await Promise.all([
       saveBufferRow(selectedTestPlanProjectId, plan),
       saveMilestonesRow(selectedTestPlanProjectId, plan.milestones || {}),
       ...(plan.rows || []).map((row, i) => saveEnvironmentRow(selectedTestPlanProjectId, { ...row, sortOrder: i }))
     ]);
 
-    // Save release with synced values
+    // Save release with synced values (releases table — safe, per-row)
     const updProj = state.projects.find(p => p.id === selectedTestPlanProjectId);
     if (updProj) await saveRelease(updProj);
-
-    // Save shared state (people, leaves etc — NOT testPlans)
-    await saveState();
 
     // Clear draft
     localStorage.removeItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId);
