@@ -2829,10 +2829,13 @@ function initSeparateTableRealtime() {
         if (deletedId) {
           state.projects = state.projects.filter(p => p.id !== deletedId);
           delete state.testPlans[deletedId];
+          selectedProjectIds.delete(deletedId);
         }
       } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
         const proj = payload.new?.data;
         if (!proj) return;
+        // Don't restore a project that was just deleted by this user
+        if (_deletedProjectIds.has(proj.id)) return;
         const idx = state.projects.findIndex(p => p.id === proj.id);
         if (idx >= 0) state.projects[idx] = proj;
         else state.projects.push(proj);
@@ -4448,14 +4451,26 @@ async function bulkDelete() {
   snapshotState(`Bulk delete (${names.length} items)`);
   await logActivity('Bulk delete', { items: names, count: names.length });
 
+  const idsToDelete = [...selectedProjectIds];
+
+  // Mark all as deleted — prevents realtime from restoring them
+  idsToDelete.forEach(id => _deletedProjectIds.add(id));
+
+  // Remove from local state
   state.projects = state.projects.filter(p => !selectedProjectIds.has(p.id));
-  // Clean up related data
   state.allocations = state.allocations.filter(a => state.projects.some(p => p.name === a.project));
-  selectedProjectIds.forEach(id => { delete state.testPlans[id]; });
+  idsToDelete.forEach(id => { delete state.testPlans[id]; });
 
   clearBulkSelection();
-  saveState();
+
+  // Delete from field tables — NO saveState() to avoid realtime race condition
+  await Promise.all(idsToDelete.map(id => deleteRelease(id)));
+  idsToDelete.forEach(id => deleteTestPlan(id));
+
   renderAll();
+
+  // Clear deletion flags after 10s
+  setTimeout(() => idsToDelete.forEach(id => _deletedProjectIds.delete(id)), 10000);
 }
 
 // ====================== KEYBOARD SHORTCUTS ======================
@@ -8438,10 +8453,16 @@ function saveProject() {
   renderAll();
 }
 
+// Track deleted IDs to prevent realtime from restoring them
+const _deletedProjectIds = new Set();
+
 function deleteProject(id) {
   const proj = state.projects.find(p => p.id === id);
   if (!confirm(`Remove "${proj?.name}"? Related allocations, daily plan entries, and test plan will also be removed.`)) return;
   snapshotState(`Delete release item: ${proj?.name}`);
+
+  // Mark as deleted — prevents realtime from restoring it
+  _deletedProjectIds.add(id);
 
   // Remove from local state immediately
   state.projects = state.projects.filter(p => p.id !== id);
@@ -8452,15 +8473,16 @@ function deleteProject(id) {
   }
   delete state.testPlans[id];
   if (selectedTestPlanProjectId === id) selectedTestPlanProjectId = null;
+  selectedProjectIds.delete(id);
 
-  // Delete from field tables — NO saveState() to avoid realtime race condition
-  // releases table DELETE → realtime → other users see it removed ✅
+  // Delete from field tables
   deleteRelease(id);
   deleteTestPlan(id);
-  // Delete daily plan entries from table
-  (state.dailyPlan || []).forEach(d => { if (d.project === proj?.name) deleteDailyPlanEntry(d.id); });
 
   renderAll();
+
+  // Clear deletion flag after 10s (long enough for realtime to settle)
+  setTimeout(() => _deletedProjectIds.delete(id), 10000);
 }
 
 function formatDateDisplay(dateStr) {
@@ -10271,11 +10293,13 @@ function renderProjects() {
     const podCell = p.devPod
       ? `<span style="background:${pbg}; color:${pfg}; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap;">${escapeHtml(p.devPod)}</span>`
       : '<span style="color:var(--text-faint);">—</span>';
+    // Preserve checkbox state after re-render
+    const isChecked = selectedProjectIds.has(p.id);
 
     return `
     <tr id="row-${p.id}">
       <td style="padding:8px; text-align:center;">
-        <input type="checkbox" class="row-checkbox" value="${p.id}" onchange="onRowCheckboxChange()" style="width:15px; height:15px; cursor:pointer; accent-color:#7c3aed;">
+        <input type="checkbox" class="row-checkbox" value="${p.id}" onchange="onRowCheckboxChange()" ${isChecked ? 'checked' : ''} style="width:15px; height:15px; cursor:pointer; accent-color:#7c3aed;">
       </td>
       <td style="white-space:nowrap;">
         ${p.releaseDate ? `<span style="background:#ede9fe; color:#7c3aed; padding:3px 10px; border-radius:6px; font-size:11px; font-weight:600;">${formatDateDisplay(p.releaseDate)}</span>` : '<span style="color:var(--text-faint);">—</span>'}
