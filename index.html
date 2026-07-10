@@ -6847,14 +6847,12 @@ function openVMModal(id) {
   editingVMId = id || null;
   populateVMPodDropdowns();
 
-  // Populate Used By dropdown from people list
+  // Populate Used By dropdown from people list only — no duplicates
   const usedBySel = document.getElementById('vmUsedBy');
   if (usedBySel) {
-    const allNames = [...new Set([
-      ...state.people.map(p => p.name),
-      // also include any existing usedBy values not in people list
-      ...(state.vms||[]).map(v => v.usedBy).filter(Boolean)
-    ])].sort();
+    const allNames = [...new Set(
+      state.people.map(p => p.name?.trim()).filter(Boolean)
+    )].sort();
     usedBySel.innerHTML = '<option value="">— Select person —</option>' +
       allNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   }
