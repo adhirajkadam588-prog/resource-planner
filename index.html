@@ -2053,7 +2053,7 @@
       <div class="panel-head">
         <div>
           <h3>Users & permissions</h3>
-          <div class="desc">Manage each user's role and per-section access. Changes take effect on their next login or refresh.</div>
+          <div class="desc">Manage each user\'s role and per-section access. Changes take effect on their next login or refresh.</div>
         </div>
         <button class="action ghost" onclick="fetchAllUserRoles().then(renderAdminPanel)">↻ Refresh</button>
       </div>
@@ -3523,7 +3523,7 @@ function initRealtime() {
       filter: 'id=eq.shared'
     }, (payload) => {
       // Compare against the exact timestamp WE wrote — not a blind time window
-      // This correctly distinguishes our echo from another user's change
+      // This correctly distinguishes our echo from another user\'s change
       if (_stateVersion && payload.new?.updated_at === _stateVersion) {
         console.log('[Realtime] Skipping own save echo (timestamp match)');
         return;
@@ -3611,7 +3611,7 @@ function applyAccessUI() {
   if (adminTabBtn) adminTabBtn.style.display = isAdmin ? 'flex' : 'none';
   if (adminNavSection) adminNavSection.style.display = isAdmin ? 'block' : 'none';
 
-  // Banner removed — users don't need to see permission notifications
+  // Banner removed — users don\'t need to see permission notifications
 
   // Help and Dashboard tabs always visible to everyone
   const helpBtn = document.querySelector('.tab-btn[data-tab="help"]');
@@ -3664,7 +3664,7 @@ function applyAccessUI() {
   }
 }
 
-// Real-time permission sync — listens for changes to current user's role row
+// Real-time permission sync — listens for changes to current user\'s role row
 let _permChannel = null;
 
 function initPermissionRealtime(userRowId) {
@@ -3725,7 +3725,7 @@ async function fetchUserRole(userId) {
     currentUserRole = (data && data.role) ? data.role : 'member';
     currentUserPermissions = (data && data.permissions) ? data.permissions : { ...DEFAULT_PERMISSIONS };
     console.log('Role loaded:', currentUserRole, '| Permissions:', currentUserPermissions);
-    // Start listening for permission changes on this user's row
+    // Start listening for permission changes on this user\'s row
     if (data?.id) initPermissionRealtime(data.id);
   } catch (e) {
     console.warn('fetchUserRole exception:', e.message);
@@ -5257,7 +5257,7 @@ function renderDashboard() {
     if (e.startDate && e.endDate) return today >= e.startDate && today <= e.endDate;
     return e.date === today;
   });
-  // Today's assignments — filter by role
+  // Today\'s assignments — filter by role
   // Admin → all people, Lead → only people on their associated releases, QA → only themselves
   const isLead = isCurrentUserLead();
   const isAdmin = currentUserRole === 'admin';
@@ -5435,7 +5435,7 @@ function renderDashboard() {
     })()}
       <div class="panel" style="margin:0;">
         <div style="font-weight:700; font-size:14px; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-          <span style="font-size:18px;">📅</span> Today's assignments
+          <span style="font-size:18px;">📅</span> Today\'s assignments
           ${!(currentUserRole === 'admin' || isLead) ? '<span style="background:#ede9fe;color:#7c3aed;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:600;">My tasks</span>' : ''}
         </div>
         ${Object.keys(todayByPerson).length === 0
@@ -7129,10 +7129,10 @@ function renderHelp() {
       <span style="background:rgba(255,255,255,0.15);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;">v1.0</span>
     </div>
     <h1 style="font-family:'Inter Tight',sans-serif;font-size:28px;font-weight:800;margin:0 0 10px;letter-spacing:-0.03em;">TeamLens Help Center</h1>
-    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide — people, releases, test plans, build delays, chat, notifications, knowledge base, VM management and more.</p>
+    <p style="font-size:13.5px;opacity:0.88;margin:0;max-width:560px;line-height:1.7;">Complete guide to all features — releases, test plans, build tracking, daily planning, leave, VMs, chat, notifications, backup and more.</p>
     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
-      ${[['13','Tabs'],['Real-time','Sync'],['AI','Assistant'],['💬','Team Chat'],['🔔','Notifications']].map(([v,l])=>`
-        <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;backdrop-filter:blur(4px);">
+      ${[['13','Tabs'],['Real-time','Multi-user'],['Draft','& Publish'],['💬','Chat'],['💾','Backup']].map(([v,l])=>`
+        <div style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:10px 16px;">
           <div style="font-size:10px;opacity:0.75;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">${l}</div>
           <div style="font-size:18px;font-weight:800;">${v}</div>
         </div>`).join('')}
@@ -7146,21 +7146,12 @@ function renderHelp() {
       <div><h2 style="font-family:'Inter Tight',sans-serif;font-size:17px;font-weight:700;margin:0;color:var(--text);">Quick Start — 5 Steps</h2>
       <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Get up and running in minutes</div></div>
     </div>
-    <div style="display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;padding-bottom:4px;">
-      ${['👥 People','📁 Release','✅ Test Plan','🏖️ Leave','📅 Daily Plan'].map((s,i,arr)=>`
-        <div style="display:flex;align-items:center;flex-shrink:0;">
-          <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(124,58,237,0.3);">
-            <span style="opacity:0.7;font-size:10px;display:block;margin-bottom:1px;">Step ${i+1}</span>${s}
-          </div>
-          ${i<arr.length-1?'<div style="width:24px;height:2px;background:linear-gradient(90deg,#7c3aed,#a855f7);flex-shrink:0;"></div>':''}
-        </div>`).join('')}
-    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${[['1','👥','Add your team','People tab → + Add person → name, title, email, Dev POD, Daily Plan toggle.','#4f46e5'],
-         ['2','📁','Add release items','Release tab → + Add release item → name, JIRA, release date, component, Dev POD.','#0ea5e9'],
-         ['3','✅','Build test plan','Test Plan → select release → add environments → set effort, assignees, milestones.','#10b981'],
-         ['4','🏖️','Mark leaves','Leave Calendar → click day → PL (amber) → UPL (red) → empty (click again).','#f59e0b'],
-         ['5','📅','Plan daily work','Daily Plan → POD filter → + Assign → pick person, project, date range.','#8b5cf6']].map(([n,icon,title,desc,color])=>`
+      ${[['1','👥','Add your team','People tab → + Add person → name, title, email, Dev POD.','#4f46e5'],
+         ['2','📁','Add release items','Release tab → + Add release → name, JIRA, date, component, POD, QA Lead.','#0ea5e9'],
+         ['3','✅','Build test plan','Test Plan → select release → add environments → set effort, milestones → Publish.','#10b981'],
+         ['4','🏖️','Mark leaves','Leave Calendar → click day → PL (yellow) → UPL (red) → click again to clear.','#f59e0b'],
+         ['5','📅','Plan daily work','Daily Plan → + Assign → pick person, release, task, date range.','#8b5cf6']].map(([n,icon,title,desc,color])=>`
       <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;">
         <div style="width:28px;height:28px;border-radius:50%;background:${color};color:white;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${n}</div>
         <div>
@@ -7169,27 +7160,23 @@ function renderHelp() {
         </div>
       </div>`).join('')}
     </div>
-    <div style="background:linear-gradient(135deg,#dbeafe,#ede9fe);border:1px solid #a5b4fc;border-radius:10px;padding:12px 16px;margin-top:14px;display:flex;gap:10px;align-items:center;">
-      <span style="font-size:18px;">💡</span>
-      <span style="font-size:12.5px;color:#3730a3;font-weight:500;line-height:1.6;">Start in order: People → Release → Test Plan → Leave → Daily Plan. Dashboard and Summary update automatically.</span>
-    </div>
   </div>
 
   <!-- Row 1: Dashboard, People, Release -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(37,99,235,0.2));border:1px solid #7c3aed33;display:flex;align-items:center;justify-content:center;font-size:17px;">🏠</div>
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(37,99,235,0.2));display:flex;align-items:center;justify-content:center;font-size:17px;">🏠</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Dashboard</div>
         <div style="font-size:11px;color:var(--text-faint);">Login landing page</div></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">
-        ${[['📊','4 stat cards — free today, at-risk, VMs expiring, assigned today'],
-           ['📅',"Today's assignments — QA sees own, Lead sees associated, Admin sees all"],
-           ['⚠️','Build Alerts — late/early builds, role-filtered, per-user Got it'],
-           ['🚨','General Alerts — VM expiry, QA overdue, release soon (role-filtered)'],
-           ['📋','Pending lead reviews panel (leads/admin only)'],
-           ['🔔','Bell icon — assigned + milestone notifications only']].map(([i,t])=>`
+        ${[['📊','4 stat cards — free today, at-risk releases, VMs expiring, assigned today'],
+           ['📅','Today\'s assignments — role-based (Admin=all, Lead=associated, QA=own)'],
+           ['⚠️','Build Alerts — per-user Got it — late/early build notifications'],
+           ['🚨','At Risk alerts — QA overdue, release soon, not started'],
+           ['📋','Pending review requests panel (Lead/Admin only)'],
+           ['🔔','Bell — assigned + milestone notifications only']].map(([i,t])=>`
           <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text-dim);padding:3px 0;">
             <span style="flex-shrink:0;">${i}</span><span>${t}</span>
           </div>`).join('')}
@@ -7198,204 +7185,84 @@ function renderHelp() {
 
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:rgba(139,92,246,0.15);border:1px solid #7c3aed33;display:flex;align-items:center;justify-content:center;font-size:17px;">👥</div>
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(139,92,246,0.15);display:flex;align-items:center;justify-content:center;font-size:17px;">👥</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">People</div>
-        <div style="font-size:11px;color:var(--text-faint);">Team roster</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Team roster — per-row DB</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Add name, title, email, Dev POD for each team member<br>
-        <strong>Daily Plan toggle</strong> — turn OFF for PM/Managers<br>
-        Workload panel shows current month assignments per person
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
-        ${[['WinGuardians','#dbeafe','#1d4ed8'],['Heisenbug','#dcfce7','#15803d'],['Hydra','#fce7f3','#9d174d'],['Sentinels','#fef3c7','#b45309'],['DareDevils','#fee2e2','#b91c1c'],['Evil Inc.','#f3e8ff','#7e22ce']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
+        Add name, title, email, Dev POD<br>
+        <strong>Daily Plan toggle</strong> — OFF for PM/Managers<br>
+        Each person saved independently — no overwrite<br>
+        Workload panel — current month assignments
       </div>
     </div>
 
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:#0ea5e920;border:1px solid #0ea5e933;display:flex;align-items:center;justify-content:center;font-size:17px;">📁</div>
+        <div style="width:34px;height:34px;border-radius:10px;background:#0ea5e920;display:flex;align-items:center;justify-content:center;font-size:17px;">📁</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release</div>
-        <div style="font-size:11px;color:var(--text-faint);">Release items + build tracking</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Per-row table — safe concurrent editing</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.85;">
-        Mandatory fields: <strong>Name, JIRA URL, Release date</strong><br>
-        <strong>Component</strong> — tag each release (Desktop Client, Mac Client, HotFolder Server, AppConnect Server/Client, Classification Migration, iOS Device)<br>
-        Filter by Date, Component, Dev POD, Status<br>
-        Build delay badge auto-calculated from planned vs actual Dev→QA dates<br>
-        QA effort + dates <strong>auto-sync from Test Plan after Lead review</strong><br>
-        Select multiple → Bulk delete
+        Fields: Name, JIRA, Release date, Component, Dev POD, QA Lead, Owner<br>
+        <strong>Build delay badge</strong> — auto-calculated working days<br>
+        Milestones auto-shift on build delay/early<br>
+        QA effort + dates <strong>auto-sync after Lead review</strong><br>
+        Filter by Date / Component / POD / Status<br>
+        Bulk select → status update or bulk delete
       </div>
     </div>
   </div>
 
   <!-- Row 2: Test Plan, Leave, Daily Plan -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
-    <div class="panel" style="margin:0;">
+    <div class="panel" style="margin:0;border:1.5px solid #10b98133;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:#10b98120;border:1px solid #10b98133;display:flex;align-items:center;justify-content:center;font-size:17px;">✅</div>
+        <div style="width:34px;height:34px;border-radius:10px;background:#10b98120;display:flex;align-items:center;justify-content:center;font-size:17px;">✅</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Test Plan</div>
-        <div style="font-size:11px;color:var(--text-faint);">Environments, effort, milestones</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Field-level tables — zero overwrite</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.85;">
-        Select release → add test environments with assignees<br>
-        <strong>Test Prep + Test Env/Data Prep</strong> — extra assignment rows<br>
-        Milestones: Build pickup, BVT, Execution, Go-ahead date<br>
-        <strong>Build delay/early</strong> → milestones auto-shift + review resets<br>
-        QA sends review request → Lead approves → dates sync to Release tab<br>
+        Add environments with assignees, effort, status<br>
+        Test Prep + Test Env/Data Prep sections<br>
+        Auto milestone calculation from build date<br>
+        <strong>Draft & Publish</strong> — local save until ready<br>
+        Build delay → milestones shift → review resets<br>
+        QA requests review → Lead approves → dates sync<br>
         Download report / Open in new tab
       </div>
     </div>
 
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:#f59e0b20;border:1px solid #f59e0b33;display:flex;align-items:center;justify-content:center;font-size:17px;">🏖️</div>
+        <div style="width:34px;height:34px;border-radius:10px;background:#f59e0b20;display:flex;align-items:center;justify-content:center;font-size:17px;">🏖️</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Leave Calendar</div>
-        <div style="font-size:11px;color:var(--text-faint);">PL and UPL tracking</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Per-row DB — instant sync</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
-        ${[['1st click','PL','#fef3c7','#b45309'],['2nd click','UPL','#fee2e2','#dc2626'],['3rd click','Clear','#f1f5f9','#64748b']].map(([l,t,bg,fg])=>`
+        ${[['1st click','PL','#fefce8','#a16207'],['2nd click','UPL','#fef2f2','#dc2626'],['3rd click','Clear','#f1f5f9','#64748b']].map(([l,t,bg,fg])=>`
           <div style="text-align:center;background:var(--panel-2);border-radius:8px;padding:8px 4px;">
             <div style="font-size:10px;color:var(--text-faint);margin-bottom:4px;">${l}</div>
             <div style="background:${bg};color:${fg};padding:2px 6px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;">${t}</div>
           </div>`).join('')}
       </div>
-      <div style="font-size:11.5px;color:var(--text-dim);">H = Holiday &nbsp;·&nbsp; · = Weekend<br>Leave is reflected in Dashboard availability badges</div>
+      <div style="font-size:11.5px;color:var(--text-dim);">H = Holiday · Weekend = greyed out<br>PL = 🟡 Yellow · UPL = 🔴 Red in Daily Plan grid</div>
     </div>
 
     <div class="panel" style="margin:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:#6366f120;border:1px solid #6366f133;display:flex;align-items:center;justify-content:center;font-size:17px;">📅</div>
+        <div style="width:34px;height:34px;border-radius:10px;background:#6366f120;display:flex;align-items:center;justify-content:center;font-size:17px;">📅</div>
         <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Daily Plan</div>
-        <div style="font-size:11px;color:var(--text-faint);">Day-wise assignment + AI</div></div>
+        <div style="font-size:11px;color:var(--text-faint);">Per-row DB — concurrent safe</div></div>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Filter by Dev POD · compact grid view<br>
+        Day-wise grid per person per release<br>
         🟢 <strong>Resource availability</strong> — next free date per person<br>
-        Click empty cell → modal with person + date pre-filled<br>
-        Assign: Person + Release + Task type (📝✍️🗂️🔬▶️) + dates<br>
-        Hover assigned cell → ✎ Edit / ✕ Remove<br>
-        <strong>📄 Share report</strong> · <strong>✨ AI Assistant</strong>
+        Leave days auto-highlighted (PL=yellow, UPL=red)<br>
+        Task types: Test Scenario, Execution, BVT, + <strong>Custom</strong><br>
+        Hover cell → ✎ Edit / ✕ Remove<br>
+        Share report · ✨ AI Assistant
       </div>
-    </div>
-  </div>
-
-  <!-- Row 3: Summary, Vault, Launchpad, Infra -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-    <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:#22d3ee20;border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">📊</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Summary</div>
-        <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Table</div></div>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Shows <strong>all releases</strong> including completed<br>
-        🏥 Release Health — per-item risk cards (active only)<br>
-        📅 Gantt timeline — today line, all releases<br>
-        📋 Summary table — filter by date, Component, POD, status<br>
-        <strong>Component column</strong> with filter dropdown<br>
-        Comments column with author + timestamp<br>
-        Paginated <strong>10/page</strong> · 📄 Share Report
-      </div>
-      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
-        ${[['🔴 At risk','#fee2e2','#dc2626'],['🟡 Needs attention','#fef9c3','#a16207'],['🟢 On track','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
-      </div>
-    </div>
-
-    <div class="panel" style="margin:0;border:1.5px solid #fbbf2444;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.3),rgba(245,158,11,0.2));border:1px solid #fbbf2433;display:flex;align-items:center;justify-content:center;font-size:17px;">🔐</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release Vault</div>
-        <div style="font-size:11px;color:var(--text-faint);">Completed releases archive</div></div>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Items appear when: status = <strong>Completed</strong> AND all envs = <strong>Done</strong><br>
-        Accordion — environments, milestones, effort, component badge<br>
-        <strong>💬 Chat History</strong> — archived read-only messages per release<br>
-        Filter by Release date or Dev POD<br>
-        <strong>↩ Revert</strong> — move back to active (Admin/Lead only)<br>
-        ⬇ Download Report / 🔗 Open in new tab
-      </div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-    <div class="panel" style="margin:0;border:1.5px solid #10b98144;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(59,130,246,0.2));border:1px solid #10b98133;display:flex;align-items:center;justify-content:center;font-size:17px;">🚀</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Launchpad</div>
-        <div style="font-size:11px;color:var(--text-faint);">Quick links + Knowledge base</div></div>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        ⚡ <strong>Quick Links</strong> — JIRA, Jenkins, Confluence etc.<br>
-        📘 <strong>Knowledge Base</strong> — training docs, guides, SOPs<br>
-        Categories: Testing / Onboarding / Tools / Process / Templates<br>
-        Search + filter by category · 📌 Pin important docs<br>
-        Admin/Lead: Add, edit, delete, pin resources
-      </div>
-    </div>
-
-    <div class="panel" style="margin:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
-        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(6,182,212,0.2),rgba(99,102,241,0.2));border:1px solid #22d3ee33;display:flex;align-items:center;justify-content:center;font-size:17px;">🖥️</div>
-        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Infra Hub</div>
-        <div style="font-size:11px;color:var(--text-faint);">Track all QA VMs</div></div>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
-        Group/filter by POD · status filter (in use / free / expiring)<br>
-        <strong>In-use toggle</strong> — click in table to flip instantly<br>
-        <strong>Auto-free</strong> — VM auto-marks free when End Date passes<br>
-        VM details: OS badge, Office version, IP address<br>
-        <strong>✎ Manage groups</strong> — add, rename, or delete POD groups
-      </div>
-      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
-        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🟢 Free</span>
-        <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🔴 In use</span>
-        <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">Expired</span>
-        <span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">⚠ Expiring</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Chat -->
-  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed33;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;font-size:20px;">💬</div>
-      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Team Chat</h2>
-      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Real-time messaging — Global + per release rooms</div></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-      ${[['💬 Rooms','Global room for all + separate room per active release. Completed releases removed from chat.'],
-         ['✏️ Edit / Delete','Hover your own message → ✏️ edit or 🗑️ delete. Your messages only.'],
-         ['🔔 Notifications','New message → purple toast + FAB badge. Click toast → jump to that room.'],
-         ['🔇 Mute sound','🔔 button in chat header → toggle notification sound on/off. Saved in browser.'],
-         ['🔐 Vault history','Completed release chat → archived in Release Vault accordion. Read-only.'],
-         ['🟢 Online','Green dot shows how many team members are online now.']].map(([t,d])=>`
-        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);">
-          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">${t}</div>
-          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
-        </div>`).join('')}
-    </div>
-  </div>
-
-  <!-- Notifications -->
-  <div class="panel" style="margin-bottom:14px;border:1.5px solid #ec489933;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:20px;">🔔</div>
-      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Notification Center</h2>
-      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Assignment + Milestone notifications only</div></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${[['👤 Assigned','When you are assigned to any test row, Test Prep, or Test Env/Data Prep — notification goes ONLY to you.'],
-         ['📅 Milestone','When milestone dates are due today/tomorrow — goes to QA Lead + all assignees of that release.'],
-         ['🧹 Clear','Clear your notifications → only YOUR notifications clear. Others are unaffected.'],
-         ['✅ Read','Mark all read → only YOUR unread count clears. Badge goes to 0.'],
-         ['🔕 Per-user','Notifications are user-specific. No shared state — each user has their own list.'],
-         ['🚫 No spam','Build delays, review requests etc. do NOT create bell notifications — only assigned + milestone.']].map(([t,d])=>`
-        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);">
-          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">${t}</div>
-          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
-        </div>`).join('')}
     </div>
   </div>
 
@@ -7404,14 +7271,14 @@ function renderHelp() {
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
       <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">🔒</div>
       <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Review by Lead — How it Works</h2>
-      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Dates and effort locked until lead approves</div></div>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Dates locked until Lead approves — then auto-sync to Release + Summary</div></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
-      ${[['1','QA builds plan','Adds environments, effort, milestones'],
-         ['2','Request review','QA sends request → Lead gets bell notification'],
-         ['3','Lead approves','Checks "Mark as reviewed" in Test Plan'],
-         ['4','Data syncs','Effort + dates appear in Release + Summary tab'],
-         ['5','Build delay?','Milestones shift → review auto-resets → QA must re-request']].map(([n,t,d])=>`
+      ${[['1','QA builds plan','Add environments, effort, milestones in Test Plan'],
+         ['2','Publish draft','Click Publish — data saved to DB, visible to team'],
+         ['3','Request review','QA clicks Request Review → Lead gets bell notification'],
+         ['4','Lead approves','Lead marks Reviewed → effort + dates sync to Release tab'],
+         ['5','Build delay?','Milestones shift → review auto-resets → QA must re-publish & re-request']].map(([n,t,d])=>`
         <div style="background:var(--panel-2);border-radius:10px;padding:12px;border:1px solid var(--border-soft);">
           <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">${n}</div>
           <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;">${t}</div>
@@ -7420,107 +7287,185 @@ function renderHelp() {
     </div>
   </div>
 
-  <!-- AI Assistant -->
-  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed44;background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(37,99,235,0.03));">
+  <!-- Draft & Publish -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #10b98133;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">✨</div>
-      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">AI Planning Assistant</h2>
-      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Powered by Claude · Available in Daily Plan tab</div></div>
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;font-size:20px;">📝</div>
+      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Draft & Publish System</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Your changes stay local until you're ready to share</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${[['Who is free today?','Shows available team members with no assignments'],
-         ['Which releases are at risk?','Lists releases missing dates or behind schedule'],
-         ['What is the total effort for DareDevils?','Sums up test plan effort by POD'],
-         ['Who is working on CAD Removal this week?','Pulls from Daily Plan assignments']].map(([q,a])=>`
-        <div style="background:var(--panel-2);border-radius:8px;padding:10px 12px;border:1px solid var(--border-soft);">
-          <div style="font-size:11.5px;font-weight:700;color:#7c3aed;margin-bottom:3px;">"${q}"</div>
-          <div style="font-size:11px;color:var(--text-faint);">${a}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      ${[['📝 Auto Draft','Every change in Test Plan is saved locally in your browser automatically — nothing goes to DB yet.'],
+         ['🚀 Publish','When ready, click Publish — saves to DB — all users see your changes in real time.'],
+         ['🗑️ Discard','Changed your mind? Click Discard — reverts to last published version from DB.'],
+         ['📋 Request Review','QA members see Request Review button — sends notification to Lead after publishing.'],
+         ['🔄 No overwrite','Multiple users editing different releases simultaneously — zero data conflict.'],
+         ['🔒 Draft protected','If another user publishes, your local draft is never touched — stays safe.']].map(([t,d])=>`
+        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">${t}</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
         </div>`).join('')}
     </div>
-    <div style="background:var(--panel-2);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:11.5px;color:var(--text-faint);">
-      ℹ️ Knows your team, releases, daily plan, leaves, VMs · Multi-turn conversation · Requires internet connection
-    </div>
   </div>
 
-  <!-- Shortcuts -->
-  <div class="panel" style="margin-bottom:14px;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="width:40px;height:40px;border-radius:12px;background:#f43f5e22;border:1px solid #f43f5e33;display:flex;align-items:center;justify-content:center;font-size:20px;">⌨️</div>
-      <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Keyboard Shortcuts</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:8px;">Navigation</div>
-        <div style="display:flex;flex-direction:column;gap:5px;">
-          ${[['Alt+P','People'],['Alt+R','Release'],['Alt+T','Test Plan'],['Alt+D','Daily Plan + AI'],['Alt+S','Summary'],['Alt+L','Leave Calendar'],['Alt+H','Holidays'],['Alt+V','Release Vault']].map(([k,t])=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--panel-2);border-radius:7px;">
-              <kbd style="background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--text);">${k}</kbd>
-              <span style="font-size:12px;color:var(--text-dim);">${t}</span>
-            </div>`).join('')}
-        </div>
-      </div>
-      <div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:8px;">Actions</div>
-        <div style="display:flex;flex-direction:column;gap:5px;">
-          ${[['N','New item on current tab'],['Esc','Close modal'],['Ctrl+Z','Undo last action'],['Shift+D','Toggle dark mode'],['?','Show shortcuts help'],['🔍','Search bar (sidebar)']].map(([k,t])=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--panel-2);border-radius:7px;">
-              <kbd style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:5px;padding:2px 8px;font-family:var(--mono);font-size:10.5px;font-weight:700;box-shadow:0 2px 4px rgba(124,58,237,0.3);">${k}</kbd>
-              <span style="font-size:12px;color:var(--text-dim);">${t}</span>
-            </div>`).join('')}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom 3 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
+  <!-- Row 3: Summary, Vault -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
     <div class="panel" style="margin:0;">
-      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">↩️ Undo System</div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Last <strong>20 actions</strong> remembered.<br>Toast appears → click ↩ Undo or Ctrl+Z.<br>Data restored in Supabase automatically.</div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        ${['Release add / edit / delete','Bulk delete','Test row add / edit / delete','Daily plan assign / clear','VM add / edit / delete'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">✓ ${t}</div>`).join('')}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:#22d3ee20;display:flex;align-items:center;justify-content:center;font-size:17px;">📊</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Summary</div>
+        <div style="font-size:11px;color:var(--text-faint);">Health + Gantt + Table</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        🏥 Release Health — At Risk / Needs Attention / On Track<br>
+        📅 Gantt Timeline — all releases on one chart<br>
+        📋 Summary Table — effort, dates, QA Lead, Owner<br>
+        <strong>Working On It</strong> — Lead from Release field + QA from Daily Plan<br>
+        Comments column with author + timestamp<br>
+        Filter by Date / Component / POD / Status<br>
+        Paginated 10/page · Share Report
+      </div>
+      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+        ${[['🔴 At risk','#fee2e2','#dc2626'],['🟡 Needs attention','#fef9c3','#a16207'],['🟢 On track','#dcfce7','#15803d']].map(([n,bg,fg])=>`<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;">${n}</span>`).join('')}
+      </div>
+    </div>
+
+    <div class="panel" style="margin:0;border:1.5px solid #fbbf2444;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.3),rgba(245,158,11,0.2));display:flex;align-items:center;justify-content:center;font-size:17px;">🔐</div>
+        <div><div style="font-weight:700;font-size:13.5px;color:var(--text);">Release Vault</div>
+        <div style="font-size:11px;color:var(--text-faint);">Completed releases archive</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        Auto-archives when: status = <strong>Completed</strong> AND all envs = <strong>Done</strong><br>
+        View environments, milestones, effort, component badge<br>
+        <strong>💬 Chat History</strong> — archived read-only messages<br>
+        Filter by Release date or Dev POD<br>
+        <strong>↩ Revert</strong> — Admin/Lead only — restores to active<br>
+        Download Report / Open in new tab
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat + Notifications -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed33;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;font-size:20px;">💬</div>
+      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Team Chat & Notifications</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Real-time messaging + smart alerts</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      ${[['💬 Chat Rooms','Global room + one room per active release. Completed releases auto-removed.'],
+         ['✏️ Edit/Delete','Hover your own message to edit or delete. Your messages only.'],
+         ['🔇 Sound toggle','Mute/unmute chat notification sounds from the bell in chat header.'],
+         ['🔔 Bell Notifications','Assigned to test env → you get notified. Milestone due today/tomorrow → Lead + assignees notified.'],
+         ['👤 Per-user','Notifications are personal. Dismissing yours does not affect anyone else.'],
+         ['🚫 No spam','Build alerts, review requests = dashboard only. Bell = assigned + milestone only.']].map(([t,d])=>`
+        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">${t}</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Infra + Launchpad -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="panel" style="margin:0;">
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">🖥️ Infra Hub</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        Track all QA VMs — status, expiry, POD, OS, IP<br>
+        Filter by POD / status (free, in use, expiring)<br>
+        <strong>In-use toggle</strong> — one click in table<br>
+        Auto-free when End Date passes<br>
+        ✎ Manage groups — add, rename, delete POD groups
+      </div>
+      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🟢 Free</span>
+        <span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">🔴 In use</span>
+        <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">Expired</span>
+        <span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;">⚠ Expiring</span>
+      </div>
+    </div>
+    <div class="panel" style="margin:0;">
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">🚀 Launchpad</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.9;">
+        ⚡ <strong>Quick Links</strong> — JIRA, Jenkins, Confluence, tools<br>
+        📘 <strong>Knowledge Base</strong> — SOPs, guides, training docs<br>
+        Categories: Testing / Onboarding / Tools / Process<br>
+        Search + filter · 📌 Pin important docs<br>
+        Admin/Lead: Add, edit, delete, pin resources
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup + Activity + Admin -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="panel" style="margin:0;border:1.5px solid #10b98133;">
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">💾 Backup & Restore</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">
+        Auto-backup every <strong>5 saves</strong> or <strong>10 minutes</strong><br>
+        Full snapshot — people, releases, test plans, leaves, VMs, daily plan, knowledge<br>
+        Admin tab → manual backup anytime<br>
+        One-click restore → all data comes back
       </div>
     </div>
     <div class="panel" style="margin:0;">
       <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">📋 Activity Log</div>
-      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">Open from sidebar → 📋 Activity log.<br>Saved in Supabase. No duplicates.<br>Filter by Today / Yesterday / Custom.</div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        ${['➕ Release added / edited / deleted','📅 Daily plan assigned / cleared','🏖️ Leave marked (PL / UPL)','📝 Notes added','👤 People changes','🔄 Bulk status update'].map(t=>`<div style="font-size:11px;color:var(--text-faint);padding:3px 8px;background:var(--panel-2);border-radius:5px;">${t}</div>`).join('')}
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;margin-bottom:8px;">
+        Tracks every action — releases, daily plan, leaves, people, bulk deletes<br>
+        Filter by activity type<br>
+        All users see all activities<br>
+        Saved in Supabase — no duplicates
       </div>
     </div>
     <div class="panel" style="margin:0;">
-      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">⚙️ Settings & Sync</div>
-      <div style="display:flex;flex-direction:column;gap:7px;">
-        ${[['🌙','Dark Mode','Toggle in sidebar · Shift+D · Saved permanently'],
-           ['🟢','Real-time Sync','Changes appear across all users instantly'],
-           ['🔍','Search','Sidebar · finds people, releases, VMs → Release Vault'],
-           ['🔒','Password','Sidebar footer → Change password'],
-           ['👤','Permissions','Admin tab → per-user tab access + copy from user'],
-           ['💾','Tab Memory','Refresh = same page · localStorage remembers last tab'],
-           ['🔔','Notifications','Bell → assigned + milestone only · per-user · grouped']].map(([i,t,d])=>`
-          <div style="padding:7px 10px;background:var(--panel-2);border-radius:8px;">
-            <div style="font-size:12px;font-weight:600;color:var(--text);">${i} ${t}</div>
-            <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${d}</div>
-          </div>`).join('')}
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">⚙️ Admin Panel</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.8;">
+        Role-based access — Admin / Lead / Member<br>
+        Per-user tab permissions — view or edit<br>
+        Copy permissions from another user<br>
+        Backup & Restore section<br>
+        Change password from sidebar footer
       </div>
+    </div>
+  </div>
+
+  <!-- Multi-user Architecture -->
+  <div class="panel" style="margin-bottom:14px;border:1.5px solid #7c3aed33;background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(37,99,235,0.03));">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;">⚡</div>
+      <div><h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Multi-User Architecture</h2>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Built for the entire team to work simultaneously</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      ${[['🗄️ Per-row Tables','People, releases, test plans, leaves, daily plan — each record is its own DB row. Editing one never affects another.'],
+         ['🔄 Real-time Sync','Changes reflect instantly across all users via Supabase Realtime subscriptions — no refresh needed.'],
+         ['📝 Draft Protection','Test plan drafts stay local until published — another user\'s publish never overwrites your in-progress work.'],
+         ['🗑️ Safe Delete','Deleted items are tracked — realtime echo cannot restore them. Bulk delete is also race-condition safe.'],
+         ['💾 Auto Backup','Every 5 saves or 10 min — full data snapshot. Restore instantly if anything goes wrong.'],
+         ['🔒 Role Gates','Permissions enforced on every save — read-only users cannot write, even if they try.']].map(([t,d])=>`
+        <div style="background:var(--panel-2);border-radius:9px;padding:10px 12px;border:1px solid var(--border-soft);">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;">${t}</div>
+          <div style="font-size:11px;color:var(--text-faint);line-height:1.5;">${d}</div>
+        </div>`).join('')}
     </div>
   </div>
 
   <!-- FAQ -->
   <div class="panel" style="margin-bottom:18px;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="width:40px;height:40px;border-radius:12px;background:#64748b22;border:1px solid #64748b33;display:flex;align-items:center;justify-content:center;font-size:20px;">❓</div>
+      <div style="width:40px;height:40px;border-radius:12px;background:#64748b22;display:flex;align-items:center;justify-content:center;font-size:20px;">❓</div>
       <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);">Common Questions</h2>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      ${[['Release tab dates not showing?','Dates sync from Test Plan only after a Lead has reviewed and approved the plan.'],
-         ['Build delay badge not showing?','Enter both Planned Dev to QA and Actual Dev to QA dates in the Release tab edit modal.'],
-         ['Review request notification not received by Lead?','Make sure the release item has QA Lead field set and the Lead has their email in People tab.'],
-         ['Item not appearing in Release Vault?','Both: Release status = Completed AND every environment in Test Plan (including Test prep and Test env) = Done.'],
-         ['Chat edit/delete not showing?','Only your own messages show edit/delete on hover. Older messages show after reopening the chat window.'],
-         ['"Working on it" column empty?','Shows people from Daily Plan within ±30 day window. Assign people in Daily Plan tab first.'],
-         ['Build alert disappeared for someone else?','Each user dismisses their own build alert independently — "Got it" only affects the user who clicked it.'],
-         ['Notification came back after clearing?','Cleared notifications are saved to dismissed list per user and will not return. Refresh once to confirm.']].map(([q,a])=>`
+      ${[['Release tab dates not showing?','Dates sync from Test Plan only after a Lead has reviewed and approved. Until then, these columns stay blank.'],
+         ['Build delay badge not showing?','Enter both Planned Dev to QA and Actual Dev to QA dates in the Release edit modal.'],
+         ['Review request not received by Lead?','Make sure the release has QA Lead field set and the Lead\'s email is in the People tab.'],
+         ['Item not appearing in Release Vault?','Release status = Completed AND every environment including Test Prep and Test Env = Done.'],
+         ['Working On It column shows wrong person?','Only people assigned in Daily Plan within ±30 days appear. Lead is always shown from the Release QA Lead field.'],
+         ['Build alert disappeared for someone else?','Each user dismisses their own alert independently. Got it only affects the user who clicked it.'],
+         ['Draft not showing after refresh?','Drafts are saved in your browser localStorage. They persist across refreshes until you Publish or Discard.'],
+         ['Deleted item came back?','Fixed — deletions are tracked. If it still happens, refresh the page — the item will be gone.']].map(([q,a])=>`
         <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:10px;padding:12px 14px;">
           <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:5px;display:flex;gap:6px;">
             <span style="color:#7c3aed;flex-shrink:0;">Q</span>${q}
@@ -7542,6 +7487,7 @@ function renderHelp() {
 
   `;
 }
+
 
 // Track which tabs need re-render
 const _dirtyTabs = new Set();
@@ -8670,7 +8616,7 @@ function onTestPlanProjectChange() {
   selectedTestPlanProjectId = document.getElementById('testPlanProjectSelect').value;
   if (!selectedTestPlanProjectId) { renderTestPlan(); return; }
 
-  // Check if local draft exists — use it, don't overwrite with DB
+  // Check if local draft exists — use it, don\'t overwrite with DB
   const draftKey = DRAFT_KEY_PREFIX + selectedTestPlanProjectId;
   const draft = localStorage.getItem(draftKey);
 
@@ -10608,7 +10554,7 @@ function getBusyInfoForPerson(personId, project) {
   today.setHours(0, 0, 0, 0);
   const todayKey = toLocalDateKey(today);
 
-  // Only consider busy dates from today onwards — past assignments don't block future availability.
+  // Only consider busy dates from today onwards — past assignments don\'t block future availability.
   const futureOrTodayDates = allPersonDates.filter(d => d >= todayKey);
 
   let freeText;
@@ -10831,10 +10777,10 @@ function toggleNotificationPanel() {
 }
 
 function markAllNotificationsRead() {
-  // Mark only current user's local notifications as read
+  // Mark only current user\'s local notifications as read
   (state.notifications || []).forEach(n => { n.read = true; });
   saveState();
-  // Update Supabase push notifications — only current user's
+  // Update Supabase push notifications — only current user\'s
   if (sbClient && currentUserEmail) {
     sbClient.from('push_notifications')
       .update({ read: true })
@@ -10859,7 +10805,7 @@ function markNotificationRead(id) {
 function clearAllNotifications() {
   if (!confirm('Clear all your notifications?')) return;
 
-  // Save dismissed keys per user so these don't come back
+  // Save dismissed keys per user so these don\'t come back
   const dismissedKey = 'tl_notif_dismissed_' + (currentUserEmail||'').replace(/[^a-z0-9]/gi,'_');
   let dismissed = [];
   try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch(e) {}
@@ -10870,12 +10816,12 @@ function clearAllNotifications() {
   if (dismissed.length > 500) dismissed = dismissed.slice(-500);
   localStorage.setItem(dismissedKey, JSON.stringify(dismissed));
 
-  // Only clear current user's notifications from local state
+  // Only clear current user\'s notifications from local state
   // Other users' state is in their own browser — no impact
   state.notifications = [];
   saveState();
 
-  // Delete from Supabase — only current user's push notifications
+  // Delete from Supabase — only current user\'s push notifications
   if (sbClient && currentUserEmail) {
     sbClient.from('push_notifications')
       .delete()
@@ -13354,7 +13300,7 @@ async function sendChatMessage() {
       created_at: now,
     };
 
-    // Show message immediately — don't wait for realtime
+    // Show message immediately — don\'t wait for realtime
     appendChatMessage(tempMsg);
 
     const tempId = tempMsg.id;
