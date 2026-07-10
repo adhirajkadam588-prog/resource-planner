@@ -6833,14 +6833,10 @@ function openVMModal(id) {
       allNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   }
 
-  // Populate VM Owner dropdown from people list
+  // Populate VM Owner dropdown from people list (People tab only)
   const memberSel = document.getElementById('vmMember');
   if (memberSel) {
-    const allOwnerNames = [...new Set([
-      ...state.people.map(p => p.name),
-      // also include any existing owner values not in people list
-      ...(state.vms||[]).map(v => v.member).filter(Boolean)
-    ])].sort();
+    const allOwnerNames = [...new Set(state.people.map(p => p.name))].sort();
     memberSel.innerHTML = '<option value="">— Select person —</option>' +
       allOwnerNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   }
@@ -7021,11 +7017,8 @@ function renderVMRepo() {
     grouped[pod].push(vm);
   });
 
-  // Owner dropdown options — people list + any existing owner values not in people list
-  const ownerNames = [...new Set([
-    ...state.people.map(p => p.name),
-    ...state.vms.map(v => v.member).filter(Boolean)
-  ])].sort();
+  // Owner dropdown options — People tab only
+  const ownerNames = [...new Set(state.people.map(p => p.name))].sort();
 
   const POD_COLORS_VM = {
     'Akash':'#dbeafe:#1d4ed8','Dikshit':'#dcfce7:#15803d',
