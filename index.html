@@ -6776,11 +6776,16 @@ function renameVMPod(index) {
   if (!newName || newName.trim() === oldName) return;
   const trimmed = newName.trim();
   if (pods.includes(trimmed)) { alert('A group with that name already exists.'); return; }
-  // Update all VMs using old pod name
   snapshotState(`Rename VM group: ${oldName} → ${trimmed}`);
   state.vmPods[index] = trimmed;
-  (state.vms || []).forEach(vm => { if (vm.pod === oldName) vm.pod = trimmed; });
-  saveState();
+  // Update all VMs using old pod name + save each to field table
+  (state.vms || []).forEach(vm => {
+    if (vm.pod === oldName) {
+      vm.pod = trimmed;
+      saveVMRecord(vm); // field-level save
+    }
+  });
+  saveState(); // vmPods still in resource_planner — must save
   renderVMPodsList();
   populateVMPodDropdowns();
   renderVMRepo();
@@ -6895,8 +6900,7 @@ function saveVM() {
   }
   editingVMId = null;
   closeModal('vmModal');
-  saveVMRecord(vm); // field-level save
-  saveState();
+  saveVMRecord(vm); // field-level save — no saveState() to avoid realtime race condition
   renderVMRepo();
 }
 
@@ -6905,8 +6909,7 @@ function deleteVM(id) {
   if (!confirm(`Remove VM: ${vm?.details || id}?`)) return;
   snapshotState(`Delete VM: ${vm?.details?.slice(0,30)}`);
   state.vms = state.vms.filter(v => v.id !== id);
-  deleteVMRecord(id); // field-level delete
-  saveState();
+  deleteVMRecord(id); // field-level delete — no saveState()
   renderVMRepo();
 }
 
@@ -6914,8 +6917,7 @@ function toggleVMInUseRow(id) {
   const vm = (state.vms || []).find(v => v.id === id);
   if (!vm) return;
   vm.inUse = !vm.inUse;
-  saveVMRecord(vm); // field-level save
-  saveState();
+  saveVMRecord(vm); // field-level save — no saveState()
   renderVMRepo();
 }
 
@@ -6923,8 +6925,7 @@ function updateVMOwner(id, value) {
   const vm = (state.vms || []).find(v => v.id === id);
   if (!vm) return;
   vm.member = value;
-  saveVMRecord(vm); // field-level save
-  saveState();
+  saveVMRecord(vm); // field-level save — no saveState()
   renderVMRepo();
 }
 
