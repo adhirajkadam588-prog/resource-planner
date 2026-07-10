@@ -8298,7 +8298,7 @@ function shiftDate(dateStr, days) {
   return toDateKey(d);
 }
 
-function saveProject() {
+async function saveProject() {
   const name            = document.getElementById('projName').value.trim();
   const jiraUrl         = document.getElementById('projJiraUrl').value.trim();
   const releaseDate     = document.getElementById('projReleaseDate').value;
@@ -8349,7 +8349,13 @@ function saveProject() {
 
         if (isLateDate || isEarlyDate) {
           // Build late OR early — shift milestones accordingly
-          const plan = state.testPlans && state.testPlans[proj.id];
+          // Load test plan from DB if not already in memory
+          let plan = state.testPlans && state.testPlans[proj.id];
+          if (!plan || !plan.milestones) {
+            // Load fresh from field tables then apply delay
+            await loadFullTestPlanFromDB(proj.id);
+            plan = state.testPlans && state.testPlans[proj.id];
+          }
           if (plan && plan.milestones) {
             const ms = plan.milestones;
             const newBuildPickup = nextWorkingDay(actualBuildDate);
@@ -8386,8 +8392,11 @@ function saveProject() {
               if (proj.status !== 'Completed') proj.status = 'Not started';
               showToastMsg('🔄 Review reset — milestones shifted. QA must re-request review for "' + name + '"');
             }
-            // NOTE: proj.goAheadDate and proj.completionDate are NOT set here
-            // They only get set via syncTestPlanToProjects() AFTER review is approved
+
+            // ✅ CRITICAL — Save shifted milestones + reset review to field tables
+            // Without this, refresh reloads old dates from DB — review reset lost
+            saveMilestonesRow(proj.id, ms);
+            saveBufferRow(proj.id, plan);
 
             if (isLateDate) {
               if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
