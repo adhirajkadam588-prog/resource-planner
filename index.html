@@ -1950,7 +1950,9 @@
       </div>
       <div class="field">
         <label>VM Owner</label>
-        <input id="vmMember" placeholder="e.g. Yashna, Mayuri, Harish">
+        <select id="vmMember" style="width:100%;">
+          <option value="">— Select person —</option>
+        </select>
       </div>
       <div class="field">
         <label>VM Details</label>
@@ -6829,6 +6831,18 @@ function openVMModal(id) {
       allNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   }
 
+  // Populate VM Owner dropdown from people list
+  const memberSel = document.getElementById('vmMember');
+  if (memberSel) {
+    const allOwnerNames = [...new Set([
+      ...state.people.map(p => p.name),
+      // also include any existing owner values not in people list
+      ...(state.vms||[]).map(v => v.member).filter(Boolean)
+    ])].sort();
+    memberSel.innerHTML = '<option value="">— Select person —</option>' +
+      allOwnerNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  }
+
   const titleEl = document.getElementById('vmModalTitle');
   const btnEl   = document.getElementById('vmSaveBtn');
   if (id) {
@@ -6899,6 +6913,15 @@ function toggleVMInUseRow(id) {
   const vm = (state.vms || []).find(v => v.id === id);
   if (!vm) return;
   vm.inUse = !vm.inUse;
+  saveVMRecord(vm); // field-level save
+  saveState();
+  renderVMRepo();
+}
+
+function updateVMOwner(id, value) {
+  const vm = (state.vms || []).find(v => v.id === id);
+  if (!vm) return;
+  vm.member = value;
   saveVMRecord(vm); // field-level save
   saveState();
   renderVMRepo();
@@ -6996,6 +7019,12 @@ function renderVMRepo() {
     grouped[pod].push(vm);
   });
 
+  // Owner dropdown options — people list + any existing owner values not in people list
+  const ownerNames = [...new Set([
+    ...state.people.map(p => p.name),
+    ...state.vms.map(v => v.member).filter(Boolean)
+  ])].sort();
+
   const POD_COLORS_VM = {
     'Akash':'#dbeafe:#1d4ed8','Dikshit':'#dcfce7:#15803d',
     'Regression VMs':'#fee2e2:#b91c1c','Automation VMs':'#f3e8ff:#7e22ce',
@@ -7040,9 +7069,11 @@ function renderVMRepo() {
             ${i === 0 ? `<span style="background:${pbg};color:${pfg};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;">${escapeHtml(pod)}</span>` : ''}
           </td>
           <td style="white-space:nowrap;">
-            ${vm.member
-              ? `<span style="font-size:12.5px;color:var(--text-dim);font-weight:500;">${escapeHtml(vm.member)}</span>`
-              : '<span style="color:var(--text-faint);">—</span>'}
+            <select onchange="updateVMOwner('${vm.id}', this.value)" title="Change VM owner"
+              style="font-size:12px; padding:4px 6px; border-radius:6px; max-width:140px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-family:inherit;">
+              <option value="" ${!vm.member ? 'selected' : ''}>— Unassigned —</option>
+              ${ownerNames.map(n => `<option value="${escapeHtml(n)}" ${vm.member === n ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}
+            </select>
           </td>
           <td style="min-width:260px; padding:10px 12px;">
             ${(() => {
