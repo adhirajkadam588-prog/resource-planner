@@ -3276,9 +3276,16 @@ async function loadHolidays() {
 async function saveVMRecord(vm) {
   if (!sbClient || !vm?.id) return;
   try {
+    // _sortOverride allows explicit sort_order (used after delete reindex)
+    const sortOrder = vm._sortOverride !== undefined
+      ? vm._sortOverride
+      : (state.vms || []).findIndex(v => v.id === vm.id);
+    // Strip _sortOverride before saving to data field
+    const { _sortOverride, ...vmData } = vm;
     await sbClient.from('vms').upsert({
-      id: vm.id,
-      data: vm,
+      id: vmData.id,
+      data: vmData,
+      sort_order: sortOrder >= 0 ? sortOrder : 9999,
       updated_at: new Date().toISOString()
     });
   } catch(e) { console.warn('saveVMRecord error:', e); }
@@ -3295,9 +3302,14 @@ async function loadVMs() {
   if (!sbClient) return;
   try {
     const { data, error } = await sbClient
-      .from('vms').select('data').order('updated_at', { ascending: true });
+      .from('vms').select('*').order('sort_order', { ascending: true });
     if (error) throw error;
-    if (data && data.length > 0) state.vms = data.map(r => r.data);
+    if (data && data.length > 0) {
+      // sort_order se sort — nahi hai toh updated_at fallback
+      state.vms = data
+        .sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999))
+        .map(r => r.data);
+    }
   } catch(e) { console.warn('loadVMs error:', e); }
 }
 
@@ -3466,8 +3478,14 @@ function initFieldTablesRealtime() {
         const vm = payload.new?.data;
         if (!vm) return;
         const idx = state.vms.findIndex(v => v.id === vm.id);
-        if (idx >= 0) state.vms[idx] = vm;
-        else state.vms.push(vm);
+        if (idx >= 0) {
+          // Update in-place — preserve position in array
+          state.vms[idx] = vm;
+        } else {
+          // New VM — add at sort_order position
+          const sortOrder = payload.new?.sort_order ?? state.vms.length;
+          state.vms.splice(sortOrder, 0, vm);
+        }
       }
       markDirty('vmrepo', 'dashboard');
       renderAll();
@@ -6909,7 +6927,9 @@ function deleteVM(id) {
   if (!confirm(`Remove VM: ${vm?.details || id}?`)) return;
   snapshotState(`Delete VM: ${vm?.details?.slice(0,30)}`);
   state.vms = state.vms.filter(v => v.id !== id);
-  deleteVMRecord(id); // field-level delete — no saveState()
+  deleteVMRecord(id);
+  // Reindex sort_order for remaining VMs so no gaps
+  state.vms.forEach((v, i) => saveVMRecord({ ...v, _sortOverride: i }));
   renderVMRepo();
 }
 
