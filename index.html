@@ -5825,16 +5825,19 @@ document.addEventListener('click', e => {
 function checkVMAutoFree() {
   if (!state.vms) return;
   const today = toDateKey(new Date());
-  let changed = false;
+  const changedVMs = [];
   state.vms.forEach(vm => {
     if (vm.inUse && vm.endDate && vm.endDate < today) {
       vm.inUse = false;
       vm.usedBy = '';
-      changed = true;
+      changedVMs.push(vm);
     }
   });
-  if (changed) {
-    saveState();
+  if (changedVMs.length > 0) {
+    // Persist each auto-freed VM to its own record — saveState() alone won't
+    // do this since VMs are excluded from the resource_planner blob, which
+    // previously left the DB row stale and re-triggered this on every reload.
+    changedVMs.forEach(vm => saveVMRecord(vm));
     if (document.querySelector('.tab-btn[data-tab="vmrepo"]')?.classList.contains('active')) {
       renderVMRepo();
     }
