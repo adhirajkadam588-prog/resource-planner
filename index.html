@@ -3785,7 +3785,7 @@ async function initApp(user) {
   try {
     await fetchUserRole(user.id);
     await loadState();
-    // Load all test plans on initial load
+    // Load all test plans on initial load — needed for Release Vault condition
     await Promise.all(state.projects.map(p => loadFullTestPlanFromDB(p.id)));
     if (currentUserRole === 'admin') await fetchAllUserRoles();
     seedVMData();
@@ -11517,11 +11517,12 @@ function renderArchive() {
   const podPills = document.getElementById('archivePodPills');
   if (!content) return;
 
-  // Archive = Release status Completed + sab test plan environments Done
+  // Archive = Release status Completed + sab test plan environments Done (if plan exists)
   const completed = state.projects.filter(p => {
     if (p.status !== 'Completed') return false;
     const plan = state.testPlans && state.testPlans[p.id];
-    if (!plan || !plan.rows || plan.rows.length === 0) return false;
+    // If no plan exists or no rows — still show in vault (status = Completed is enough)
+    if (!plan || !plan.rows || plan.rows.length === 0) return true;
     const allStatuses = [
       plan.testPrepStatus || 'Not yet started',
       plan.testEnvStatus  || 'Not yet started',
