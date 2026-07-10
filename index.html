@@ -5551,27 +5551,29 @@ function renderAlertsHtml() {
     return isUserAssociatedWithProject(proj.id);
   }
 
-  // VM alerts — Admin sees all, Lead/QA sees only their own VMs
+  // VM alerts — Admin sees all, Lead/QA sees VMs they own or are currently using
   (state.vms || []).forEach(vm => {
     if (!vm.expiry) return;
-    const isMyVM = vm.usedBy === (currentPerson ? currentPerson.name : currentUserEmail);
+    const myName = currentPerson ? currentPerson.name : '';
+    const isMyVM = !!myName && (vm.usedBy === myName || vm.member === myName);
     if (!isAdmin && !isMyVM) return;
     const daysLeft = Math.round((new Date(vm.expiry+'T00:00:00') - new Date(today+'T00:00:00')) / 86400000);
     const vmName = vm.details.split('-')[0].trim();
     if (daysLeft < 0) {
-      alerts.push({ icon:'🖥️', level:'red', title:'VM expired ' + Math.abs(daysLeft) + 'd ago', detail: vmName + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
+      alerts.push({ icon:'🖥️', level:'red', title:'VM expired ' + Math.abs(daysLeft) + 'd ago', detail: vmName + ' · owner ' + (vm.member||'—') + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
     } else if (daysLeft <= 7) {
-      alerts.push({ icon:'🖥️', level:'amber', title:'VM expiring in ' + daysLeft + 'd', detail: vmName + ' · expires ' + formatDateDisplay(vm.expiry), action:'vmrepo' });
+      alerts.push({ icon:'🖥️', level:'amber', title:'VM expiring in ' + daysLeft + 'd', detail: vmName + ' · expires ' + formatDateDisplay(vm.expiry) + ' · owner ' + (vm.member||'—'), action:'vmrepo' });
     }
   });
 
   (state.vms || []).forEach(vm => {
     if (!vm.inUse || !vm.endDate) return;
-    const isMyVM = vm.usedBy === (currentPerson ? currentPerson.name : currentUserEmail);
+    const myName = currentPerson ? currentPerson.name : '';
+    const isMyVM = !!myName && (vm.usedBy === myName || vm.member === myName);
     if (!isAdmin && !isMyVM) return;
     const daysOver = Math.round((new Date(today+'T00:00:00') - new Date(vm.endDate+'T00:00:00')) / 86400000);
     if (daysOver > 0) {
-      alerts.push({ icon:'🔓', level:'amber', title:'VM usage ended ' + daysOver + 'd ago — still marked in use', detail: vm.details.split('-')[0].trim() + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
+      alerts.push({ icon:'🔓', level:'amber', title:'VM usage ended ' + daysOver + 'd ago — still marked in use', detail: vm.details.split('-')[0].trim() + ' · owner ' + (vm.member||'—') + ' · used by ' + (vm.usedBy||'—'), action:'vmrepo' });
     }
   });
 
