@@ -555,10 +555,10 @@
 
   /* Right login panel */
   .lo-right {
-    width: 480px; flex-shrink: 0;
+    width: 440px; flex-shrink: 0;
     background: #08060f;
     display: flex; align-items: center; justify-content: center;
-    padding: 48px 52px;
+    padding: 48px 44px;
     border-left: 1px solid rgba(255,255,255,0.06);
     position: relative;
   }
@@ -566,6 +566,21 @@
     content: ''; position: absolute; inset: 0; pointer-events: none;
     background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.08) 0%, transparent 60%);
   }
+
+  /* Feature grid */
+  .lo-feat-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px; margin-top: 28px;
+  }
+  .lo-feat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .lo-feat-card-icon { font-size: 18px; }
+  .lo-feat-card-title { font-size: 12px; font-weight: 700; color: white; }
+  .lo-feat-card-desc { font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.4; }
 
   /* Main card */
   .login-box {
@@ -900,6 +915,40 @@
         <div class="lo-feat">
           <div class="lo-feat-icon" style="background:rgba(59,130,246,0.2);">⚡</div>
           <div class="lo-feat-text"><strong>Real-time sync</strong> — multiple users, zero overwrite</div>
+        </div>
+      </div>
+
+      <!-- Feature grid -->
+      <div class="lo-feat-grid">
+        <div class="lo-feat-card">
+          <div class="lo-feat-card-icon">📁</div>
+          <div class="lo-feat-card-title">Releases</div>
+          <div class="lo-feat-card-desc">Track all active releases</div>
+        </div>
+        <div class="lo-feat-card">
+          <div class="lo-feat-card-icon">✅</div>
+          <div class="lo-feat-card-title">Test Plans</div>
+          <div class="lo-feat-card-desc">Plan and review testing</div>
+        </div>
+        <div class="lo-feat-card">
+          <div class="lo-feat-card-icon">📅</div>
+          <div class="lo-feat-card-title">Daily Plan</div>
+          <div class="lo-feat-card-desc">Day-wise assignments</div>
+        </div>
+        <div class="lo-feat-card">
+          <div class="lo-feat-card-icon">🏖️</div>
+          <div class="lo-feat-card-title">Leaves</div>
+          <div class="lo-feat-card-desc">PL and UPL calendar</div>
+        </div>
+        <div class="lo-feat-card">
+          <div class="lo-feat-card-icon">🖥️</div>
+          <div class="lo-feat-card-title">Infra Hub</div>
+          <div class="lo-feat-card-desc">VM tracking and status</div>
+        </div>
+        <div class="lo-feat-card">
+          <div class="lo-feat-card-icon">💬</div>
+          <div class="lo-feat-card-title">Team Chat</div>
+          <div class="lo-feat-card-desc">Per-release chat rooms</div>
         </div>
       </div>
     </div>
