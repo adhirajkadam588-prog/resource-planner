@@ -12739,10 +12739,10 @@ function renderDailyPlan() {
 
       if (nonWorking) {
         html += `<div class="cal-cell" style="background:var(--panel-2); color:var(--text-faint); opacity:0.5; text-align:left; padding-left:10px;">${holidayMatch ? escapeHtml(holidayMatch.name) : ''}</div>`;
-      } else if (onLeave) {
-        const leaveBg    = leaveType === 'UPL' ? '#fef2f2' : leaveType === 'WFH' ? '#dbeafe' : '#fefce8';
-        const leaveBorder= leaveType === 'UPL' ? '#fecaca' : leaveType === 'WFH' ? '#93c5fd' : '#fde68a';
-        const leaveColor = leaveType === 'UPL' ? '#dc2626' : leaveType === 'WFH' ? '#1d4ed8' : '#a16207';
+      } else if (onLeave && leaveType !== 'WFH') {
+        const leaveBg    = leaveType === 'UPL' ? '#fef2f2' : '#fefce8';
+        const leaveBorder= leaveType === 'UPL' ? '#fecaca' : '#fde68a';
+        const leaveColor = leaveType === 'UPL' ? '#dc2626' : '#a16207';
         html += `<div class="cal-cell" style="background:${leaveBg};border:1px solid ${leaveBorder};text-align:center;display:flex;align-items:center;justify-content:center;">
           <span style="background:${leaveBg};color:${leaveColor};border:1.5px solid ${leaveBorder};border-radius:5px;padding:1px 7px;font-size:10.5px;font-weight:700;">${leaveType}</span>
         </div>`;
