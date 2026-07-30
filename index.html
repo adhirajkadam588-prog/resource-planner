@@ -411,6 +411,7 @@
   .cal-cell.name { background: var(--panel-2); text-align: left; padding: 2px 8px; color: var(--text); font-size: 11.5px; position: sticky; left: 0; z-index: 5; box-shadow: 1px 0 0 var(--border-soft); }
   .cal-cell.leave-pl  { background: #fef3c7; color: #b45309; cursor: pointer; font-weight: 700; }
   .cal-cell.leave-upl { background: #fee2e2; color: #dc2626; cursor: pointer; font-weight: 700; }
+  .cal-cell.leave-wfh { background: #dbeafe; color: #1d4ed8; cursor: pointer; font-weight: 700; }
   .cal-cell.weekend   { background: var(--panel-2); color: var(--border); cursor: not-allowed; font-size: 10px; }
   .cal-cell.holiday-day { background: var(--panel-2); color: var(--border); cursor: not-allowed; font-size: 10px; }
   .cal-cell.day-cell  { cursor: pointer; transition: background 0.1s; vertical-align: top; min-height: 28px; }
@@ -5118,7 +5119,7 @@ function renderDashboard() {
   const dpPeople   = state.people.filter(p => p.showInDailyPlan !== false);
   const availToday = dpPeople.filter(p => {
     const leaveMap   = getLeaveMap(p.id);
-    const onLeave    = !!leaveMap[today];
+    const onLeave    = !!leaveMap[today] && leaveMap[today] !== 'WFH'; // WFH = available
     const isHoliday  = state.holidays.some(h => h.date === today);
     const assigned   = state.dailyPlan.some(e => e.personId === p.id && (e.startDate && e.endDate ? today >= e.startDate && today <= e.endDate : e.date === today));
     return !onLeave && !isHoliday && !assigned;
@@ -5393,6 +5394,8 @@ function renderDashboard() {
               badge = `<span style="background:#fef3c7; color:#b45309; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">🏖 On PL</span>`;
             } else if (leaveToday === 'UPL') {
               badge = `<span style="background:#fee2e2; color:#dc2626; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">🤒 On UPL</span>`;
+            } else if (leaveToday === 'WFH') {
+              badge = `<span style="background:#dbeafe; color:#1d4ed8; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">🏠 WFH</span>`;
             } else if (assigned) {
               badge = `<span style="background:#fef3c7; color:#b45309; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;">📋 Assigned</span>`;
             } else {
@@ -7176,7 +7179,7 @@ function renderHelp() {
         <div style="font-size:11px;color:var(--text-faint);">Per-row DB — instant sync</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
-        ${[['1st click','PL','#fefce8','#a16207'],['2nd click','UPL','#fef2f2','#dc2626'],['3rd click','Clear','#f1f5f9','#64748b']].map(([l,t,bg,fg])=>`
+        ${[['1st click','PL','#fefce8','#a16207'],['2nd click','UPL','#fef2f2','#dc2626'],['3rd click','WFH','#dbeafe','#1d4ed8'],['4th click','Clear','#f1f5f9','#64748b']].map(([l,t,bg,fg])=>`
           <div style="text-align:center;background:var(--panel-2);border-radius:8px;padding:8px 4px;">
             <div style="font-size:10px;color:var(--text-faint);margin-bottom:4px;">${l}</div>
             <div style="background:${bg};color:${fg};padding:2px 6px;border-radius:12px;font-size:11px;font-weight:700;display:inline-block;">${t}</div>
@@ -9823,9 +9826,9 @@ function buildDailyPlanMonthGridHtml(year, month, podFilter) {
       if (nonWorking) {
         html += `<div class="cal-cell-r weekend-r"></div>`;
       } else if (onLeave) {
-        const bg_ = leaveType_ === 'UPL' ? '#fef2f2' : '#fefce8';
-        const bd_ = leaveType_ === 'UPL' ? '#fecaca' : '#fde68a';
-        const fg_ = leaveType_ === 'UPL' ? '#dc2626' : '#a16207';
+        const bg_ = leaveType_ === 'UPL' ? '#fef2f2' : leaveType_ === 'WFH' ? '#dbeafe' : '#fefce8';
+        const bd_ = leaveType_ === 'UPL' ? '#fecaca' : leaveType_ === 'WFH' ? '#93c5fd' : '#fde68a';
+        const fg_ = leaveType_ === 'UPL' ? '#dc2626' : leaveType_ === 'WFH' ? '#1d4ed8' : '#a16207';
         html += `<div class="cal-cell-r" style="background:${bg_};border:1px solid ${bd_};display:flex;align-items:center;justify-content:center;"><span style="color:${fg_};font-size:10.5px;font-weight:700;">${leaveType_}</span></div>`;
       } else if (entries.length > 0) {
         const TASK_ICONS = {'Test Scenario Writing':'📝','Test Case Writing':'✍️','Test Data Prep':'🗂️','BVT':'🔬','Execution':'▶️'};
@@ -12102,6 +12105,9 @@ function toggleLeave(personId, dateKey) {
   } else if (current === 'PL') {
     state.leaves[personId][dateKey] = 'UPL';
     newType = 'UPL';
+  } else if (current === 'UPL') {
+    state.leaves[personId][dateKey] = 'WFH';
+    newType = 'WFH';
   } else {
     delete state.leaves[personId][dateKey];
     newType = 'Cleared';
@@ -12145,7 +12151,7 @@ function renderLeaveCalendar() {
   const empty = document.getElementById('leaveEmpty');
   const monthLabel = document.getElementById('leaveMonthLabel');
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  monthLabel.textContent = monthNames[calMonth] + ' ' + calYear + ' — click to cycle: empty → PL → UPL → empty';
+  monthLabel.textContent = monthNames[calMonth] + ' ' + calYear + ' — click to cycle: empty → PL → UPL → WFH → empty';
 
   if (state.people.length === 0) {
     grid.innerHTML = ''; grid.style.gridTemplateColumns = '160px';
@@ -12185,6 +12191,8 @@ function renderLeaveCalendar() {
         html += `<div class="cal-cell leave-pl" onclick="toggleLeave('${p.id}','${dateKey}')" title="Planned Leave">PL</div>`;
       } else if (leaveType === 'UPL') {
         html += `<div class="cal-cell leave-upl" onclick="toggleLeave('${p.id}','${dateKey}')" title="Unplanned Leave">UPL</div>`;
+      } else if (leaveType === 'WFH') {
+        html += `<div class="cal-cell leave-wfh" onclick="toggleLeave('${p.id}','${dateKey}')" title="Work From Home">WFH</div>`;
       } else {
         html += `<div class="cal-cell day-cell" onclick="toggleLeave('${p.id}','${dateKey}')"></div>`;
       }
@@ -12732,9 +12740,9 @@ function renderDailyPlan() {
       if (nonWorking) {
         html += `<div class="cal-cell" style="background:var(--panel-2); color:var(--text-faint); opacity:0.5; text-align:left; padding-left:10px;">${holidayMatch ? escapeHtml(holidayMatch.name) : ''}</div>`;
       } else if (onLeave) {
-        const leaveBg    = leaveType === 'UPL' ? '#fef2f2' : '#fefce8';
-        const leaveBorder= leaveType === 'UPL' ? '#fecaca' : '#fde68a';
-        const leaveColor = leaveType === 'UPL' ? '#dc2626' : '#a16207';
+        const leaveBg    = leaveType === 'UPL' ? '#fef2f2' : leaveType === 'WFH' ? '#dbeafe' : '#fefce8';
+        const leaveBorder= leaveType === 'UPL' ? '#fecaca' : leaveType === 'WFH' ? '#93c5fd' : '#fde68a';
+        const leaveColor = leaveType === 'UPL' ? '#dc2626' : leaveType === 'WFH' ? '#1d4ed8' : '#a16207';
         html += `<div class="cal-cell" style="background:${leaveBg};border:1px solid ${leaveBorder};text-align:center;display:flex;align-items:center;justify-content:center;">
           <span style="background:${leaveBg};color:${leaveColor};border:1.5px solid ${leaveBorder};border-radius:5px;padding:1px 7px;font-size:10.5px;font-weight:700;">${leaveType}</span>
         </div>`;
