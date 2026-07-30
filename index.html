@@ -408,7 +408,7 @@
     border: 1px solid var(--border-soft); border-radius: 12px; overflow: hidden; font-size: 11px;
   }
   .cal-cell { background: var(--panel); padding: 2px 4px; text-align: center; color: var(--text-faint); min-height: 28px; font-size: 11px; }
-  .cal-cell.name { background: var(--panel-2); text-align: left; padding: 2px 8px; color: var(--text); font-size: 11.5px; position: sticky; left: 0; z-index: 5; box-shadow: 1px 0 0 var(--border-soft); }
+  .cal-cell.name { background: var(--panel-2); text-align: left; padding: 2px 8px; color: var(--text); font-size: 11.5px; position: sticky; left: 0; z-index: 5; box-shadow: 2px 0 4px rgba(0,0,0,0.06); min-width: 120px; white-space: nowrap; }
   .cal-cell.leave-pl  { background: #fef3c7; color: #b45309; cursor: pointer; font-weight: 700; }
   .cal-cell.leave-upl { background: #fee2e2; color: #dc2626; cursor: pointer; font-weight: 700; }
   .cal-cell.leave-wfh { background: #dbeafe; color: #1d4ed8; cursor: pointer; font-weight: 700; }
@@ -417,7 +417,7 @@
   .cal-cell.day-cell  { cursor: pointer; transition: background 0.1s; vertical-align: top; min-height: 28px; }
   .cal-cell.day-cell:hover { background: var(--panel-2); }
   .cal-header { background: var(--panel-2) !important; color: var(--text-faint); font-weight: 700; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .cal-cell.cal-header.name { z-index: 6; }
+  .cal-cell.cal-header.name { z-index: 7; background: var(--panel-2); }
 
   .cal-scroll-wrap {
     overflow-x: auto; overflow-y: visible; border-radius: 12px;
@@ -1305,13 +1305,24 @@
             <div id="dailyPlanPodPills" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
           </div>
           <button class="ghost" onclick="shiftDayMonth(-1)">‹ Prev</button>
+          <!-- Month + Year jump -->
+          <select id="dpMonthSelect" onchange="jumpDayMonth()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-family:inherit;">
+            <option value="0">January</option><option value="1">February</option>
+            <option value="2">March</option><option value="3">April</option>
+            <option value="4">May</option><option value="5">June</option>
+            <option value="6">July</option><option value="7">August</option>
+            <option value="8">September</option><option value="9">October</option>
+            <option value="10">November</option><option value="11">December</option>
+          </select>
+          <select id="dpYearSelect" onchange="jumpDayMonth()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-family:inherit;">
+          </select>
           <button class="ghost" onclick="shiftDayMonth(1)">Next ›</button>
           <button class="action" onclick="openDailyPlanModal()">+ Assign</button>
           <button class="export-btn" onclick="openDailyPlanReportModal()"><span class="ico">📄</span> Share report</button>
         </div>
       </div>
-      <div class="cal-scroll-wrap" id="dailyPlanScrollWrap" style="overflow-x:auto; overflow-y:visible; border-radius:12px; border:1px solid var(--border-soft); position:relative;">
-        <div class="cal-grid" id="dailyPlanGrid" style="overflow:visible;"></div>
+      <div class="cal-scroll-wrap" id="dailyPlanScrollWrap" style="overflow-x:auto; overflow-y:visible; border-radius:12px; border:1px solid var(--border-soft); position:relative; max-width:100%;">
+        <div class="cal-grid" id="dailyPlanGrid" style="overflow:visible; min-width:max-content;"></div>
       </div>
       <div class="empty-state" id="dailyPlanEmpty" style="display:none;">Add people first, then assign them to a project for a date range.</div>
       <div class="legend">
@@ -9416,9 +9427,9 @@ const REPORT_CSS = `
   .data-table td.num { font-family: 'DM Mono','SF Mono', Consolas, monospace; font-size: 11.5px; }
 
   /* ---- Calendar grid ---- */
-  .cal-grid-r { display: grid; gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; font-size: 11px; margin-bottom: 20px; }
+  .cal-grid-r { display: grid; gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; border-radius: 10px; overflow: visible; font-size: 11px; margin-bottom: 20px; }
   .cal-cell-r { background: #ffffff; padding: 6px 4px; text-align: center; color: #94a3b8; }
-  .cal-cell-r.name-r { background: #f8fafc; text-align: left; padding: 6px 10px; color: #1e293b; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .cal-cell-r.name-r { background: #f8fafc; text-align: left; padding: 6px 10px; color: #1e293b; font-size: 12px; font-weight: 500; white-space: nowrap; position: sticky; left: 0; z-index: 5; box-shadow: 2px 0 4px rgba(0,0,0,0.06); }
   .cal-cell-r.header-r { background: #f8fafc; color: #64748b; font-weight: 600; }
   .cal-cell-r.leave-r { background: #fef3c7; color: #b45309; font-weight: 600; }
   .cal-cell-r.weekend-r { background: #f8fafc; opacity: 0.5; }
@@ -12461,7 +12472,40 @@ function shiftDayMonth(delta) {
   dayMonth += delta;
   if (dayMonth > 11) { dayMonth = 0; dayYear++; }
   if (dayMonth < 0) { dayMonth = 11; dayYear--; }
+  syncDpSelects();
   renderDailyPlan();
+}
+
+function jumpDayMonth() {
+  const mSel = document.getElementById('dpMonthSelect');
+  const ySel = document.getElementById('dpYearSelect');
+  if (mSel) dayMonth = parseInt(mSel.value);
+  if (ySel) dayYear = parseInt(ySel.value);
+  renderDailyPlan();
+}
+
+function syncDpSelects() {
+  const mSel = document.getElementById('dpMonthSelect');
+  const ySel = document.getElementById('dpYearSelect');
+  if (mSel) mSel.value = String(dayMonth);
+  if (ySel) {
+    // Populate years if needed
+    if (!ySel.querySelector(`option[value="${dayYear}"]`)) populateDpYears();
+    ySel.value = String(dayYear);
+  }
+}
+
+function populateDpYears() {
+  const ySel = document.getElementById('dpYearSelect');
+  if (!ySel) return;
+  const cur = new Date().getFullYear();
+  ySel.innerHTML = '';
+  for (let y = cur - 2; y <= cur + 3; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    ySel.appendChild(opt);
+  }
+  ySel.value = String(dayYear);
 }
 
 const DP_COLORS = ['#4f7cff', '#3ecf8e', '#e8a23e', '#e35d5d', '#b07ae8', '#3eb8cf', '#cf8e3e', '#8ecf3e'];
@@ -12677,7 +12721,10 @@ async function dpDrop(event, targetPersonId, targetDate) {
 }
 
 function renderDailyPlan() {
-  renderResourceAvailability(); // update availability cards
+  renderResourceAvailability();
+  // Sync month/year dropdowns
+  populateDpYears();
+  syncDpSelects();
   const grid = document.getElementById('dailyPlanGrid');
   const empty = document.getElementById('dailyPlanEmpty');
   const monthLabel = document.getElementById('dayMonthLabel');
