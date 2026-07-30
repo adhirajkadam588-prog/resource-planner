@@ -585,6 +585,14 @@
   }
 
 
+  .dp-drop-zone.dp-drag-over {
+    background: rgba(124,58,237,0.07) !important;
+    outline: 2px dashed rgba(124,58,237,0.4);
+    outline-offset: -2px;
+    border-radius: 4px;
+  }
+  .dp-dragging { opacity: 0.4 !important; }
+
   /* ── Team Chat — Modern ── */
   .chat-fab { position:fixed; bottom:28px; right:28px; z-index:8000; width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#7c3aed 0%,#ec4899 60%,#f59e0b 100%); border:none; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 8px 28px rgba(124,58,237,0.55), 0 2px 8px rgba(0,0,0,0.2); transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s, right 0.2s ease; font-size:24px; font-family:'Inter',sans-serif; }
   .chat-fab:hover { transform:scale(1.12) rotate(-5deg); box-shadow:0 12px 36px rgba(124,58,237,0.7); }
@@ -12591,6 +12599,83 @@ function renderResourceAvailability() {
   container.innerHTML = cards;
 }
 
+// ── Daily Plan Drag-Drop ─────────────────────────────────
+let _dpDragEntryId  = null;
+let _dpDragPersonId = null;
+let _dpDragDate     = null;
+
+function dpDragStart(event, entryId, personId, date) {
+  _dpDragEntryId  = entryId;
+  _dpDragPersonId = personId;
+  _dpDragDate     = date;
+  event.dataTransfer.effectAllowed = 'move';
+  // Mark dragging chip
+  setTimeout(() => {
+    const el = document.querySelector(`[data-entry-id="${entryId}"]`);
+    if (el) el.classList.add('dp-dragging');
+  }, 0);
+}
+
+function dpDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  const cell = event.currentTarget;
+  cell.classList.add('dp-drag-over');
+}
+
+function dpDragLeave(event) {
+  event.currentTarget.classList.remove('dp-drag-over');
+}
+
+async function dpDrop(event, targetPersonId, targetDate) {
+  event.preventDefault();
+  const cell = event.currentTarget;
+  cell.classList.remove('dp-drag-over');
+
+  // Remove dragging style
+  const draggingEl = document.querySelector('.dp-dragging');
+  if (draggingEl) draggingEl.classList.remove('dp-dragging');
+
+  if (!_dpDragEntryId) return;
+
+  // Same cell — no move
+  if (_dpDragPersonId === targetPersonId && _dpDragDate === targetDate) {
+    _dpDragEntryId = null; return;
+  }
+
+  // Find entry in state
+  const entry = state.dailyPlan.find(e => e.id === _dpDragEntryId);
+  if (!entry) { _dpDragEntryId = null; return; }
+
+  const oldDate     = entry.date;
+  const oldPersonId = entry.personId;
+
+  // Update entry date and/or person
+  entry.date      = targetDate;
+  entry.personId  = targetPersonId;
+  if (entry.startDate) entry.startDate = targetDate;
+  if (entry.endDate)   entry.endDate   = targetDate;
+
+  // Save to DB
+  await saveDailyPlanEntry(entry);
+
+  // Log activity
+  const person = state.people.find(p => p.id === targetPersonId);
+  logActivity('Daily plan moved', {
+    name: person?.name || targetPersonId,
+    project: entry.project,
+    from: formatDateDisplay(oldDate),
+    to: formatDateDisplay(targetDate)
+  });
+
+  _dpDragEntryId  = null;
+  _dpDragPersonId = null;
+  _dpDragDate     = null;
+
+  renderDailyPlan();
+  showToastMsg('📅 Task moved to ' + formatDateDisplay(targetDate));
+}
+
 function renderDailyPlan() {
   renderResourceAvailability(); // update availability cards
   const grid = document.getElementById('dailyPlanGrid');
@@ -12761,17 +12846,37 @@ function renderDailyPlan() {
                <button title="Remove" onclick="event.stopPropagation();clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')"
                 style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>`
             : '';
-          return `<div style="background:${color}12;border-left:2.5px solid ${color};border-radius:0 4px 4px 0;margin:1px 0;padding:2px 4px 2px 5px;position:relative;"
+          const dragHandle = canEditDP
+            ? `<span title="Drag to move" style="cursor:grab;font-size:9px;color:${color};opacity:0.5;margin-right:2px;line-height:1;">⠿</span>`
+            : '';
+          return `<div
+            data-entry-id="${e.id}"
+            data-person-id="${p.id}"
+            data-date="${dateKey}"
+            ${canEditDP ? `draggable="true" ondragstart="dpDragStart(event,'${e.id}','${p.id}','${dateKey}')"` : ''}
+            style="background:${color}12;border-left:2.5px solid ${color};border-radius:0 4px 4px 0;margin:1px 0;padding:2px 4px 2px 5px;position:relative;${canEditDP ? 'cursor:grab;' : ''}"
             onmouseenter="this.querySelector('.dp-actions').style.display='flex'"
             onmouseleave="this.querySelector('.dp-actions').style.display='none'">
-            <div style="font-size:11px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:${canEditDP ? 32 : 4}px;line-height:1.2;">${escapeHtml(e.project)}</div>
+            <div style="font-size:11px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:${canEditDP ? 32 : 4}px;line-height:1.2;">${dragHandle}${escapeHtml(e.project)}</div>
             ${taskBadge}
             <div class="dp-actions" style="display:none;position:absolute;top:2px;right:2px;gap:2px;align-items:center;">${actionBtns}</div>
           </div>`;
         }).join('');
-        html += `<div class="cal-cell day-cell" style="text-align:left; padding:2px 3px;">${segs}</div>`;
+        html += `<div class="cal-cell day-cell dp-drop-zone"
+          data-person-id="${p.id}" data-date="${dateKey}"
+          ondragover="dpDragOver(event)"
+          ondragleave="dpDragLeave(event)"
+          ondrop="dpDrop(event,'${p.id}','${dateKey}')"
+          style="text-align:left; padding:2px 3px;">${segs}</div>`;
       } else {
-        html += `<div class="cal-cell day-cell" title="${canEdit('dailyplan') ? 'Click to assign' : ''}" style="cursor:${canEdit('dailyplan') ? 'pointer' : 'default'};" onclick="if(canEdit('dailyplan'))openDailyPlanModal('${p.id}','${dateKey}');">
+        html += `<div class="cal-cell day-cell dp-drop-zone"
+          data-person-id="${p.id}" data-date="${dateKey}"
+          ondragover="dpDragOver(event)"
+          ondragleave="dpDragLeave(event)"
+          ondrop="dpDrop(event,'${p.id}','${dateKey}')"
+          title="${canEdit('dailyplan') ? 'Click to assign' : ''}"
+          style="cursor:${canEdit('dailyplan') ? 'pointer' : 'default'};"
+          onclick="if(canEdit('dailyplan'))openDailyPlanModal('${p.id}','${dateKey}');">
           <div style="opacity:0.2;font-size:11px;text-align:center;">${canEdit('dailyplan') ? '+' : ''}</div>
         </div>`;
       }
