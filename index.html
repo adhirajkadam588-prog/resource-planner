@@ -9004,8 +9004,26 @@ function saveTestRow() {
   syncTestPlanToProjects();
   // Save locally only — DB save happens on Publish
   if (selectedTestPlanProjectId) {
-    const plan = getTestPlanForProject(selectedTestPlanProjectId);
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
+    const latestPlan = getTestPlanForProject(selectedTestPlanProjectId);
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(latestPlan));
+
+    // Auto-publish if plan is reviewed AND all environments are Done
+    if (latestPlan.reviewed) {
+      const allStatuses = [
+        latestPlan.testPrepStatus || 'Not yet started',
+        latestPlan.testEnvStatus  || 'Not yet started',
+        ...latestPlan.rows.map(r => r.status || 'Not yet started')
+      ];
+      const allDone = allStatuses.length > 0 && allStatuses.every(s => s === 'Done');
+      if (allDone) {
+        publishDraft().then(() => {
+          showToastMsg('🎉 All environments Done — auto-published! Release moved to Vault.');
+        });
+        renderTestPlan();
+        markDirty('projects');
+        return;
+      }
+    }
   }
   markTestPlanDirty();
   renderTestPlan();
@@ -9085,8 +9103,26 @@ function saveBufferValues() {
   syncTestPlanToProjects();
   // Save locally only — DB save happens on Publish
   if (selectedTestPlanProjectId) {
-    const plan = getTestPlanForProject(selectedTestPlanProjectId);
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
+    const latestPlan = getTestPlanForProject(selectedTestPlanProjectId);
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(latestPlan));
+
+    // Auto-publish if plan is reviewed AND all environments are Done
+    if (latestPlan.reviewed) {
+      const allStatuses = [
+        latestPlan.testPrepStatus || 'Not yet started',
+        latestPlan.testEnvStatus  || 'Not yet started',
+        ...latestPlan.rows.map(r => r.status || 'Not yet started')
+      ];
+      const allDone = allStatuses.length > 0 && allStatuses.every(s => s === 'Done');
+      if (allDone) {
+        publishDraft().then(() => {
+          showToastMsg('🎉 All environments Done — auto-published! Release moved to Vault.');
+        });
+        renderTestPlan();
+        markDirty('projects');
+        return;
+      }
+    }
   }
   markTestPlanDirty();
   renderTestPlan();
