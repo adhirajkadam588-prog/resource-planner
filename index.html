@@ -468,134 +468,121 @@
   /* ── Login ── */
   .login-overlay {
     position: fixed; inset: 0;
-    background: #050810;
-    display: flex; align-items: center; justify-content: center; z-index: 99999;
-    overflow: auto;
-    padding: 24px;
+    display: flex; align-items: stretch; z-index: 99999;
+    overflow: hidden; background: #050810;
   }
   .login-overlay.hidden { display: none; }
 
-  /* Colorful animated orbs */
-  .lo1,.lo2,.lo3,.lo4 { position:absolute; border-radius:50%; pointer-events:none; animation: lof 12s ease-in-out infinite; }
-  .lo1 { width:700px;height:700px; background:radial-gradient(circle,rgba(124,58,237,0.5) 0%,transparent 65%); top:-200px;left:-200px; animation-delay:0s; }
-  .lo2 { width:600px;height:600px; background:radial-gradient(circle,rgba(245,158,11,0.35) 0%,transparent 65%); bottom:-150px;right:-150px; animation-delay:4s; }
-  .lo3 { width:400px;height:400px; background:radial-gradient(circle,rgba(236,72,153,0.4) 0%,transparent 65%); top:30%;right:8%; animation-delay:7s; }
-  .lo4 { width:350px;height:350px; background:radial-gradient(circle,rgba(124,58,237,0.3) 0%,transparent 65%); bottom:20%;left:5%; animation-delay:2s; }
-  @keyframes lof {
-    0%,100%{transform:translate(0,0) scale(1);}
-    25%{transform:translate(30px,-30px) scale(1.08);}
-    50%{transform:translate(-20px,20px) scale(0.95);}
-    75%{transform:translate(15px,10px) scale(1.04);}
+  /* Left brand panel */
+  .lo-brand {
+    flex: 1; position: relative; overflow-y: auto; overflow-x: hidden;
+    background: linear-gradient(145deg, #0a0515 0%, #130a2e 40%, #0d1525 100%);
+    display: flex; flex-direction: column; justify-content: center;
+    padding: clamp(32px, 5vw, 64px);
   }
-
-  /* Mesh grid */
-  .lo-grid {
-    position:absolute; inset:0; pointer-events:none;
-    background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
+  .lo-brand::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(124,58,237,0.35) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 70%, rgba(236,72,153,0.2) 0%, transparent 55%);
   }
-
-  /* Floating pills */
-  .lo-pill {
-    position:absolute; backdrop-filter:blur(12px); white-space:nowrap;
-    pointer-events:none; border-radius:40px; padding:9px 18px;
-    font-size:12px; font-style:normal; font-weight:700; letter-spacing:0.01em;
-    border:1px solid rgba(255,255,255,0.15);
-    transition: transform 0s linear;
-    will-change: transform;
+  .lo-brand::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 80% 80% at 40% 50%, black 20%, transparent 80%);
   }
-  .lo-pill span { margin-right:8px; font-size:14px; }
+  .lo-brand-inner { position: relative; z-index: 2; max-width: 480px; }
+  .lo-logo-wrap { display:flex; align-items:center; gap:14px; margin-bottom:clamp(28px,4vh,44px); }
+  .lo-logo-icon { width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg,#7c3aed,#ec4899); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(124,58,237,0.5); flex-shrink:0; }
+  .lo-logo-name { font-family:'Inter Tight',sans-serif; font-size:20px; font-weight:800; letter-spacing:-0.02em; color:white; }
+  .lo-tagline { font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; background:linear-gradient(90deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .lo-headline { font-family:'Inter Tight',sans-serif; font-size:clamp(24px,3vw,44px); font-weight:800; line-height:1.15; letter-spacing:-0.04em; color:white; margin-bottom:clamp(12px,2vh,18px); }
+  .lo-headline span { background:linear-gradient(135deg,#a78bfa 0%,#ec4899 50%,#f59e0b 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .lo-desc { font-size:clamp(12px,1.5vw,14px); color:rgba(255,255,255,0.5); line-height:1.7; margin-bottom:clamp(18px,3vh,28px); max-width:400px; }
+  .lo-features { display:flex; flex-direction:column; gap:8px; margin-bottom:clamp(16px,2.5vh,22px); }
+  .lo-feat { display:flex; align-items:center; gap:12px; padding:10px 14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:11px; }
+  .lo-feat-icon { width:28px; height:28px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .lo-feat-text { font-size:clamp(11px,1.3vw,13px); color:rgba(255,255,255,0.65); font-weight:500; }
+  .lo-feat-text strong { color:white; font-weight:700; }
+  .lo-feat-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .lo-feat-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:4px; }
+  .lo-feat-card-icon { font-size:16px; }
+  .lo-feat-card-title { font-size:11.5px; font-weight:700; color:white; }
+  .lo-feat-card-desc { font-size:10px; color:rgba(255,255,255,0.33); line-height:1.4; }
 
-  /* Main card */
+  /* Right login panel */
+  .lo-right {
+    width: clamp(340px, 38vw, 460px);
+    flex-shrink: 0; background: #08060f;
+    display: flex; align-items: center; justify-content: center;
+    padding: clamp(32px,5vw,52px);
+    border-left: 1px solid rgba(255,255,255,0.06);
+    position: relative; overflow-y: auto;
+  }
+  .lo-right::before { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,58,237,0.08) 0%,transparent 60%); }
+
+  /* Login card */
   .login-box {
-    position:relative; z-index:10;
-    background: linear-gradient(145deg, rgba(13,18,40,0.92) 0%, rgba(18,12,45,0.88) 100%);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 28px;
-    padding: clamp(28px, 4vh, 44px) clamp(24px, 4vw, 48px);
-    width: min(420px, calc(100vw - 48px));
-    max-height: calc(100vh - 48px);
-    overflow-y: auto;
-    box-shadow: 0 50px 120px rgba(0,0,0,0.7),
-                0 0 0 1px rgba(255,255,255,0.06),
-                inset 0 1px 0 rgba(255,255,255,0.1);
-    backdrop-filter: blur(40px);
-    animation: lobox 0.6s cubic-bezier(0.16,1,0.3,1) both;
-    box-sizing: border-box;
+    position:relative; z-index:10; width:100%; max-width:360px;
+    animation:lobox 0.5s cubic-bezier(0.16,1,0.3,1) both;
   }
-  @keyframes lobox {
-    from{opacity:0;transform:translateY(24px) scale(0.96);}
-    to{opacity:1;transform:translateY(0) scale(1);}
-  }
+  @keyframes lobox { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
 
-  /* Logo mark */
+  /* Login mark */
   .login-mark {
-    width: clamp(44px, 6vw, 56px); height: clamp(44px, 6vw, 56px);
-    background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f59e0b 100%);
-    border-radius: 16px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: clamp(16px, 3vh, 24px);
-    box-shadow: 0 8px 32px rgba(124,58,237,0.6), 0 0 0 1px rgba(255,255,255,0.15);
+    width:52px; height:52px;
+    background:linear-gradient(135deg,#7c3aed 0%,#ec4899 50%,#f59e0b 100%);
+    border-radius:15px; display:flex; align-items:center; justify-content:center;
+    margin-bottom:20px;
+    box-shadow:0 8px 32px rgba(124,58,237,0.6),0 0 0 1px rgba(255,255,255,0.15);
     position:relative;
   }
-  .login-mark::after {
-    content:''; position:absolute; inset:-1px; border-radius:17px;
-    background:linear-gradient(135deg,rgba(255,255,255,0.25),transparent);
-    pointer-events:none;
-  }
+  .login-mark::after { content:''; position:absolute; inset:-1px; border-radius:16px; background:linear-gradient(135deg,rgba(255,255,255,0.25),transparent); pointer-events:none; }
+  .login-box h2 { font-family:'Inter Tight',sans-serif; font-size:24px; font-weight:800; margin:0 0 4px; letter-spacing:-0.03em; color:white; }
+  .login-box .login-sub { font-size:13px; color:rgba(255,255,255,0.38); margin-bottom:28px; }
 
-  .login-box h2 {
-    font-family:'Inter Tight',sans-serif;
-    font-size: clamp(20px, 3vw, 26px);
-    font-weight:800; margin:0 0 4px; letter-spacing:-0.03em;
-    background:linear-gradient(135deg,#ffffff 0%,#c4b5fd 60%,#93c5fd 100%);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-  }
-  .login-box .login-sub { font-size: clamp(11px, 1.5vw, 13px); color:rgba(255,255,255,0.38); margin-bottom: clamp(20px, 3vh, 30px); }
-
-  .login-field { margin-bottom: clamp(12px, 2vh, 16px); }
-  .login-field label {
-    display:block; font-size:10.5px; font-weight:700; letter-spacing:0.1em;
-    text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:8px;
-  }
-  .login-field input {
-    width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
-    color:#f1f5f9; padding: clamp(10px, 2vh, 13px) 16px; border-radius:12px;
-    font-size: clamp(13px, 2vw, 14px); font-family:inherit;
-    transition:all 0.2s; box-sizing:border-box;
-  }
+  /* Fields */
+  .login-field { margin-bottom:14px; }
+  .login-field label { display:block; font-size:10.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:8px; }
+  .login-field input { width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#f1f5f9; padding:13px 16px; border-radius:12px; font-size:14px; font-family:inherit; transition:all 0.2s; box-sizing:border-box; }
   .login-field input::placeholder{color:rgba(255,255,255,0.18);}
-  .login-field input:focus {
-    outline:none; border-color:rgba(124,58,237,0.8);
-    background:rgba(124,58,237,0.08);
-    box-shadow:0 0 0 3px rgba(124,58,237,0.2), 0 0 24px rgba(124,58,237,0.12);
-  }
+  .login-field input:focus { outline:none; border-color:rgba(124,58,237,0.8); background:rgba(124,58,237,0.08); box-shadow:0 0 0 3px rgba(124,58,237,0.2); }
 
+  /* Button */
   .login-btn {
     width:100%; position:relative; overflow:hidden;
-    background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f59e0b 100%);
+    background:linear-gradient(135deg,#7c3aed 0%,#ec4899 50%,#f59e0b 100%);
     background-size:200% 200%; animation:logradbg 4s ease infinite;
     border:none; color:white; padding:14px; border-radius:12px; font-size:14.5px;
     font-weight:700; cursor:pointer; font-family:inherit; margin-top:8px;
-    letter-spacing:0.02em;
-    box-shadow:0 4px 24px rgba(124,58,237,0.45);
-    transition:all 0.2s;
+    letter-spacing:0.02em; box-shadow:0 4px 24px rgba(124,58,237,0.45); transition:all 0.2s;
   }
-  @keyframes logradbg {
-    0%{background-position:0% 50%;}
-    50%{background-position:100% 50%;}
-    100%{background-position:0% 50%;}
-  }
-  .login-btn::before {
-    content:''; position:absolute; inset:0;
-    background:linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%);
-    opacity:0; transition:opacity 0.2s;
-  }
+  @keyframes logradbg { 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
   .login-btn:hover{transform:translateY(-2px); box-shadow:0 8px 32px rgba(124,58,237,0.6);}
-  .login-btn:hover::before{opacity:1;}
   .login-btn:active{transform:translateY(0);}
   .login-btn:disabled{opacity:0.45;cursor:default;transform:none;animation:none;}
   .login-error{font-size:12px;color:#f87171;margin-top:10px;text-align:center;min-height:16px;}
+
+  /* Responsive breakpoints */
+  @media (max-width: 900px) {
+    .lo-brand { padding: clamp(24px,4vw,40px); }
+    .lo-right { width: clamp(300px,45vw,420px); }
+    .lo-features { display:none; }
+  }
+  @media (max-width: 680px) {
+    .lo-brand { display: none; }
+    .lo-right { width:100%; border-left:none; padding:32px 24px; }
+  }
+  @media (max-height: 600px) {
+    .lo-logo-wrap { margin-bottom: 16px; }
+    .lo-desc { display: none; }
+    .lo-features { display: none; }
+    .lo-feat-grid { display: none; }
+    .login-box h2 { font-size: 20px; }
+    .login-field { margin-bottom: 10px; }
+    .login-field input { padding: 10px 14px; }
+  }
+
 
   /* ── Team Chat — Modern ── */
   .chat-fab { position:fixed; bottom:28px; right:28px; z-index:8000; width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#7c3aed 0%,#ec4899 60%,#f59e0b 100%); border:none; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 8px 28px rgba(124,58,237,0.55), 0 2px 8px rgba(0,0,0,0.2); transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s, right 0.2s ease; font-size:24px; font-family:'Inter',sans-serif; }
@@ -806,121 +793,45 @@
 </script>
 <!-- Login screen — shown until user authenticates -->
 <div class="login-overlay" id="loginOverlay">
-  <!-- Colorful background -->
-  <div class="lo1"></div>
-  <div class="lo2"></div>
-  <div class="lo3"></div>
-  <div class="lo4"></div>
-  <div class="lo-grid"></div>
 
-  <!-- Floating QA quotes — full screen colorful -->
-  <!-- Top row -->
-  <div class="lo-pill" style="top:5%;left:3%;animation-delay:0s;background:linear-gradient(135deg,rgba(124,58,237,0.25),rgba(124,58,237,0.1));color:#c4b5fd;border-color:rgba(124,58,237,0.4);">
-    <span>🎯</span>"Quality is never an accident"
-  </div>
-  <div class="lo-pill" style="top:5%;left:38%;animation-delay:2s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
-    <span>🔍</span>"Test early, ship confidently"
-  </div>
-  <div class="lo-pill" style="top:5%;right:3%;animation-delay:1s;background:linear-gradient(135deg,rgba(245,158,11,0.22),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.4);">
-    <span>⚡</span>"Everything in one place"
-  </div>
-
-  <!-- Second row -->
-  <div class="lo-pill" style="top:17%;left:1%;animation-delay:3s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
-    <span>🛡️</span>"Bugs found today, chaos averted tomorrow"
-  </div>
-  <div class="lo-pill" style="top:17%;right:2%;animation-delay:1.5s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(236,72,153,0.12));color:#e879f9;border-color:rgba(232,121,249,0.35);">
-    <span>🚀</span>"Making QA life easier"
-  </div>
-
-  <!-- Middle row -->
-  <div class="lo-pill" style="top:30%;left:2%;animation-delay:4s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fbbf24;border-color:rgba(245,158,11,0.35);">
-    <span>✅</span>"One lens. Full picture."
-  </div>
-  <div class="lo-pill" style="top:30%;right:1%;animation-delay:0.5s;background:linear-gradient(135deg,rgba(59,130,246,0.22),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
-    <span>📋</span>"Plan it. Track it. Ship it."
-  </div>
-
-  <!-- Lower middle -->
-  <div class="lo-pill" style="top:55%;left:1%;animation-delay:2.5s;background:linear-gradient(135deg,rgba(236,72,153,0.22),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
-    <span>🔔</span>"Stay ahead of every deadline"
-  </div>
-  <div class="lo-pill" style="top:55%;right:2%;animation-delay:3.5s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(124,58,237,0.08));color:#c4b5fd;border-color:rgba(124,58,237,0.35);">
-    <span>🎨</span>"Great QA is invisible to users"
+  <!-- Left Brand Panel -->
+  <div class="lo-brand">
+    <div class="lo-brand-inner">
+      <div class="lo-logo-wrap">
+        <div class="lo-logo-icon">
+          <svg width="24" height="24" viewBox="0 0 44 44" fill="none">
+            <circle cx="20" cy="20" r="14" stroke="white" stroke-width="2" opacity="0.4"/>
+            <circle cx="20" cy="20" r="8" stroke="white" stroke-width="2.5" opacity="0.8"/>
+            <circle cx="20" cy="20" r="3.5" fill="white"/>
+            <line x1="23.5" y1="23.5" x2="29" y2="29" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="lo-logo-name">TeamLens</div>
+          <div class="lo-tagline">One lens. Full picture.</div>
+        </div>
+      </div>
+      <div class="lo-headline">QA planning,<br><span>reimagined</span><br>for your team.</div>
+      <div class="lo-desc">Everything your QA team needs — releases, test plans, daily assignments, leaves, and team collaboration — all in one place, in real time.</div>
+      <div class="lo-features">
+        <div class="lo-feat"><div class="lo-feat-icon" style="background:rgba(124,58,237,0.2);">📁</div><div class="lo-feat-text"><strong>Release tracking</strong> with auto build delay detection</div></div>
+        <div class="lo-feat"><div class="lo-feat-icon" style="background:rgba(16,185,129,0.2);">✅</div><div class="lo-feat-text"><strong>Test plans</strong> with review workflow and auto-sync</div></div>
+        <div class="lo-feat"><div class="lo-feat-icon" style="background:rgba(245,158,11,0.2);">📅</div><div class="lo-feat-text"><strong>Daily planning</strong> based on leaves and holidays</div></div>
+        <div class="lo-feat"><div class="lo-feat-icon" style="background:rgba(59,130,246,0.2);">⚡</div><div class="lo-feat-text"><strong>Real-time sync</strong> — multiple users, zero overwrite</div></div>
+      </div>
+      <div class="lo-feat-grid">
+        <div class="lo-feat-card"><div class="lo-feat-card-icon">📁</div><div class="lo-feat-card-title">Releases</div><div class="lo-feat-card-desc">Track all active releases</div></div>
+        <div class="lo-feat-card"><div class="lo-feat-card-icon">✅</div><div class="lo-feat-card-title">Test Plans</div><div class="lo-feat-card-desc">Plan and review testing</div></div>
+        <div class="lo-feat-card"><div class="lo-feat-card-icon">📅</div><div class="lo-feat-card-title">Daily Plan</div><div class="lo-feat-card-desc">Day-wise assignments</div></div>
+        <div class="lo-feat-card"><div class="lo-feat-card-icon">🏖️</div><div class="lo-feat-card-title">Leaves</div><div class="lo-feat-card-desc">PL and UPL calendar</div></div>
+        <div class="lo-feat-card"><div class="lo-feat-card-icon">🖥️</div><div class="lo-feat-card-title">Infra Hub</div><div class="lo-feat-card-desc">VM tracking</div></div>
+        <div class="lo-feat-card"><div class="lo-feat-card-icon">💬</div><div class="lo-feat-card-title">Team Chat</div><div class="lo-feat-card-desc">Per-release rooms</div></div>
+      </div>
+    </div>
   </div>
 
-  <!-- Bottom row -->
-  <div class="lo-pill" style="bottom:16%;left:2%;animation-delay:1.2s;background:linear-gradient(135deg,rgba(16,185,129,0.22),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
-    <span>🏆</span>"Zero defects is the only standard"
-  </div>
-  <div class="lo-pill" style="bottom:16%;right:2%;animation-delay:4.2s;background:linear-gradient(135deg,rgba(245,158,11,0.22),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.35);">
-    <span>📊</span>"Data-driven decisions, always"
-  </div>
-
-  <!-- Very bottom -->
-  <div class="lo-pill" style="bottom:5%;left:3%;animation-delay:0.8s;background:linear-gradient(135deg,rgba(59,130,246,0.22),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
-    <span>⚙️</span>"Automate the boring, focus on quality"
-  </div>
-  <div class="lo-pill" style="bottom:5%;right:3%;animation-delay:3.2s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(236,72,153,0.12));color:#e879f9;border-color:rgba(232,121,249,0.35);">
-    <span>🌟</span>"Seclore QA — Built different"
-  </div>
-
-
-  <!-- Extra middle fills -->
-  <div class="lo-pill" style="top:15%;left:30%;animation-delay:5s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
-    <span>🧪</span>"Testing is caring"
-  </div>
-  <div class="lo-pill" style="top:28%;left:28%;animation-delay:6s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
-    <span>🌟</span>"Ship with confidence"
-  </div>
-  <div class="lo-pill" style="top:42%;left:1%;animation-delay:2.8s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
-    <span>💡</span>"Every bug is a lesson"
-  </div>
-  <div class="lo-pill" style="top:42%;left:30%;animation-delay:5.5s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.35);">
-    <span>🔬</span>"Precision over speed"
-  </div>
-  <div class="lo-pill" style="top:42%;right:2%;animation-delay:1.8s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(124,58,237,0.08));color:#c4b5fd;border-color:rgba(124,58,237,0.35);">
-    <span>🧠</span>"Think like a user, test like a QA"
-  </div>
-  <div class="lo-pill" style="top:55%;left:28%;animation-delay:4.8s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
-    <span>⚙️</span>"Automate the boring, master the complex"
-  </div>
-  <div class="lo-pill" style="bottom:14%;left:28%;animation-delay:3.8s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
-    <span>🎯</span>"Seclore QA — Built different"
-  </div>
-  <div class="lo-pill" style="bottom:3%;left:32%;animation-delay:5.2s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
-    <span>✨</span>"Real-time. Role-based. Right."
-  </div>
-  <div class="lo-pill" style="bottom:5%;right:3%;animation-delay:2s;background:linear-gradient(135deg,rgba(232,121,249,0.22),rgba(232,121,249,0.08));color:#e879f9;border-color:rgba(232,121,249,0.35);">
-    <span>🛠️</span>"Where QA teams do their best work"
-  </div>
-
-  <!-- Extra pills -->
-  <div class="lo-pill" style="top:10%;left:20%;animation-delay:1.2s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.4);">
-    <span>🔥</span>"QA never sleeps"
-  </div>
-  <div class="lo-pill" style="top:22%;left:18%;animation-delay:3.3s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.4);">
-    <span>🎯</span>"Break it before users do"
-  </div>
-  <div class="lo-pill" style="top:35%;left:20%;animation-delay:2.1s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.4);">
-    <span>🧩</span>"Find it. Fix it. Ship it."
-  </div>
-  <div class="lo-pill" style="top:47%;left:18%;animation-delay:4.4s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.4);">
-    <span>💪</span>"QA is the last line of defense"
-  </div>
-  <div class="lo-pill" style="top:10%;right:20%;animation-delay:0.7s;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(124,58,237,0.08));color:#c4b5fd;border-color:rgba(124,58,237,0.4);">
-    <span>🚦</span>"No release without a green signal"
-  </div>
-  <div class="lo-pill" style="top:22%;right:18%;animation-delay:2.6s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fbbf24;border-color:rgba(245,158,11,0.4);">
-    <span>📌</span>"Detail is everything in testing"
-  </div>
-  <div class="lo-pill" style="top:35%;right:20%;animation-delay:5.1s;background:linear-gradient(135deg,rgba(232,121,249,0.2),rgba(232,121,249,0.08));color:#e879f9;border-color:rgba(232,121,249,0.4);">
-    <span>🔑</span>"Quality unlocks trust"
-  </div>
-  <div class="lo-pill" style="top:47%;right:18%;animation-delay:1.9s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.4);">
-    <span>⚖️</span>"Balance speed with quality"
-  </div>
-
+  <!-- Right Login Panel -->
+  <div class="lo-right">
   <div class="login-box">
     <div class="login-mark">
       <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
@@ -931,8 +842,8 @@
       </svg>
     </div>
 
-    <h2>TeamLens</h2>
-    <div class="login-sub">Making QA life easier — everything in one place 🎯</div>
+    <h2>Welcome back</h2>
+    <div class="login-sub">Sign in to your TeamLens workspace</div>
 
     <div class="login-field">
       <label>Email</label>
@@ -946,29 +857,25 @@
     <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in →</button>
     <div class="login-error" id="loginError"></div>
 
-    <!-- Footer -->
-    <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.07);">
-      <div style="text-align:center;margin-bottom:10px;">
-        <span style="font-size:11px;color:rgba(255,255,255,0.22);">Built with ❤️ by </span>
-        <span style="font-size:11px;color:#a78bfa;font-weight:600;">Akash Kadam</span>
-      </div>
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div style="display:flex;align-items:center;gap:6px;">
-          <div id="loginStatusDot" style="width:7px;height:7px;border-radius:50%;background:#374151;box-shadow:0 0 8px rgba(55,65,81,0.5);transition:all 0.3s;"></div>
-          <span id="loginDebug" style="font-size:10.5px;color:rgba(255,255,255,0.22);">Connecting…</span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.22);">Built with ❤️ by </span>
+          <span style="font-size:11px;color:#a78bfa;font-weight:600;">Akash Kadam</span>
         </div>
         <div style="display:flex;align-items:center;gap:5px;">
           <span style="font-size:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);padding:2px 8px;border-radius:20px;color:rgba(255,255,255,0.3);font-weight:600;">v1.0</span>
           <span style="font-size:10px;color:rgba(255,255,255,0.18);">🏢 Seclore QA</span>
         </div>
       </div>
-      <div style="text-align:center;">
-        <a href="mailto:akash.kadam@seclore.com" style="font-size:10.5px;color:rgba(255,255,255,0.18);text-decoration:none;" onmouseover="this.style.color='rgba(196,181,253,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.18)'">🔗 akash.kadam@seclore.com</a>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div id="loginStatusDot" style="width:7px;height:7px;border-radius:50%;background:#374151;box-shadow:0 0 8px rgba(55,65,81,0.5);transition:all 0.3s;"></div>
+        <span id="loginDebug" style="font-size:10.5px;color:rgba(255,255,255,0.22);">Connecting…</span>
       </div>
     </div>
   </div>
-</div>
-<!-- Change Password Modal -->
+  </div>
+</div><!-- Change Password Modal -->
 <div class="modal-overlay" id="changePasswordModal">
   <div class="modal">
     <h3>🔒 Change password</h3>
