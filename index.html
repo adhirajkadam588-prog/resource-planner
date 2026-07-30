@@ -468,126 +468,73 @@
   /* ── Login ── */
   .login-overlay {
     position: fixed; inset: 0;
-    display: flex; align-items: stretch; z-index: 99999;
-    overflow: hidden; background: #050810;
+    background: #050810;
+    display: flex; align-items: center; justify-content: center; z-index: 99999;
+    overflow: auto;
+    padding: 24px;
   }
   .login-overlay.hidden { display: none; }
 
-  /* Left brand panel */
-  .lo-brand {
-    flex: 1; position: relative; overflow: hidden;
-    background: linear-gradient(145deg, #0a0515 0%, #130a2e 40%, #0d1525 100%);
-    display: flex; flex-direction: column; justify-content: center;
-    padding: 60px 64px;
-  }
-  .lo-brand::before {
-    content: ''; position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse 80% 60% at 20% 30%, rgba(124,58,237,0.35) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 80% 70%, rgba(236,72,153,0.2) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 40% at 50% 10%, rgba(59,130,246,0.15) 0%, transparent 50%);
-    pointer-events: none;
-  }
-  .lo-brand::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
-    background-size: 28px 28px;
-    mask-image: radial-gradient(ellipse 80% 80% at 40% 50%, black 20%, transparent 80%);
-  }
-  .lo-brand-inner { position: relative; z-index: 2; max-width: 480px; }
-
-  .lo-logo-wrap {
-    display: flex; align-items: center; gap: 14px; margin-bottom: 48px;
-  }
-  .lo-logo-icon {
-    width: 48px; height: 48px; border-radius: 14px;
-    background: linear-gradient(135deg, #7c3aed, #ec4899);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 24px rgba(124,58,237,0.5);
-    flex-shrink: 0;
-  }
-  .lo-logo-name {
-    font-family: 'Inter Tight', sans-serif; font-size: 20px;
-    font-weight: 800; letter-spacing: -0.02em; color: white;
-  }
-  .lo-tagline {
-    font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, #a78bfa, #60a5fa);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
+  /* Colorful animated orbs */
+  .lo1,.lo2,.lo3,.lo4 { position:absolute; border-radius:50%; pointer-events:none; animation: lof 12s ease-in-out infinite; }
+  .lo1 { width:700px;height:700px; background:radial-gradient(circle,rgba(124,58,237,0.5) 0%,transparent 65%); top:-200px;left:-200px; animation-delay:0s; }
+  .lo2 { width:600px;height:600px; background:radial-gradient(circle,rgba(245,158,11,0.35) 0%,transparent 65%); bottom:-150px;right:-150px; animation-delay:4s; }
+  .lo3 { width:400px;height:400px; background:radial-gradient(circle,rgba(236,72,153,0.4) 0%,transparent 65%); top:30%;right:8%; animation-delay:7s; }
+  .lo4 { width:350px;height:350px; background:radial-gradient(circle,rgba(124,58,237,0.3) 0%,transparent 65%); bottom:20%;left:5%; animation-delay:2s; }
+  @keyframes lof {
+    0%,100%{transform:translate(0,0) scale(1);}
+    25%{transform:translate(30px,-30px) scale(1.08);}
+    50%{transform:translate(-20px,20px) scale(0.95);}
+    75%{transform:translate(15px,10px) scale(1.04);}
   }
 
-  .lo-headline {
-    font-family: 'Inter Tight', sans-serif;
-    font-size: clamp(32px, 3.5vw, 48px);
-    font-weight: 800; line-height: 1.15;
-    letter-spacing: -0.04em; color: white;
-    margin-bottom: 20px;
-  }
-  .lo-headline span {
-    background: linear-gradient(135deg, #a78bfa 0%, #ec4899 50%, #f59e0b 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .lo-desc {
-    font-size: 15px; color: rgba(255,255,255,0.5);
-    line-height: 1.7; margin-bottom: 40px; max-width: 400px;
+  /* Mesh grid */
+  .lo-grid {
+    position:absolute; inset:0; pointer-events:none;
+    background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
   }
 
-  .lo-features {
-    display: flex; flex-direction: column; gap: 14px;
+  /* Floating pills */
+  .lo-pill {
+    position:absolute; backdrop-filter:blur(12px); white-space:nowrap;
+    pointer-events:none; border-radius:40px; padding:9px 18px;
+    font-size:12px; font-style:normal; font-weight:700; letter-spacing:0.01em;
+    border:1px solid rgba(255,255,255,0.15);
+    transition: transform 0s linear;
+    will-change: transform;
   }
-  .lo-feat {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 16px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px;
-    transition: background 0.2s;
-  }
-  .lo-feat-icon {
-    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 15px;
-  }
-  .lo-feat-text { font-size: 13px; color: rgba(255,255,255,0.7); font-weight: 500; }
-  .lo-feat-text strong { color: white; font-weight: 700; }
-
-  /* Right login panel */
-  .lo-right {
-    width: 480px; flex-shrink: 0;
-    background: #08060f;
-    display: flex; align-items: center; justify-content: center;
-    padding: 48px 52px;
-    border-left: 1px solid rgba(255,255,255,0.06);
-    position: relative;
-  }
-  .lo-right::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.08) 0%, transparent 60%);
-  }
+  .lo-pill span { margin-right:8px; font-size:14px; }
 
   /* Main card */
   .login-box {
-    position: relative; z-index: 10; width: 100%;
-    animation: lobox 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    position:relative; z-index:10;
+    background: linear-gradient(145deg, rgba(13,18,40,0.92) 0%, rgba(18,12,45,0.88) 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 28px;
+    padding: clamp(28px, 4vh, 44px) clamp(24px, 4vw, 48px);
+    width: min(420px, calc(100vw - 48px));
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    box-shadow: 0 50px 120px rgba(0,0,0,0.7),
+                0 0 0 1px rgba(255,255,255,0.06),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+    backdrop-filter: blur(40px);
+    animation: lobox 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    box-sizing: border-box;
   }
   @keyframes lobox {
-    from { opacity:0; transform:translateY(16px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
-
-  @media (max-width: 860px) {
-    .lo-brand { display: none; }
-    .lo-right { width: 100%; border-left: none; }
+    from{opacity:0;transform:translateY(24px) scale(0.96);}
+    to{opacity:1;transform:translateY(0) scale(1);}
   }
 
   /* Logo mark */
   .login-mark {
-    width: 56px; height: 56px;
+    width: clamp(44px, 6vw, 56px); height: clamp(44px, 6vw, 56px);
     background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f59e0b 100%);
     border-radius: 16px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 24px;
+    margin-bottom: clamp(16px, 3vh, 24px);
     box-shadow: 0 8px 32px rgba(124,58,237,0.6), 0 0 0 1px rgba(255,255,255,0.15);
     position:relative;
   }
@@ -598,19 +545,23 @@
   }
 
   .login-box h2 {
-    font-family:'Inter Tight',sans-serif; font-size:26px; font-weight:800;
-    margin:0 0 4px; letter-spacing:-0.03em; color: white;
+    font-family:'Inter Tight',sans-serif;
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight:800; margin:0 0 4px; letter-spacing:-0.03em;
+    background:linear-gradient(135deg,#ffffff 0%,#c4b5fd 60%,#93c5fd 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   }
-  .login-box .login-sub { font-size:13px; color:rgba(255,255,255,0.38); margin-bottom:30px; }
+  .login-box .login-sub { font-size: clamp(11px, 1.5vw, 13px); color:rgba(255,255,255,0.38); margin-bottom: clamp(20px, 3vh, 30px); }
 
-  .login-field { margin-bottom:16px; }
+  .login-field { margin-bottom: clamp(12px, 2vh, 16px); }
   .login-field label {
     display:block; font-size:10.5px; font-weight:700; letter-spacing:0.1em;
     text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:8px;
   }
   .login-field input {
     width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
-    color:#f1f5f9; padding:13px 16px; border-radius:12px; font-size:14px; font-family:inherit;
+    color:#f1f5f9; padding: clamp(10px, 2vh, 13px) 16px; border-radius:12px;
+    font-size: clamp(13px, 2vw, 14px); font-family:inherit;
     transition:all 0.2s; box-sizing:border-box;
   }
   .login-field input::placeholder{color:rgba(255,255,255,0.18);}
@@ -855,58 +806,121 @@
 </script>
 <!-- Login screen — shown until user authenticates -->
 <div class="login-overlay" id="loginOverlay">
+  <!-- Colorful background -->
+  <div class="lo1"></div>
+  <div class="lo2"></div>
+  <div class="lo3"></div>
+  <div class="lo4"></div>
+  <div class="lo-grid"></div>
 
-  <!-- Left — Brand panel -->
-  <div class="lo-brand">
-    <div class="lo-brand-inner">
-      <!-- Logo -->
-      <div class="lo-logo-wrap">
-        <div class="lo-logo-icon">
-          <svg width="24" height="24" viewBox="0 0 44 44" fill="none">
-            <circle cx="20" cy="20" r="14" stroke="white" stroke-width="2" opacity="0.4"/>
-            <circle cx="20" cy="20" r="8" stroke="white" stroke-width="2.5" opacity="0.8"/>
-            <circle cx="20" cy="20" r="3.5" fill="white"/>
-            <line x1="23.5" y1="23.5" x2="29" y2="29" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div>
-          <div class="lo-logo-name">TeamLens</div>
-          <div class="lo-tagline">One lens. Full picture.</div>
-        </div>
-      </div>
-
-      <!-- Headline -->
-      <div class="lo-headline">
-        QA planning,<br><span>reimagined</span><br>for your team.
-      </div>
-      <div class="lo-desc">
-        Everything your QA team needs — releases, test plans, daily assignments, leaves, and team collaboration — all in one place, in real time.
-      </div>
-
-      <!-- Feature list -->
-      <div class="lo-features">
-        <div class="lo-feat">
-          <div class="lo-feat-icon" style="background:rgba(124,58,237,0.2);">📁</div>
-          <div class="lo-feat-text"><strong>Release tracking</strong> with auto build delay detection</div>
-        </div>
-        <div class="lo-feat">
-          <div class="lo-feat-icon" style="background:rgba(16,185,129,0.2);">✅</div>
-          <div class="lo-feat-text"><strong>Test plans</strong> with review workflow and auto-sync</div>
-        </div>
-        <div class="lo-feat">
-          <div class="lo-feat-icon" style="background:rgba(245,158,11,0.2);">📅</div>
-          <div class="lo-feat-text"><strong>Daily planning</strong> based on leaves and holidays</div>
-        </div>
-        <div class="lo-feat">
-          <div class="lo-feat-icon" style="background:rgba(59,130,246,0.2);">⚡</div>
-          <div class="lo-feat-text"><strong>Real-time sync</strong> — multiple users, zero overwrite</div>
-        </div>
-      </div>
-    </div>
+  <!-- Floating QA quotes — full screen colorful -->
+  <!-- Top row -->
+  <div class="lo-pill" style="top:5%;left:3%;animation-delay:0s;background:linear-gradient(135deg,rgba(124,58,237,0.25),rgba(124,58,237,0.1));color:#c4b5fd;border-color:rgba(124,58,237,0.4);">
+    <span>🎯</span>"Quality is never an accident"
+  </div>
+  <div class="lo-pill" style="top:5%;left:38%;animation-delay:2s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
+    <span>🔍</span>"Test early, ship confidently"
+  </div>
+  <div class="lo-pill" style="top:5%;right:3%;animation-delay:1s;background:linear-gradient(135deg,rgba(245,158,11,0.22),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.4);">
+    <span>⚡</span>"Everything in one place"
   </div>
 
-  <!-- Right — Login panel -->
-  <div class="lo-right">
+  <!-- Second row -->
+  <div class="lo-pill" style="top:17%;left:1%;animation-delay:3s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
+    <span>🛡️</span>"Bugs found today, chaos averted tomorrow"
+  </div>
+  <div class="lo-pill" style="top:17%;right:2%;animation-delay:1.5s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(236,72,153,0.12));color:#e879f9;border-color:rgba(232,121,249,0.35);">
+    <span>🚀</span>"Making QA life easier"
+  </div>
+
+  <!-- Middle row -->
+  <div class="lo-pill" style="top:30%;left:2%;animation-delay:4s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fbbf24;border-color:rgba(245,158,11,0.35);">
+    <span>✅</span>"One lens. Full picture."
+  </div>
+  <div class="lo-pill" style="top:30%;right:1%;animation-delay:0.5s;background:linear-gradient(135deg,rgba(59,130,246,0.22),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
+    <span>📋</span>"Plan it. Track it. Ship it."
+  </div>
+
+  <!-- Lower middle -->
+  <div class="lo-pill" style="top:55%;left:1%;animation-delay:2.5s;background:linear-gradient(135deg,rgba(236,72,153,0.22),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
+    <span>🔔</span>"Stay ahead of every deadline"
+  </div>
+  <div class="lo-pill" style="top:55%;right:2%;animation-delay:3.5s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(124,58,237,0.08));color:#c4b5fd;border-color:rgba(124,58,237,0.35);">
+    <span>🎨</span>"Great QA is invisible to users"
+  </div>
+
+  <!-- Bottom row -->
+  <div class="lo-pill" style="bottom:16%;left:2%;animation-delay:1.2s;background:linear-gradient(135deg,rgba(16,185,129,0.22),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
+    <span>🏆</span>"Zero defects is the only standard"
+  </div>
+  <div class="lo-pill" style="bottom:16%;right:2%;animation-delay:4.2s;background:linear-gradient(135deg,rgba(245,158,11,0.22),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.35);">
+    <span>📊</span>"Data-driven decisions, always"
+  </div>
+
+  <!-- Very bottom -->
+  <div class="lo-pill" style="bottom:5%;left:3%;animation-delay:0.8s;background:linear-gradient(135deg,rgba(59,130,246,0.22),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
+    <span>⚙️</span>"Automate the boring, focus on quality"
+  </div>
+  <div class="lo-pill" style="bottom:5%;right:3%;animation-delay:3.2s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(236,72,153,0.12));color:#e879f9;border-color:rgba(232,121,249,0.35);">
+    <span>🌟</span>"Seclore QA — Built different"
+  </div>
+
+
+  <!-- Extra middle fills -->
+  <div class="lo-pill" style="top:15%;left:30%;animation-delay:5s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
+    <span>🧪</span>"Testing is caring"
+  </div>
+  <div class="lo-pill" style="top:28%;left:28%;animation-delay:6s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
+    <span>🌟</span>"Ship with confidence"
+  </div>
+  <div class="lo-pill" style="top:42%;left:1%;animation-delay:2.8s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
+    <span>💡</span>"Every bug is a lesson"
+  </div>
+  <div class="lo-pill" style="top:42%;left:30%;animation-delay:5.5s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.35);">
+    <span>🔬</span>"Precision over speed"
+  </div>
+  <div class="lo-pill" style="top:42%;right:2%;animation-delay:1.8s;background:linear-gradient(135deg,rgba(124,58,237,0.22),rgba(124,58,237,0.08));color:#c4b5fd;border-color:rgba(124,58,237,0.35);">
+    <span>🧠</span>"Think like a user, test like a QA"
+  </div>
+  <div class="lo-pill" style="top:55%;left:28%;animation-delay:4.8s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.35);">
+    <span>⚙️</span>"Automate the boring, master the complex"
+  </div>
+  <div class="lo-pill" style="bottom:14%;left:28%;animation-delay:3.8s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.35);">
+    <span>🎯</span>"Seclore QA — Built different"
+  </div>
+  <div class="lo-pill" style="bottom:3%;left:32%;animation-delay:5.2s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.35);">
+    <span>✨</span>"Real-time. Role-based. Right."
+  </div>
+  <div class="lo-pill" style="bottom:5%;right:3%;animation-delay:2s;background:linear-gradient(135deg,rgba(232,121,249,0.22),rgba(232,121,249,0.08));color:#e879f9;border-color:rgba(232,121,249,0.35);">
+    <span>🛠️</span>"Where QA teams do their best work"
+  </div>
+
+  <!-- Extra pills -->
+  <div class="lo-pill" style="top:10%;left:20%;animation-delay:1.2s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fcd34d;border-color:rgba(245,158,11,0.4);">
+    <span>🔥</span>"QA never sleeps"
+  </div>
+  <div class="lo-pill" style="top:22%;left:18%;animation-delay:3.3s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.4);">
+    <span>🎯</span>"Break it before users do"
+  </div>
+  <div class="lo-pill" style="top:35%;left:20%;animation-delay:2.1s;background:linear-gradient(135deg,rgba(236,72,153,0.2),rgba(236,72,153,0.08));color:#f9a8d4;border-color:rgba(236,72,153,0.4);">
+    <span>🧩</span>"Find it. Fix it. Ship it."
+  </div>
+  <div class="lo-pill" style="top:47%;left:18%;animation-delay:4.4s;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08));color:#6ee7b7;border-color:rgba(16,185,129,0.4);">
+    <span>💪</span>"QA is the last line of defense"
+  </div>
+  <div class="lo-pill" style="top:10%;right:20%;animation-delay:0.7s;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(124,58,237,0.08));color:#c4b5fd;border-color:rgba(124,58,237,0.4);">
+    <span>🚦</span>"No release without a green signal"
+  </div>
+  <div class="lo-pill" style="top:22%;right:18%;animation-delay:2.6s;background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08));color:#fbbf24;border-color:rgba(245,158,11,0.4);">
+    <span>📌</span>"Detail is everything in testing"
+  </div>
+  <div class="lo-pill" style="top:35%;right:20%;animation-delay:5.1s;background:linear-gradient(135deg,rgba(232,121,249,0.2),rgba(232,121,249,0.08));color:#e879f9;border-color:rgba(232,121,249,0.4);">
+    <span>🔑</span>"Quality unlocks trust"
+  </div>
+  <div class="lo-pill" style="top:47%;right:18%;animation-delay:1.9s;background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08));color:#93c5fd;border-color:rgba(59,130,246,0.4);">
+    <span>⚖️</span>"Balance speed with quality"
+  </div>
+
   <div class="login-box">
     <div class="login-mark">
       <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
@@ -917,8 +931,8 @@
       </svg>
     </div>
 
-    <h2>Welcome back</h2>
-    <div class="login-sub">Sign in to your TeamLens workspace</div>
+    <h2>TeamLens</h2>
+    <div class="login-sub">Making QA life easier — everything in one place 🎯</div>
 
     <div class="login-field">
       <label>Email</label>
@@ -952,7 +966,6 @@
         <a href="mailto:akash.kadam@seclore.com" style="font-size:10.5px;color:rgba(255,255,255,0.18);text-decoration:none;" onmouseover="this.style.color='rgba(196,181,253,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.18)'">🔗 akash.kadam@seclore.com</a>
       </div>
     </div>
-  </div>
   </div>
 </div>
 <!-- Change Password Modal -->
@@ -3271,16 +3284,9 @@ async function loadHolidays() {
 async function saveVMRecord(vm) {
   if (!sbClient || !vm?.id) return;
   try {
-    // _sortOverride allows explicit sort_order (used after delete reindex)
-    const sortOrder = vm._sortOverride !== undefined
-      ? vm._sortOverride
-      : (state.vms || []).findIndex(v => v.id === vm.id);
-    // Strip _sortOverride before saving to data field
-    const { _sortOverride, ...vmData } = vm;
     await sbClient.from('vms').upsert({
-      id: vmData.id,
-      data: vmData,
-      sort_order: sortOrder >= 0 ? sortOrder : 9999,
+      id: vm.id,
+      data: vm,
       updated_at: new Date().toISOString()
     });
   } catch(e) { console.warn('saveVMRecord error:', e); }
@@ -3297,14 +3303,9 @@ async function loadVMs() {
   if (!sbClient) return;
   try {
     const { data, error } = await sbClient
-      .from('vms').select('*').order('sort_order', { ascending: true });
+      .from('vms').select('data').order('updated_at', { ascending: true });
     if (error) throw error;
-    if (data && data.length > 0) {
-      // sort_order se sort — nahi hai toh updated_at fallback
-      state.vms = data
-        .sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999))
-        .map(r => r.data);
-    }
+    if (data && data.length > 0) state.vms = data.map(r => r.data);
   } catch(e) { console.warn('loadVMs error:', e); }
 }
 
@@ -3473,14 +3474,8 @@ function initFieldTablesRealtime() {
         const vm = payload.new?.data;
         if (!vm) return;
         const idx = state.vms.findIndex(v => v.id === vm.id);
-        if (idx >= 0) {
-          // Update in-place — preserve position in array
-          state.vms[idx] = vm;
-        } else {
-          // New VM — add at sort_order position
-          const sortOrder = payload.new?.sort_order ?? state.vms.length;
-          state.vms.splice(sortOrder, 0, vm);
-        }
+        if (idx >= 0) state.vms[idx] = vm;
+        else state.vms.push(vm);
       }
       markDirty('vmrepo', 'dashboard');
       renderAll();
@@ -6789,16 +6784,11 @@ function renameVMPod(index) {
   if (!newName || newName.trim() === oldName) return;
   const trimmed = newName.trim();
   if (pods.includes(trimmed)) { alert('A group with that name already exists.'); return; }
+  // Update all VMs using old pod name
   snapshotState(`Rename VM group: ${oldName} → ${trimmed}`);
   state.vmPods[index] = trimmed;
-  // Update all VMs using old pod name + save each to field table
-  (state.vms || []).forEach(vm => {
-    if (vm.pod === oldName) {
-      vm.pod = trimmed;
-      saveVMRecord(vm); // field-level save
-    }
-  });
-  saveState(); // vmPods still in resource_planner — must save
+  (state.vms || []).forEach(vm => { if (vm.pod === oldName) vm.pod = trimmed; });
+  saveState();
   renderVMPodsList();
   populateVMPodDropdowns();
   renderVMRepo();
@@ -6842,12 +6832,14 @@ function openVMModal(id) {
   editingVMId = id || null;
   populateVMPodDropdowns();
 
-  // Populate Used By dropdown from people list only — no duplicates
+  // Populate Used By dropdown from people list
   const usedBySel = document.getElementById('vmUsedBy');
   if (usedBySel) {
-    const allNames = [...new Set(
-      state.people.map(p => p.name?.trim()).filter(Boolean)
-    )].sort();
+    const allNames = [...new Set([
+      ...state.people.map(p => p.name),
+      // also include any existing usedBy values not in people list
+      ...(state.vms||[]).map(v => v.usedBy).filter(Boolean)
+    ])].sort();
     usedBySel.innerHTML = '<option value="">— Select person —</option>' +
       allNames.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   }
@@ -6911,7 +6903,8 @@ function saveVM() {
   }
   editingVMId = null;
   closeModal('vmModal');
-  saveVMRecord(vm); // field-level save — no saveState() to avoid realtime race condition
+  saveVMRecord(vm); // field-level save
+  saveState();
   renderVMRepo();
 }
 
@@ -6920,9 +6913,8 @@ function deleteVM(id) {
   if (!confirm(`Remove VM: ${vm?.details || id}?`)) return;
   snapshotState(`Delete VM: ${vm?.details?.slice(0,30)}`);
   state.vms = state.vms.filter(v => v.id !== id);
-  deleteVMRecord(id);
-  // Reindex sort_order for remaining VMs so no gaps
-  state.vms.forEach((v, i) => saveVMRecord({ ...v, _sortOverride: i }));
+  deleteVMRecord(id); // field-level delete
+  saveState();
   renderVMRepo();
 }
 
@@ -6930,7 +6922,8 @@ function toggleVMInUseRow(id) {
   const vm = (state.vms || []).find(v => v.id === id);
   if (!vm) return;
   vm.inUse = !vm.inUse;
-  saveVMRecord(vm); // field-level save — no saveState()
+  saveVMRecord(vm); // field-level save
+  saveState();
   renderVMRepo();
 }
 
@@ -6938,7 +6931,8 @@ function updateVMOwner(id, value) {
   const vm = (state.vms || []).find(v => v.id === id);
   if (!vm) return;
   vm.member = value;
-  saveVMRecord(vm); // field-level save — no saveState()
+  saveVMRecord(vm); // field-level save
+  saveState();
   renderVMRepo();
 }
 
@@ -8293,7 +8287,7 @@ function shiftDate(dateStr, days) {
   return toDateKey(d);
 }
 
-async function saveProject() {
+function saveProject() {
   const name            = document.getElementById('projName').value.trim();
   const jiraUrl         = document.getElementById('projJiraUrl').value.trim();
   const releaseDate     = document.getElementById('projReleaseDate').value;
@@ -8344,13 +8338,7 @@ async function saveProject() {
 
         if (isLateDate || isEarlyDate) {
           // Build late OR early — shift milestones accordingly
-          // Load test plan from DB if not already in memory
-          let plan = state.testPlans && state.testPlans[proj.id];
-          if (!plan || !plan.milestones) {
-            // Load fresh from field tables then apply delay
-            await loadFullTestPlanFromDB(proj.id);
-            plan = state.testPlans && state.testPlans[proj.id];
-          }
+          const plan = state.testPlans && state.testPlans[proj.id];
           if (plan && plan.milestones) {
             const ms = plan.milestones;
             const newBuildPickup = nextWorkingDay(actualBuildDate);
@@ -8387,11 +8375,8 @@ async function saveProject() {
               if (proj.status !== 'Completed') proj.status = 'Not started';
               showToastMsg('🔄 Review reset — milestones shifted. QA must re-request review for "' + name + '"');
             }
-
-            // ✅ CRITICAL — Save shifted milestones + reset review to field tables
-            // Without this, refresh reloads old dates from DB — review reset lost
-            saveMilestonesRow(proj.id, ms);
-            saveBufferRow(proj.id, plan);
+            // NOTE: proj.goAheadDate and proj.completionDate are NOT set here
+            // They only get set via syncTestPlanToProjects() AFTER review is approved
 
             if (isLateDate) {
               if (!state.buildDelayNotifications) state.buildDelayNotifications = [];
@@ -8999,26 +8984,8 @@ function saveTestRow() {
   syncTestPlanToProjects();
   // Save locally only — DB save happens on Publish
   if (selectedTestPlanProjectId) {
-    const latestPlan = getTestPlanForProject(selectedTestPlanProjectId);
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(latestPlan));
-
-    // Auto-publish if plan is reviewed AND all environments are Done
-    if (latestPlan.reviewed) {
-      const allStatuses = [
-        latestPlan.testPrepStatus || 'Not yet started',
-        latestPlan.testEnvStatus  || 'Not yet started',
-        ...latestPlan.rows.map(r => r.status || 'Not yet started')
-      ];
-      const allDone = allStatuses.length > 0 && allStatuses.every(s => s === 'Done');
-      if (allDone) {
-        publishDraft().then(() => {
-          showToastMsg('🎉 All environments Done — auto-published! Release moved to Vault.');
-        });
-        renderTestPlan();
-        markDirty('projects');
-        return;
-      }
-    }
+    const plan = getTestPlanForProject(selectedTestPlanProjectId);
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
   }
   markTestPlanDirty();
   renderTestPlan();
@@ -9098,26 +9065,8 @@ function saveBufferValues() {
   syncTestPlanToProjects();
   // Save locally only — DB save happens on Publish
   if (selectedTestPlanProjectId) {
-    const latestPlan = getTestPlanForProject(selectedTestPlanProjectId);
-    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(latestPlan));
-
-    // Auto-publish if plan is reviewed AND all environments are Done
-    if (latestPlan.reviewed) {
-      const allStatuses = [
-        latestPlan.testPrepStatus || 'Not yet started',
-        latestPlan.testEnvStatus  || 'Not yet started',
-        ...latestPlan.rows.map(r => r.status || 'Not yet started')
-      ];
-      const allDone = allStatuses.length > 0 && allStatuses.every(s => s === 'Done');
-      if (allDone) {
-        publishDraft().then(() => {
-          showToastMsg('🎉 All environments Done — auto-published! Release moved to Vault.');
-        });
-        renderTestPlan();
-        markDirty('projects');
-        return;
-      }
-    }
+    const plan = getTestPlanForProject(selectedTestPlanProjectId);
+    localStorage.setItem(DRAFT_KEY_PREFIX + selectedTestPlanProjectId, JSON.stringify(plan));
   }
   markTestPlanDirty();
   renderTestPlan();
