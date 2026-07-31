@@ -1304,19 +1304,20 @@
             <span style="font-size:11px; color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">POD:</span>
             <div id="dailyPlanPodPills" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
           </div>
-          <button class="ghost" onclick="shiftDayMonth(-1)">‹ Prev</button>
-          <!-- Month + Year jump -->
-          <select id="dpMonthSelect" onchange="jumpDayMonth()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-family:inherit;">
-            <option value="0">January</option><option value="1">February</option>
-            <option value="2">March</option><option value="3">April</option>
-            <option value="4">May</option><option value="5">June</option>
-            <option value="6">July</option><option value="7">August</option>
-            <option value="8">September</option><option value="9">October</option>
-            <option value="10">November</option><option value="11">December</option>
-          </select>
-          <select id="dpYearSelect" onchange="jumpDayMonth()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-family:inherit;">
-          </select>
-          <button class="ghost" onclick="shiftDayMonth(1)">Next ›</button>
+          <!-- Prev + Month + Year + Next — all on same line -->
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button class="ghost" onclick="shiftDayMonth(-1)">‹ Prev</button>
+            <select id="dpMonthSelect" onchange="jumpDayMonth()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-family:inherit;">
+              <option value="0">January</option><option value="1">February</option>
+              <option value="2">March</option><option value="3">April</option>
+              <option value="4">May</option><option value="5">June</option>
+              <option value="6">July</option><option value="7">August</option>
+              <option value="8">September</option><option value="9">October</option>
+              <option value="10">November</option><option value="11">December</option>
+            </select>
+            <select id="dpYearSelect" onchange="jumpDayMonth()" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-family:inherit;"></select>
+            <button class="ghost" onclick="shiftDayMonth(1)">Next ›</button>
+          </div>
           <button class="action" onclick="openDailyPlanModal()">+ Assign</button>
           <button class="export-btn" onclick="openDailyPlanReportModal()"><span class="ico">📄</span> Share report</button>
         </div>
@@ -12502,7 +12503,7 @@ function populateDpYears() {
   if (!ySel) return;
   const cur = new Date().getFullYear();
   ySel.innerHTML = '';
-  for (let y = cur - 2; y <= cur + 3; y++) {
+  for (let y = cur - 2; y <= cur + 9; y++) {
     const opt = document.createElement('option');
     opt.value = y; opt.textContent = y;
     ySel.appendChild(opt);
