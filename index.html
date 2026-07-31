@@ -12836,62 +12836,56 @@ function renderDailyPlan() {
     <div class="stat-card"><div class="label">Available PDs after leave</div><div class="value ${freePDRemaining < 0 ? 'red' : 'green'}">${availablePDAfterLeave}</div></div>
   `;
 
-  // Build working days for this month
-  const workingDates = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateObj = new Date(dayYear, dayMonth, d);
-    const dateKey = `${dayYear}-${String(dayMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    workingDates.push({ d, dateObj, dateKey, isWorking: isWorkingDay(dateObj, dateKey), holidayMatch: state.holidays.find(h => h.date === dateKey) });
-  }
-
-  // Layout: Name column (fixed left) + one column per day
-  const COL_NAME = 130;
-  const COL_DAY  = 54;
-  const totalWidth = COL_NAME + (workingDates.length * COL_DAY);
-  grid.style.gridTemplateColumns = `${COL_NAME}px repeat(${workingDates.length}, ${COL_DAY}px)`;
+  // Fixed column widths — names as columns (top), dates as rows (left)
+  const COL_DATE = 65;
+  const COL_DAY  = 34;
+  const COL_PERSON = 130;
+  const totalWidth = COL_DATE + COL_DAY + (filteredPeople.length * COL_PERSON);
+  grid.style.gridTemplateColumns = `${COL_DATE}px ${COL_DAY}px repeat(${filteredPeople.length}, ${COL_PERSON}px)`;
   grid.style.minWidth = totalWidth + 'px';
 
-  // Header row — Name cell + date headers
-  let html = `<div class="cal-cell name cal-header" style="position:sticky;left:0;z-index:10;">Name</div>`;
-  workingDates.forEach(({d, dateObj, isWorking, holidayMatch}) => {
-    const dow = dayNames[dateObj.getDay()].slice(0,2);
-    html += `<div class="cal-cell cal-header" style="text-align:center;padding:3px 2px;${!isWorking?'opacity:0.45;':''}" title="${holidayMatch ? escapeHtml(holidayMatch.name) : ''}">
-      <div style="font-size:9px;color:var(--text-faint);">${dow}</div>
-      <div style="font-size:11.5px;font-weight:700;">${d}</div>
-    </div>`;
-  });
-
-  // Person rows
+  // Header row — Date + Day + person names
+  let html = `<div class="cal-cell name cal-header" style="position:sticky;left:0;z-index:10;">Date</div>`;
+  html += `<div class="cal-cell cal-header" style="position:sticky;left:${COL_DATE}px;z-index:10;">Day</div>`;
   filteredPeople.forEach(p => {
     const initials = p.name.trim().split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
     const podC = POD_COLORS[p.devPod];
-
-    // Name cell — sticky left
-    html += `<div class="cal-cell name" style="position:sticky;left:0;z-index:5;padding:4px 8px;">
+    html += `<div class="cal-cell cal-header" style="text-align:left;padding:6px 8px;">
       <div style="display:flex;align-items:center;gap:6px;">
-        <div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0;">${initials}</div>
+        <div style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0;">${initials}</div>
         <div style="min-width:0;">
-          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;">${escapeHtml(p.name)}</div>
-          ${p.devPod && !selectedDailyPlanPod ? `<div style="font-size:9.5px;color:${podC?.[1]||'#64748b'};font-weight:500;">${escapeHtml(p.devPod)}</div>` : ''}
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;font-weight:600;">${escapeHtml(p.name)}</div>
+          ${p.devPod && !selectedDailyPlanPod ? `<div style="font-size:10px;color:${podC?.[1]||'#64748b'};font-weight:500;">${escapeHtml(p.devPod)}</div>` : ''}
         </div>
       </div>
     </div>`;
+  });
 
-    // Day cells for this person
-    workingDates.forEach(({dateKey, isWorking, holidayMatch}) => {
+  // Date rows
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(dayYear, dayMonth, d);
+    const dateKey = `${dayYear}-${String(dayMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const nonWorking = !isWorkingDay(dateObj, dateKey);
+    const holidayMatch = state.holidays.find(h => h.date === dateKey);
+    const dateLabel = formatDateShort(dateKey);
+
+    html += `<div class="cal-cell name" style="position:sticky;left:0;z-index:5;${nonWorking?'opacity:0.55;':''}" title="${holidayMatch?escapeHtml(holidayMatch.name):''}">${dateLabel}</div>`;
+    html += `<div class="cal-cell" style="position:sticky;left:${COL_DATE}px;z-index:5;background:var(--panel);${nonWorking?'opacity:0.55;':''}">${dayNames[dateObj.getDay()]}</div>`;
+
+    filteredPeople.forEach(p => {
       const leaveMap_ = getLeaveMap(p.id);
       const onLeave = !!leaveMap_[dateKey];
       const leaveType = leaveMap_[dateKey] || null;
       const entries = state.dailyPlan.filter(e => e.personId === p.id && e.date === dateKey);
 
-      if (!isWorking) {
-        html += `<div class="cal-cell" style="background:var(--panel-2);opacity:0.5;" title="${holidayMatch ? escapeHtml(holidayMatch.name) : ''}"></div>`;
+      if (nonWorking) {
+        html += `<div class="cal-cell" style="background:var(--panel-2);color:var(--text-faint);opacity:0.5;text-align:left;padding-left:10px;">${holidayMatch?escapeHtml(holidayMatch.name):''}</div>`;
       } else if (onLeave && leaveType !== 'WFH') {
         const leaveBg    = leaveType === 'UPL' ? '#fef2f2' : '#fefce8';
         const leaveBorder= leaveType === 'UPL' ? '#fecaca' : '#fde68a';
         const leaveColor = leaveType === 'UPL' ? '#dc2626' : '#a16207';
-        html += `<div class="cal-cell" style="background:${leaveBg};border:1px solid ${leaveBorder};display:flex;align-items:center;justify-content:center;">
-          <span style="color:${leaveColor};font-size:10px;font-weight:700;">${leaveType}</span>
+        html += `<div class="cal-cell" style="background:${leaveBg};border:1px solid ${leaveBorder};text-align:center;display:flex;align-items:center;justify-content:center;">
+          <span style="background:${leaveBg};color:${leaveColor};border:1.5px solid ${leaveBorder};border-radius:5px;padding:1px 7px;font-size:10.5px;font-weight:700;">${leaveType}</span>
         </div>`;
       } else if (entries.length > 0) {
         const segs = entries.map(e => {
@@ -12899,41 +12893,41 @@ function renderDailyPlan() {
           const TASK_ICONS = {'Test Scenario Writing':'📝','Test Case Writing':'✍️','Test Data Prep':'🗂️','BVT':'🔬','Execution':'▶️'};
           const taskIcon = e.task ? (TASK_ICONS[e.task] || '🏷️') : '';
           const taskBadge = e.task
-            ? `<div style="display:inline-flex;align-items:center;gap:2px;background:${color}18;border:1px solid ${color}35;border-radius:3px;padding:0px 3px;font-size:9px;font-weight:700;color:${color};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;"><span>${taskIcon}</span><span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.task)}</span></div>`
+            ? `<div style="display:inline-flex;align-items:center;gap:3px;background:${color}18;border:1px solid ${color}35;border-radius:4px;padding:0px 4px;font-size:9.5px;font-weight:700;color:${color};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;"><span>${taskIcon}</span><span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.task)}</span></div>`
             : '';
           const canEditDP = canEdit('dailyplan');
           const actionBtns = canEditDP
-            ? `<button title="Edit" onclick="event.stopPropagation();editDailyPlanEntry('${e.id}')" style="background:${color}25;border:none;border-radius:3px;cursor:pointer;padding:2px 4px;font-size:9px;color:${color};line-height:1;font-family:inherit;">✎</button>
-               <button title="Remove" onclick="event.stopPropagation();clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')" style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:2px 4px;font-size:9px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>`
+            ? `<button title="Edit" onclick="event.stopPropagation();editDailyPlanEntry('${e.id}')" style="background:${color}25;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:${color};line-height:1;font-family:inherit;">✎</button>
+               <button title="Remove" onclick="event.stopPropagation();clearDailyPlanCell('${p.id}','${dateKey}','${e.id}')" style="background:#fee2e2;border:none;border-radius:3px;cursor:pointer;padding:2px 5px;font-size:10px;color:#dc2626;line-height:1;font-family:inherit;">✕</button>`
             : '';
-          const dragHandle = canEditDP ? `<span title="Drag to move" style="cursor:grab;font-size:8px;color:${color};opacity:0.5;margin-right:1px;">⠿</span>` : '';
+          const dragHandle = canEditDP ? `<span title="Drag to move" style="cursor:grab;font-size:9px;color:${color};opacity:0.5;margin-right:2px;line-height:1;">⠿</span>` : '';
           return `<div
             data-entry-id="${e.id}" data-person-id="${p.id}" data-date="${dateKey}"
             ${canEditDP ? `draggable="true" ondragstart="dpDragStart(event,'${e.id}','${p.id}','${dateKey}')"` : ''}
-            style="background:${color}12;border-left:2px solid ${color};border-radius:0 3px 3px 0;margin:1px 0;padding:2px 3px;position:relative;${canEditDP?'cursor:grab;':''}"
+            style="background:${color}12;border-left:2.5px solid ${color};border-radius:0 4px 4px 0;margin:1px 0;padding:2px 4px 2px 5px;position:relative;${canEditDP?'cursor:grab;':''}"
             onmouseenter="this.querySelector('.dp-actions').style.display='flex'"
             onmouseleave="this.querySelector('.dp-actions').style.display='none'">
-            <div style="font-size:10px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:${canEditDP?28:2}px;line-height:1.2;">${dragHandle}${escapeHtml(e.project)}</div>
+            <div style="font-size:11px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:${canEditDP?32:4}px;line-height:1.2;">${dragHandle}${escapeHtml(e.project)}</div>
             ${taskBadge}
-            <div class="dp-actions" style="display:none;position:absolute;top:1px;right:1px;gap:2px;align-items:center;">${actionBtns}</div>
+            <div class="dp-actions" style="display:none;position:absolute;top:2px;right:2px;gap:2px;align-items:center;">${actionBtns}</div>
           </div>`;
         }).join('');
         html += `<div class="cal-cell day-cell dp-drop-zone"
           data-person-id="${p.id}" data-date="${dateKey}"
           ondragover="dpDragOver(event)" ondragleave="dpDragLeave(event)" ondrop="dpDrop(event,'${p.id}','${dateKey}')"
-          style="text-align:left;padding:2px 2px;vertical-align:top;">${segs}</div>`;
+          style="text-align:left;padding:2px 3px;">${segs}</div>`;
       } else {
         html += `<div class="cal-cell day-cell dp-drop-zone"
           data-person-id="${p.id}" data-date="${dateKey}"
           ondragover="dpDragOver(event)" ondragleave="dpDragLeave(event)" ondrop="dpDrop(event,'${p.id}','${dateKey}')"
-          title="${canEdit('dailyplan') ? 'Click to assign' : ''}"
+          title="${canEdit('dailyplan')?'Click to assign':''}"
           style="cursor:${canEdit('dailyplan')?'pointer':'default'};"
           onclick="if(canEdit('dailyplan'))openDailyPlanModal('${p.id}','${dateKey}');">
-          <div style="opacity:0.15;font-size:10px;text-align:center;">${canEdit('dailyplan') ? '+' : ''}</div>
+          <div style="opacity:0.2;font-size:11px;text-align:center;">${canEdit('dailyplan')?'+':''}</div>
         </div>`;
       }
     });
-  });
+  }
   grid.innerHTML = html;
 }
 
