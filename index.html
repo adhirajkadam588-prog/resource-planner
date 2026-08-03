@@ -1409,8 +1409,8 @@
     <div class="panel" id="leaveSummaryPanel">
       <div class="panel-head">
         <div>
-          <h3>Leave summary</h3>
-          <div class="desc">All leave days per person across all months</div>
+          <h3 id="leaveSummaryTitle">Leave summary</h3>
+          <div class="desc">Leave days for the currently viewed month</div>
         </div>
       </div>
       <table id="leaveSummaryTable">
@@ -1418,12 +1418,12 @@
           <tr>
             <th style="width:150px;">Person</th>
             <th>Leave dates</th>
-            <th style="width:130px; text-align:center;">PL / UPL / Total</th>
+            <th style="width:160px;text-align:center;">PL / UPL / WFH / Total</th>
           </tr>
         </thead>
         <tbody id="leaveSummaryBody"></tbody>
       </table>
-      <div class="empty-state" id="leaveSummaryEmpty" style="display:none;">No leave days marked yet.</div>
+      <div class="empty-state" id="leaveSummaryEmpty" style="display:none;">No leave days marked for this month.</div>
     </div>
   </div>
 
@@ -12230,39 +12230,53 @@ function renderLeaveSummary() {
   const emptyEl = document.getElementById('leaveSummaryEmpty');
   if (!tbody) return;
 
+  // Update summary title to show current month
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const titleEl = document.getElementById('leaveSummaryTitle');
+  if (titleEl) titleEl.textContent = `Leave Summary — ${monthNames[calMonth]} ${calYear}`;
+
+  // Filter prefix for current month
+  const monthPrefix = `${calYear}-${String(calMonth+1).padStart(2,'0')}-`;
+
   const rows = state.people.map(p => {
     const leaveMap = getLeaveMap(p.id);
-    const entries = Object.entries(leaveMap).sort(([a],[b]) => a.localeCompare(b));
-    const pl = entries.filter(([,t]) => t === 'PL');
+    // Only show leaves for currently viewed month
+    const entries = Object.entries(leaveMap)
+      .filter(([d]) => d.startsWith(monthPrefix))
+      .sort(([a],[b]) => a.localeCompare(b));
+    const pl  = entries.filter(([,t]) => t === 'PL');
     const upl = entries.filter(([,t]) => t === 'UPL');
-    return { name: p.name, pl, upl, total: entries.length };
+    const wfh = entries.filter(([,t]) => t === 'WFH');
+    return { name: p.name, pl, upl, wfh, total: entries.length };
   }).filter(r => r.total > 0);
 
   if (rows.length === 0) {
     tbody.innerHTML = '';
-    emptyEl.style.display = 'block';
+    if (emptyEl) emptyEl.style.display = 'block';
     return;
   }
-  emptyEl.style.display = 'none';
+  if (emptyEl) emptyEl.style.display = 'none';
 
   tbody.innerHTML = rows.map(r => {
     const plPills = r.pl.map(([d]) =>
-      `<span style="display:inline-block; background:#fef3c7; color:#b45309; border:1px solid #f59e0b; border-radius:5px; padding:2px 7px; font-size:11px; font-weight:600; margin:2px 2px 2px 0;">${formatDateDisplay(d)}</span>`
+      `<span style="display:inline-block;background:#fef3c7;color:#b45309;border:1px solid #f59e0b;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;margin:2px 2px 2px 0;">${formatDateDisplay(d)}</span>`
     ).join('');
     const uplPills = r.upl.map(([d]) =>
-      `<span style="display:inline-block; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:5px; padding:2px 7px; font-size:11px; font-weight:600; margin:2px 2px 2px 0;">${formatDateDisplay(d)}</span>`
+      `<span style="display:inline-block;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;margin:2px 2px 2px 0;">${formatDateDisplay(d)}</span>`
+    ).join('');
+    const wfhPills = r.wfh.map(([d]) =>
+      `<span style="display:inline-block;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;margin:2px 2px 2px 0;">${formatDateDisplay(d)}</span>`
     ).join('');
 
     return `
       <tr>
-        <td style="font-weight:600; white-space:nowrap; vertical-align:top;">${escapeHtml(r.name)}</td>
-        <td style="line-height:2; vertical-align:top;">
-          ${plPills}${uplPills}
-        </td>
-        <td style="text-align:center; vertical-align:top; white-space:nowrap;">
-          ${r.pl.length > 0 ? `<span style="background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:700; display:block; margin-bottom:3px;">PL: ${r.pl.length}</span>` : ''}
-          ${r.upl.length > 0 ? `<span style="background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:700; display:block;">UPL: ${r.upl.length}</span>` : ''}
-          <span style="font-size:10px; color:#94a3b8; display:block; margin-top:2px;">Total: ${r.total}</span>
+        <td style="font-weight:600;white-space:nowrap;vertical-align:top;">${escapeHtml(r.name)}</td>
+        <td style="line-height:2;vertical-align:top;">${plPills}${uplPills}${wfhPills}</td>
+        <td style="text-align:center;vertical-align:top;white-space:nowrap;">
+          ${r.pl.length  > 0 ? `<span style="background:#fef3c7;color:#b45309;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;display:block;margin-bottom:3px;">PL: ${r.pl.length}</span>` : ''}
+          ${r.upl.length > 0 ? `<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;display:block;margin-bottom:3px;">UPL: ${r.upl.length}</span>` : ''}
+          ${r.wfh.length > 0 ? `<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;display:block;">WFH: ${r.wfh.length}</span>` : ''}
+          <span style="font-size:10px;color:#94a3b8;display:block;margin-top:2px;">Total: ${r.total}</span>
         </td>
       </tr>`;
   }).join('');
