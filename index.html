@@ -12818,8 +12818,9 @@ function renderDailyPlan() {
 
   let totalLeaveDays = 0;
   state.people.forEach(p => {
-    const leaveMap_ = getLeaveMap(p.id); const leaveDays = Object.keys(leaveMap_);
-    leaveDays.forEach(dateStr => {
+    const leaveMap_ = getLeaveMap(p.id);
+    Object.entries(leaveMap_).forEach(([dateStr, type]) => {
+      if (type === 'WFH') return; // WFH = available, don't count as leave
       const d = new Date(dateStr + 'T00:00:00');
       if (d.getFullYear() === dayYear && d.getMonth() === dayMonth && isWorkingDay(d, dateStr)) totalLeaveDays++;
     });
