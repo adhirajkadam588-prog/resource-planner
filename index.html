@@ -876,7 +876,14 @@
     </div>
   </div>
   </div>
-</div><!-- Change Password Modal -->
+</div><!-- Assessment Modal -->
+<div class="modal-overlay" id="assessmentModal">
+  <div class="modal" style="max-width:600px;width:95vw;max-height:90vh;overflow-y:auto;" id="assessmentModalInner">
+    <!-- Content injected by JS -->
+  </div>
+</div>
+
+<!-- Change Password Modal -->
 <div class="modal-overlay" id="changePasswordModal">
   <div class="modal">
     <h3>🔒 Change password</h3>
@@ -1681,6 +1688,7 @@
     <div style="margin-bottom:20px; display:flex; align-items:center; justify-content:flex-end; gap:8px;">
       <button id="addLinkBtn" class="ghost" onclick="openLinkModal()" style="display:none;">🔗 Add link</button>
       <button id="addResourceBtn" class="action" onclick="openResourceModal()" style="display:none;">+ Add resource</button>
+      <button id="assessmentResultsBtn" onclick="openAssessmentResults()" style="display:none;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:10px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">📊 View results</button>
     </div>
 
     <!-- Important Links section -->
@@ -8026,6 +8034,8 @@ function renderKnowledge() {
 
   // Show add button only for admin/lead
   if (addBtn) addBtn.style.display = (currentUserRole === 'admin' || isCurrentUserLead()) ? 'flex' : 'none';
+  const resultsBtn = document.getElementById('assessmentResultsBtn');
+  if (resultsBtn) resultsBtn.style.display = (currentUserRole === 'admin' || isCurrentUserLead()) ? 'inline-flex' : 'none';
 
   const resources = state.knowledgeResources || [];
   const search    = (document.getElementById('kbSearch')?.value || '').toLowerCase();
@@ -8100,6 +8110,10 @@ function renderKnowledge() {
               <button onclick="deleteResource('${r.id}')"
                 style="background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:#dc2626;font-family:inherit;">✕</button>
             ` : ''}
+            <button onclick="openAssessmentModal('${r.id}','${escapeHtml(r.title)}')"
+              style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px;">
+              🧠 Assessment
+            </button>
             <a href="${escapeHtml(r.url)}" target="_blank"
               style="background:#7c3aed;color:white;padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
               Open ↗
@@ -12660,7 +12674,435 @@ function renderResourceAvailability() {
   container.innerHTML = cards;
 }
 
-// ── Daily Plan Drag-Drop ─────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// KNOWLEDGE ASSESSMENT FEATURE
+// ════════════════════════════════════════════════════════════
+
+const ASSESSMENT_PASS_SCORE = 70; // 70% to pass
+const ASSESSMENT_LEVEL_CONFIG = {
+  Easy:   { questions: 5,  label: 'Basic recall',    color: '#dcfce7', text: '#15803d' },
+  Medium: { questions: 8,  label: 'Understanding',   color: '#fef3c7', text: '#b45309' },
+  Hard:   { questions: 10, label: 'Application',     color: '#fee2e2', text: '#dc2626' }
+};
+
+let _assessmentState = {
+  resourceId: null, resourceTitle: null, resourceUrl: null,
+  level: 'Medium', questions: [], currentQ: 0,
+  answers: {}, startTime: null, loading: false
+};
+
+function openAssessmentModal(resourceId, resourceTitle) {
+  const resource = (state.knowledgeResources||[]).find(r => r.id === resourceId);
+  _assessmentState = {
+    resourceId, resourceTitle,
+    resourceUrl: resource?.url || '',
+    level: 'Medium', questions: [], currentQ: 0,
+    answers: {}, startTime: null, loading: false
+  };
+  renderAssessmentScreen('level-select');
+  document.getElementById('assessmentModal').classList.add('show');
+}
+
+function renderAssessmentScreen(screen) {
+  const el = document.getElementById('assessmentModalInner');
+  if (!el) return;
+
+  if (screen === 'level-select') {
+    el.innerHTML = `
+      <h3 style="margin:0 0 4px;">🧠 Knowledge Assessment</h3>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;">${escapeHtml(_assessmentState.resourceTitle)}</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text);">Select difficulty level</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+        ${Object.entries(ASSESSMENT_LEVEL_CONFIG).map(([lvl, cfg]) => `
+          <div onclick="selectAssessmentLevel('${lvl}')" style="cursor:pointer;border:2px solid ${_assessmentState.level===lvl?'#7c3aed':'var(--border)'};border-radius:12px;padding:14px;text-align:center;background:${_assessmentState.level===lvl?'rgba(124,58,237,0.06)':'var(--panel-2)'};">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">${lvl}</div>
+            <div style="font-size:11px;color:var(--text-faint);">${cfg.questions} questions</div>
+            <div style="font-size:11px;color:var(--text-faint);">${cfg.label}</div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-dim);display:block;margin-bottom:6px;">Number of questions</label>
+        <input type="number" id="assessmentQCount" value="${ASSESSMENT_LEVEL_CONFIG[_assessmentState.level].questions}" min="3" max="20"
+          style="width:100px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--panel);color:var(--text);">
+        <span style="font-size:12px;color:var(--text-faint);margin-left:8px;">questions (3–20)</span>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="closeModal('assessmentModal')" class="ghost" style="flex:1;">Cancel</button>
+        <button onclick="startAssessmentGeneration()" style="flex:2;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+          🚀 Generate questions
+        </button>
+      </div>`;
+
+  } else if (screen === 'loading') {
+    el.innerHTML = `
+      <div style="text-align:center;padding:48px 24px;">
+        <div style="font-size:40px;margin-bottom:16px;">🧠</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Generating questions...</div>
+        <div style="font-size:13px;color:var(--text-faint);">Reading "${escapeHtml(_assessmentState.resourceTitle)}" and creating ${_assessmentState.level} level questions</div>
+        <div style="margin-top:24px;height:4px;background:var(--border-soft);border-radius:2px;overflow:hidden;">
+          <div style="height:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);border-radius:2px;animation:loadbar 2s ease-in-out infinite;"></div>
+        </div>
+      </div>
+      <style>@keyframes loadbar{0%{width:0%}50%{width:70%}100%{width:100%}}</style>`;
+
+  } else if (screen === 'question') {
+    const q = _assessmentState.questions[_assessmentState.currentQ];
+    const total = _assessmentState.questions.length;
+    const progress = ((_assessmentState.currentQ) / total) * 100;
+    const cfg = ASSESSMENT_LEVEL_CONFIG[_assessmentState.level];
+    const selected = _assessmentState.answers[_assessmentState.currentQ];
+
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:12px;color:var(--text-faint);">Question ${_assessmentState.currentQ+1} of ${total}</div>
+        <div style="background:${cfg.color};color:${cfg.text};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">${_assessmentState.level}</div>
+      </div>
+      <div style="height:4px;background:var(--border-soft);border-radius:2px;margin-bottom:20px;overflow:hidden;">
+        <div style="height:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);border-radius:2px;width:${progress}%;transition:width 0.3s;"></div>
+      </div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);line-height:1.5;margin-bottom:18px;">${escapeHtml(q.question)}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+        ${q.options.map((opt, i) => `
+          <div onclick="selectAnswer(${i})"
+            style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid ${selected===i?'#7c3aed':'var(--border)'};border-radius:10px;cursor:pointer;background:${selected===i?'rgba(124,58,237,0.06)':'var(--panel-2)'};transition:all 0.15s;">
+            <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${selected===i?'#7c3aed':'var(--border)'};background:${selected===i?'#7c3aed':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${selected===i?'<div style="width:8px;height:8px;border-radius:50%;background:white;"></div>':''}
+            </div>
+            <div style="font-size:13px;color:var(--text);">${escapeHtml(opt)}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:10px;">
+        ${_assessmentState.currentQ > 0 ? `<button onclick="prevQuestion()" class="ghost">← Back</button>` : ''}
+        <button onclick="${_assessmentState.currentQ < total-1 ? 'nextQuestion()' : 'submitAssessment()'}"
+          style="flex:1;background:${selected!==undefined?'linear-gradient(135deg,#7c3aed,#2563eb)':'var(--border-soft)'};color:${selected!==undefined?'white':'var(--text-faint)'};border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:${selected!==undefined?'pointer':'not-allowed'};font-family:inherit;">
+          ${_assessmentState.currentQ < total-1 ? 'Next question →' : '✓ Submit'}
+        </button>
+      </div>`;
+
+  } else if (screen === 'result') {
+    const result = _assessmentState.result;
+    const pct = Math.round((result.score / result.total) * 100);
+    const passed = pct >= ASSESSMENT_PASS_SCORE;
+    const cfg = ASSESSMENT_LEVEL_CONFIG[_assessmentState.level];
+    const mins = Math.floor(result.timeSeconds / 60);
+    const secs = result.timeSeconds % 60;
+
+    el.innerHTML = `
+      <div style="text-align:center;padding:16px 0 24px;">
+        <div style="font-size:48px;margin-bottom:8px;">${passed?'🎉':'📚'}</div>
+        <div style="font-size:40px;font-weight:800;color:var(--text);">${result.score}/${result.total}</div>
+        <div style="font-size:14px;color:var(--text-faint);margin-top:4px;">${escapeHtml(_assessmentState.resourceTitle)}</div>
+        <div style="margin-top:10px;">
+          <span style="background:${passed?'#dcfce7':'#fee2e2'};color:${passed?'#15803d':'#dc2626'};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;">
+            ${passed?'✅ Passed':'❌ Needs review'}
+          </span>
+        </div>
+      </div>
+      <div style="background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;margin-bottom:16px;">
+        ${[
+          ['Score', `${pct}%`],
+          ['Correct', `${result.score} of ${result.total}`],
+          ['Level', _assessmentState.level],
+          ['Time', `${mins}m ${secs}s`],
+          ['Attempt', `#${result.attemptNumber}`]
+        ].map(([k,v])=>`
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-soft);">
+            <span style="font-size:13px;color:var(--text-faint);">${k}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--text);">${v}</span>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button onclick="showAnswerReview()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text);font-family:inherit;">
+          📋 Review answers
+        </button>
+        <button onclick="retryAssessment()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text);font-family:inherit;">
+          🔄 Retry assessment
+        </button>
+        <button onclick="closeModal('assessmentModal')" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+          Done
+        </button>
+      </div>`;
+
+  } else if (screen === 'review') {
+    const questions = _assessmentState.questions;
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+        <button onclick="renderAssessmentScreen('result')" style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">← Back</button>
+        <h3 style="margin:0;font-size:15px;">Answer review</h3>
+      </div>
+      ${questions.map((q, i) => {
+        const userAns = _assessmentState.answers[i];
+        const correct = q.correctIndex;
+        const isRight = userAns === correct;
+        return `
+          <div style="background:${isRight?'#f0fdf4':'#fef2f2'};border:1px solid ${isRight?'#86efac':'#fca5a5'};border-radius:10px;padding:14px;margin-bottom:10px;">
+            <div style="font-size:12px;color:${isRight?'#15803d':'#dc2626'};font-weight:700;margin-bottom:6px;">${isRight?'✅ Correct':'❌ Wrong'}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">${escapeHtml(q.question)}</div>
+            ${q.options.map((opt, j) => {
+              let bg = 'transparent'; let fw = '400'; let prefix = '';
+              if (j === correct) { bg = '#dcfce7'; fw = '700'; prefix = '✅ '; }
+              if (j === userAns && userAns !== correct) { bg = '#fee2e2'; fw = '700'; prefix = '❌ '; }
+              return `<div style="padding:4px 8px;background:${bg};border-radius:6px;font-size:12px;font-weight:${fw};color:var(--text);margin-bottom:2px;">${prefix}${escapeHtml(opt)}</div>`;
+            }).join('')}
+            ${q.explanation ? `<div style="font-size:12px;color:#475270;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.08);">💡 ${escapeHtml(q.explanation)}</div>` : ''}
+          </div>`;
+      }).join('')}`;
+  }
+}
+
+function selectAssessmentLevel(level) {
+  _assessmentState.level = level;
+  renderAssessmentScreen('level-select');
+}
+
+function selectAnswer(idx) {
+  _assessmentState.answers[_assessmentState.currentQ] = idx;
+  renderAssessmentScreen('question');
+}
+
+function nextQuestion() {
+  if (_assessmentState.answers[_assessmentState.currentQ] === undefined) return;
+  _assessmentState.currentQ++;
+  renderAssessmentScreen('question');
+}
+
+function prevQuestion() {
+  if (_assessmentState.currentQ > 0) {
+    _assessmentState.currentQ--;
+    renderAssessmentScreen('question');
+  }
+}
+
+function retryAssessment() {
+  _assessmentState.questions = [];
+  _assessmentState.currentQ = 0;
+  _assessmentState.answers = {};
+  _assessmentState.startTime = null;
+  renderAssessmentScreen('level-select');
+}
+
+function showAnswerReview() {
+  renderAssessmentScreen('review');
+}
+
+async function startAssessmentGeneration() {
+  const countEl = document.getElementById('assessmentQCount');
+  const qCount = Math.min(20, Math.max(3, parseInt(countEl?.value) || ASSESSMENT_LEVEL_CONFIG[_assessmentState.level].questions));
+  _assessmentState.loading = true;
+  renderAssessmentScreen('loading');
+
+  try {
+    const resource = (state.knowledgeResources||[]).find(r => r.id === _assessmentState.resourceId);
+    const resourceContext = resource
+      ? `Title: ${resource.title}\nCategory: ${resource.category}\nDescription: ${resource.desc || 'No description'}\nURL: ${resource.url}`
+      : `Title: ${_assessmentState.resourceTitle}`;
+
+    const levelDesc = {
+      Easy: 'basic recall and definition questions',
+      Medium: 'understanding and comprehension questions that test deeper knowledge',
+      Hard: 'application and analysis questions that require critical thinking'
+    };
+
+    const prompt = `You are a QA knowledge assessment generator for a software QA team.
+
+Generate exactly ${qCount} multiple choice questions about the following resource:
+${resourceContext}
+
+Level: ${_assessmentState.level} (${levelDesc[_assessmentState.level]})
+
+Return ONLY a valid JSON array with this exact structure (no markdown, no explanation):
+[
+  {
+    "question": "Question text here?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 0,
+    "explanation": "Brief explanation of why this is correct"
+  }
+]
+
+Rules:
+- Exactly ${qCount} questions
+- Each question has exactly 4 options
+- correctIndex is 0-based (0=A, 1=B, 2=C, 3=D)
+- Questions must be relevant to QA testing and the resource topic
+- Do not include any text outside the JSON array`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const raw = data.content?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const questions = JSON.parse(clean);
+
+    if (!Array.isArray(questions) || questions.length === 0) throw new Error('Invalid questions format');
+
+    _assessmentState.questions = questions;
+    _assessmentState.currentQ = 0;
+    _assessmentState.answers = {};
+    _assessmentState.startTime = Date.now();
+    renderAssessmentScreen('question');
+
+  } catch(e) {
+    console.error('Assessment generation error:', e);
+    document.getElementById('assessmentModalInner').innerHTML = `
+      <div style="text-align:center;padding:32px;">
+        <div style="font-size:32px;margin-bottom:12px;">❌</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;">Could not generate questions</div>
+        <div style="font-size:12px;color:var(--text-faint);margin-bottom:20px;">${e.message || 'Please try again'}</div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="closeModal('assessmentModal')" class="ghost" style="flex:1;">Close</button>
+          <button onclick="renderAssessmentScreen('level-select')" style="flex:1;background:#7c3aed;color:white;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Retry</button>
+        </div>
+      </div>`;
+  }
+}
+
+async function submitAssessment() {
+  if (_assessmentState.answers[_assessmentState.currentQ] === undefined) return;
+
+  const questions = _assessmentState.questions;
+  let score = 0;
+  questions.forEach((q, i) => {
+    if (_assessmentState.answers[i] === q.correctIndex) score++;
+  });
+
+  const timeSeconds = Math.round((Date.now() - _assessmentState.startTime) / 1000);
+  const pct = Math.round((score / questions.length) * 100);
+  const passed = pct >= ASSESSMENT_PASS_SCORE;
+
+  // Get attempt number
+  let attemptNumber = 1;
+  try {
+    const { data } = await sbClient
+      .from('assessment_results')
+      .select('attempt_number')
+      .eq('resource_id', _assessmentState.resourceId)
+      .eq('user_email', currentUserEmail)
+      .eq('level', _assessmentState.level)
+      .order('attempt_number', { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) attemptNumber = data[0].attempt_number + 1;
+  } catch(e) {}
+
+  // Save result
+  const resultId = uid();
+  const person = state.people.find(p => p.email === currentUserEmail);
+  try {
+    await sbClient.from('assessment_results').insert({
+      id: resultId,
+      resource_id: _assessmentState.resourceId,
+      resource_title: _assessmentState.resourceTitle,
+      level: _assessmentState.level,
+      user_email: currentUserEmail,
+      user_name: person?.name || currentUserEmail,
+      answers: _assessmentState.answers,
+      score, total: questions.length,
+      passed, time_seconds: timeSeconds,
+      attempt_number: attemptNumber
+    });
+  } catch(e) { console.warn('Assessment save error:', e); }
+
+  _assessmentState.result = { score, total: questions.length, timeSeconds, passed, attemptNumber };
+  renderAssessmentScreen('result');
+
+  logActivity('Assessment completed', {
+    resource: _assessmentState.resourceTitle,
+    level: _assessmentState.level,
+    score: `${score}/${questions.length}`,
+    passed
+  });
+}
+
+// ── Assessment Results Dashboard (Lead/Admin) ────────────────
+async function openAssessmentResults() {
+  try {
+    const { data, error } = await sbClient
+      .from('assessment_results')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    renderAssessmentResultsModal(data || []);
+  } catch(e) {
+    showToastMsg('❌ Could not load results: ' + e.message);
+  }
+}
+
+function renderAssessmentResultsModal(results) {
+  const el = document.getElementById('assessmentModalInner');
+  document.getElementById('assessmentModal').classList.add('show');
+
+  if (results.length === 0) {
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3 style="margin:0;">Assessment results</h3>
+        <button onclick="closeModal('assessmentModal')" class="ghost">Close</button>
+      </div>
+      <div style="text-align:center;padding:32px;color:var(--text-faint);">No assessments taken yet</div>`;
+    return;
+  }
+
+  // Group by resource
+  const byResource = {};
+  results.forEach(r => {
+    if (!byResource[r.resource_title]) byResource[r.resource_title] = [];
+    byResource[r.resource_title].push(r);
+  });
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;">📊 Assessment results</h3>
+      <button onclick="closeModal('assessmentModal')" class="ghost">Close</button>
+    </div>
+    ${Object.entries(byResource).map(([title, rows]) => `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;padding:6px 10px;background:var(--panel-2);border-radius:8px;">
+          📘 ${escapeHtml(title)}
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:var(--panel-2);">
+              <th style="text-align:left;padding:7px 8px;font-weight:600;color:var(--text-faint);">Name</th>
+              <th style="text-align:center;padding:7px 8px;font-weight:600;color:var(--text-faint);">Level</th>
+              <th style="text-align:center;padding:7px 8px;font-weight:600;color:var(--text-faint);">Score</th>
+              <th style="text-align:center;padding:7px 8px;font-weight:600;color:var(--text-faint);">Status</th>
+              <th style="text-align:center;padding:7px 8px;font-weight:600;color:var(--text-faint);">Attempt</th>
+              <th style="text-align:left;padding:7px 8px;font-weight:600;color:var(--text-faint);">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => {
+              const pct = Math.round((r.score/r.total)*100);
+              const cfg = ASSESSMENT_LEVEL_CONFIG[r.level] || {color:'#f1f5f9',text:'#475569'};
+              return `
+              <tr style="border-bottom:1px solid var(--border-soft);">
+                <td style="padding:8px;">${escapeHtml(r.user_name)}</td>
+                <td style="padding:8px;text-align:center;"><span style="background:${cfg.color};color:${cfg.text};padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:700;">${r.level}</span></td>
+                <td style="padding:8px;text-align:center;font-weight:700;">${r.score}/${r.total} (${pct}%)</td>
+                <td style="padding:8px;text-align:center;"><span style="background:${r.passed?'#dcfce7':'#fee2e2'};color:${r.passed?'#15803d':'#dc2626'};padding:1px 8px;border-radius:20px;font-size:10.5px;font-weight:700;">${r.passed?'Passed':'Failed'}</span></td>
+                <td style="padding:8px;text-align:center;color:var(--text-faint);">#${r.attempt_number}</td>
+                <td style="padding:8px;color:var(--text-faint);">${new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`).join('')}`;
+}
+
+// ── Assessment Results button in Launchpad header ────────────
+function renderAssessmentResultsBtn() {
+  if (currentUserRole !== 'admin' && !isCurrentUserLead()) return '';
+  return `<button onclick="openAssessmentResults()" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:10px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;">
+    📊 View results
+  </button>`;
+}
 let _dpDragEntryId  = null;
 let _dpDragPersonId = null;
 let _dpDragDate     = null;
